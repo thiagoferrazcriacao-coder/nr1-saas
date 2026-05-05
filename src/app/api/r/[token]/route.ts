@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { calcScore } from '@/lib/scoring'
 import Anthropic from '@anthropic-ai/sdk'
+import { TopicScore } from '@/lib/scoring'
 
 const answerSchema = z.object({
   answers: z.array(
@@ -18,7 +19,7 @@ async function runAiAnalysis(
   responseId: string,
   total: number,
   riskLevel: string,
-  byTopic: Record<string, number>,
+  byTopic: TopicScore[],
   sectorName: string
 ) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -27,8 +28,8 @@ async function runAiAnalysis(
   try {
     const client = new Anthropic({ apiKey })
 
-    const topicLines = Object.entries(byTopic)
-      .map(([topic, score]) => `- ${topic}: ${score.toFixed(2)}/4.0`)
+    const topicLines = byTopic
+      .map((t) => `- ${t.topic}: ${t.score.toFixed(2)}/4.0`)
       .join('\n')
 
     const prompt = `Você é especialista em saúde mental ocupacional e conformidade com a NR-1 (Norma Regulamentadora nº 1 do MTE).
