@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id               String         @id @default(uuid())
+  name             String
+  slug             String         @unique
+  cnpj             String?
+  logoUrl          String?
+  stripeCustomerId String?
+  plan             String         @default("starter")
+  createdAt        DateTime       @default(now())
+  sectors          Sector[]
+  users            User[]
+  subscriptions    Subscription[]
+
+  @@index([slug])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  companyId    String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model Subscription {
+  id                   String    @id @default(uuid())
+  companyId            String
+  stripeSubscriptionId String?
+  status               String
+  plan                 String
+  currentPeriodEnd     DateTime?
+  company              Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
+
+model Sector {
+  id          String                @id @default(uuid())
+  companyId   String
+  name        String
+  linkToken   String                @unique @default(uuid())
+  createdAt   DateTime              @default(now())
+  company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  responses   Response[]
+  assessments TopicAssessment[]
+
+  @@index([companyId])
+  @@index([linkToken])
+}
+
+// Avaliação de probabilidade por tópico por setor — preenchida pelo responsável
+model TopicAssessment {
+  id           String   @id @default(uuid())
+  sectorId     String
+  topicNum     Int
+  topic        String
+  probability  String   // baixa | media | alta
+  observations String?  // critérios qualitativos do avaliador
+  assessedBy   String?  // nome do avaliador (opcional)
+  updatedAt    DateTime @updatedAt
+  sector       Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@unique([sectorId, topicNum])
+  @@index([sectorId])
+}
+
+model Response {
+  id         String      @id @default(uuid())
+  sectorId   String
+  answers    Json
+  riskScore  Float?
+  riskLevel  String?
+  createdAt  DateTime    @default(now())
+  sector     Sector      @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  aiAnalysis AiAnalysis?
+
+  @@index([sectorId])
+  @@index([createdAt])
+}
+
+model AiAnalysis {
+  id             String   @id @default(uuid())
+  responseId     String   @unique
+  classification Json
+  recommendation String
+  modelUsed      String
+  processedAt    DateTime @default(now())
+  response       Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+}
+
+model Question {
+  id       String  @id @default(uuid())
+  code     String  @unique
+  topic    String
+  topicNum Int
+  text     String
+  hint     String?
+  reverse  Boolean @default(false)
+  order    Int
+
+  @@index([topicNum])
+  @@index([order])
+}
