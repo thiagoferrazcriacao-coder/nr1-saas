@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -86,8 +87,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-gray-400 text-xs mt-6">
-          🔒 Acesso restrito a administradores da empresa
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Não tem conta?{' '}
+          <Link href="/cadastro" className="text-primary-800 font-semibold hover:underline">
+            Criar conta grátis
+          </Link>
         </p>
       </div>
     </div>

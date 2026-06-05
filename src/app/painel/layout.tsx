@@ -9,12 +9,18 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [assessmentDone, setAssessmentDone] = useState(true) // assume done até confirmar
 
   useEffect(() => {
     fetch('/api/auth/refresh', { method: 'POST' })
       .then((r) => {
-        if (!r.ok) router.replace('/login')
-        else setChecking(false)
+        if (!r.ok) { router.replace('/login'); return }
+        setChecking(false)
+        // Verifica se avaliação do gestor foi feita
+        fetch('/api/dashboard/company-assessment')
+          .then((r) => r.json())
+          .then((data) => setAssessmentDone(!!data.assessment))
+          .catch(() => setAssessmentDone(false))
       })
       .catch(() => router.replace('/login'))
   }, [router])
@@ -24,9 +30,18 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     router.replace('/login')
   }
 
+  const isAssessmentPage = pathname === '/painel/avaliacao-gestor'
+
   const navItems = [
     { href: '/painel', label: 'Visão Geral', icon: '🏠' },
+    {
+      href: '/painel/avaliacao-gestor',
+      label: 'Avaliação do Gestor',
+      icon: '📋',
+      badge: !assessmentDone ? 'Pendente' : undefined,
+    },
     { href: '/painel/relatorio-geral', label: 'Relatório Geral', icon: '📊' },
+    { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },
   ]
 
   if (checking) {
@@ -49,8 +64,8 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-30 transform transition-transform duration-200 lg:translate-x-0 lg:static lg:block ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-30 transform transition-transform duration-200 lg:translate-x-0 lg:static lg:flex lg:flex-col ${
+          sidebarOpen ? 'translate-x-0 flex flex-col' : '-translate-x-full'
         }`}
       >
         <div className="p-5 border-b border-gray-100">
@@ -71,19 +86,26 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               key={item.href}
               href={item.href}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                pathname === item.href
+              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                pathname === item.href || (item.href !== '/painel' && pathname.startsWith(item.href))
                   ? 'bg-primary-800 text-white'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <span>{item.icon}</span>
-              {item.label}
+              <span className="flex items-center gap-3">
+                <span>{item.icon}</span>
+                {item.label}
+              </span>
+              {item.badge && (
+                <span className="text-xs bg-orange-100 text-orange-700 border border-orange-300 px-2 py-0.5 rounded-full font-semibold">
+                  {item.badge}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-100 mt-auto">
+        <div className="p-4 border-t border-gray-100">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 w-full transition-colors"
@@ -97,16 +119,28 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar mobile */}
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-700">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
           <span className="font-semibold text-gray-800">NR-1 Risk</span>
         </header>
+
+        {/* Banner avaliação pendente */}
+        {!assessmentDone && !isAssessmentPage && (
+          <div className="bg-orange-50 border-b border-orange-200 px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-sm text-orange-800 font-medium">
+              ⚠️ Complete a <strong>Avaliação do Gestor</strong> para liberar todas as funcionalidades do sistema.
+            </p>
+            <Link
+              href="/painel/avaliacao-gestor"
+              className="text-xs bg-orange-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-orange-700 transition-colors flex-shrink-0"
+            >
+              Preencher agora
+            </Link>
+          </div>
+        )}
 
         <main className="flex-1 p-4 lg:p-8 overflow-auto">{children}</main>
       </div>

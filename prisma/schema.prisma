@@ -8,17 +8,25 @@ datasource db {
 }
 
 model Company {
-  id               String         @id @default(uuid())
+  id               String             @id @default(uuid())
   name             String
-  slug             String         @unique
+  fantasyName      String?
+  slug             String             @unique
   cnpj             String?
+  responsible      String?
+  phone            String?
+  address          String?
+  city             String?
+  state            String?
   logoUrl          String?
   stripeCustomerId String?
-  plan             String         @default("starter")
-  createdAt        DateTime       @default(now())
+  plan             String             @default("starter")
+  createdAt        DateTime           @default(now())
   sectors          Sector[]
   users            User[]
   subscriptions    Subscription[]
+  assessment       CompanyAssessment?
+  actionPlans      ActionPlan[]
 
   @@index([slug])
 }
@@ -56,6 +64,7 @@ model Sector {
   company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
   responses   Response[]
   assessments TopicAssessment[]
+  actionPlan  ActionPlan?
 
   @@index([companyId])
   @@index([linkToken])
@@ -113,4 +122,31 @@ model Question {
 
   @@index([topicNum])
   @@index([order])
+}
+
+// Avaliação do gestor — probabilidade por tópico (feita uma vez por empresa)
+model CompanyAssessment {
+  id          String   @id @default(uuid())
+  companyId   String   @unique
+  // JSON: { topicNum: int, topic: string, probability: "baixa"|"media"|"alta" }[]
+  items       Json
+  completedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// Plano de ação vinculado a um setor
+model ActionPlan {
+  id        String   @id @default(uuid())
+  sectorId  String   @unique
+  companyId String
+  // JSON: ActionItem[]
+  items     Json
+  status    String   @default("ativo") // ativo | concluido | arquivado
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sector    Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
 }
