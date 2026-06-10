@@ -200,11 +200,17 @@ export default function SetorReportPage() {
             </span>
           )}
           <button
+            onClick={() => router.push(`/painel/setor/${sectorId}/plano-de-acao`)}
+            className="bg-white border border-primary-800 text-primary-800 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-50 transition-colors"
+          >
+            📋 Plano de Ação
+          </button>
+          <button
             onClick={handleExportPdf}
             disabled={exporting}
             className="bg-primary-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
           >
-            {exporting ? '⏳ Gerando...' : '📄 Exportar Relatório'}
+            {exporting ? '⏳ Gerando...' : '📄 Gerar DRPS'}
           </button>
         </div>
       </div>

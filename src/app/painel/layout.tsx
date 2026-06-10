@@ -15,12 +15,18 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     fetch('/api/auth/refresh', { method: 'POST' })
       .then((r) => {
         if (!r.ok) { router.replace('/login'); return }
-        setChecking(false)
-        // Verifica se avaliação do gestor foi feita
-        fetch('/api/dashboard/company-assessment')
+        // Verifica aceite de termos antes de liberar o painel
+        fetch('/api/dashboard/accept-terms')
           .then((r) => r.json())
-          .then((data) => setAssessmentDone(!!data.assessment))
-          .catch(() => setAssessmentDone(false))
+          .then((data) => {
+            if (!data.accepted) { router.replace('/termos'); return }
+            setChecking(false)
+            fetch('/api/dashboard/company-assessment')
+              .then((r) => r.json())
+              .then((d) => setAssessmentDone(!!d.assessment))
+              .catch(() => setAssessmentDone(false))
+          })
+          .catch(() => setChecking(false))
       })
       .catch(() => router.replace('/login'))
   }, [router])

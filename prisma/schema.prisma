@@ -21,6 +21,10 @@ model Company {
   logoUrl          String?
   stripeCustomerId String?
   plan             String             @default("starter")
+  employeeCount    Int?
+  workModality     String?            // presencial | remoto | hibrido
+  termsAcceptedAt  DateTime?
+  termsAcceptedIp  String?
   createdAt        DateTime           @default(now())
   sectors          Sector[]
   users            User[]

@@ -13,17 +13,19 @@ function maskCnpj(v: string) {
 type Company = {
   name: string; fantasyName: string; cnpj: string
   responsible: string; phone: string; address: string; city: string; state: string
+  employeeCount: string; workModality: string
 }
 
 export default function ConfiguracoesPage() {
   const [form, setForm] = useState<Company>({
     name: '', fantasyName: '', cnpj: '',
     responsible: '', phone: '', address: '', city: '', state: '',
+    employeeCount: '', workModality: 'presencial',
   })
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
+  const [saving, setSaving]   = useState(false)
+  const [saved, setSaved]     = useState(false)
+  const [error, setError]     = useState('')
 
   useEffect(() => {
     fetch('/api/dashboard/company-settings')
@@ -31,14 +33,16 @@ export default function ConfiguracoesPage() {
       .then((data) => {
         if (data.company) {
           setForm({
-            name: data.company.name ?? '',
-            fantasyName: data.company.fantasyName ?? '',
-            cnpj: data.company.cnpj ?? '',
-            responsible: data.company.responsible ?? '',
-            phone: data.company.phone ?? '',
-            address: data.company.address ?? '',
-            city: data.company.city ?? '',
-            state: data.company.state ?? '',
+            name:          data.company.name ?? '',
+            fantasyName:   data.company.fantasyName ?? '',
+            cnpj:          data.company.cnpj ?? '',
+            responsible:   data.company.responsible ?? '',
+            phone:         data.company.phone ?? '',
+            address:       data.company.address ?? '',
+            city:          data.company.city ?? '',
+            state:         data.company.state ?? '',
+            employeeCount: data.company.employeeCount?.toString() ?? '',
+            workModality:  data.company.workModality ?? 'presencial',
           })
         }
       })
@@ -55,10 +59,15 @@ export default function ConfiguracoesPage() {
     setError('')
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        cnpj: form.cnpj.replace(/\D/g, ''),
+        employeeCount: form.employeeCount ? parseInt(form.employeeCount, 10) : undefined,
+      }
       const res = await fetch('/api/dashboard/company-settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) { setError('Erro ao salvar.'); return }
       setSaved(true)
@@ -124,6 +133,41 @@ export default function ConfiguracoesPage() {
           </div>
         </div>
 
+        {/* Nº CLT + Modalidade — campos obrigatórios do GRO (R2) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nº de Colaboradores CLT *
+              <span className="text-xs text-gray-400 font-normal ml-1">(exigido pelo GRO)</span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              required
+              value={form.employeeCount}
+              onChange={(e) => set('employeeCount', e.target.value)}
+              placeholder="Ex: 45"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-800 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Modalidade de Trabalho *
+              <span className="text-xs text-gray-400 font-normal ml-1">(exigido pelo GRO)</span>
+            </label>
+            <select
+              required
+              value={form.workModality}
+              onChange={(e) => set('workModality', e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-800 text-sm bg-white"
+            >
+              <option value="presencial">Presencial</option>
+              <option value="hibrido">Híbrido</option>
+              <option value="remoto">Remoto</option>
+            </select>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
@@ -148,7 +192,7 @@ export default function ConfiguracoesPage() {
               <input
                 value={form.state}
                 onChange={(e) => set('state', e.target.value.toUpperCase().slice(0, 2))}
-                placeholder="SP"
+                placeholder="RJ"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-800 text-sm"
               />
             </div>
