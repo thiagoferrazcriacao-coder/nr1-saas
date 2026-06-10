@@ -13,11 +13,17 @@ type MatrixItem = {
   probabilidade: string; riskFinal: string
 }
 
+type AiData = {
+  diagnostico?: string
+  topicos_criticos?: string[]
+  acoes_imediatas?: string[]
+}
+
 type SectorData = {
   id: string; name: string; totalResponses: number
   avgScore: number | null; riskLevel: string | null
   byTopic: TopicScore[]; matrix: MatrixItem[]
-  latestAi: Record<string, unknown> | null; assessedBy: string | null
+  latestAi: AiData | null; assessedBy: string | null
 }
 
 type CompanyData = {
@@ -252,11 +258,11 @@ export default function AdminEmpresaPage() {
                 )}
 
                 {/* Diagnóstico da IA */}
-                {sector.latestAi && (sector.latestAi as Record<string, unknown>).diagnostico && (
+                {sector.latestAi?.diagnostico && (
                   <div className="mt-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3">
                     <p className="text-xs font-semibold text-indigo-400 mb-1">🤖 Diagnóstico da IA</p>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      {(sector.latestAi as Record<string, string>).diagnostico}
+                      {sector.latestAi.diagnostico}
                     </p>
                   </div>
                 )}
