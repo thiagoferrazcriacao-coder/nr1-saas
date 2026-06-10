@@ -86,15 +86,18 @@ export default function SetorReportPage() {
   const [loading, setLoading]           = useState(true)
   const [exporting, setExporting]       = useState(false)
   const [activeTab, setActiveTab]       = useState<'scores' | 'matrix' | 'ia'>('scores')
+  const [drpsStatus, setDrpsStatus]     = useState<string>('pendente')
 
   // Busca relatório e avaliações salvas
   useEffect(() => {
     Promise.all([
       fetch(`/api/dashboard/reports/${sectorId}`).then((r) => r.ok ? r.json() : null),
       fetch(`/api/dashboard/assessments/${sectorId}`).then((r) => r.ok ? r.json() : []),
-    ]).then(([rep, saved]: [Report | null, Assessment[]]) => {
+      fetch('/api/dashboard/company-settings').then((r) => r.ok ? r.json() : null),
+    ]).then(([rep, saved, settings]: [Report | null, Assessment[], { company?: { drpsStatus?: string } } | null]) => {
       if (!rep) { router.replace('/painel'); return }
       setReport(rep)
+      if (settings?.company?.drpsStatus) setDrpsStatus(settings.company.drpsStatus)
 
       // Inicializa avaliações com os valores salvos ou padrão 'media'
       const init: Assessment[] = rep.byTopic.map((t) => {
@@ -205,13 +208,23 @@ export default function SetorReportPage() {
           >
             📋 Plano de Ação
           </button>
-          <button
-            onClick={handleExportPdf}
-            disabled={exporting}
-            className="bg-primary-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
-          >
-            {exporting ? '⏳ Gerando...' : '📄 Gerar DRPS'}
-          </button>
+          {drpsStatus === 'aprovado' ? (
+            <button
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-600 transition-colors disabled:opacity-50"
+            >
+              {exporting ? '⏳ Gerando...' : '✅ Baixar DRPS Assinado'}
+            </button>
+          ) : drpsStatus === 'rejeitado' ? (
+            <span className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-sm font-medium">
+              ❌ DRPS Rejeitado — aguarde contato
+            </span>
+          ) : (
+            <span className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-xl text-sm font-medium cursor-default">
+              ⏳ Aguardando validação da psicóloga
+            </span>
+          )}
         </div>
       </div>
 

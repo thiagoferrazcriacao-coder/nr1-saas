@@ -43,17 +43,31 @@ const probLabel: Record<string, string> = {
 // ─── Builder do HTML ──────────────────────────────────────────────────────────
 
 function buildHtml(opts: {
-  sectorName:     string
-  companyName:    string
-  totalResponses: number
-  avgScore:       number
-  riskLevel:      string
-  byTopic:        { topicNum: number; topic: string; score: number; riskLevel: string }[]
-  matrix:         MatrixResult[]
-  ai:             AiClassification | null
-  assessedBy:     string | null
+  sectorName:      string
+  companyName:     string
+  totalResponses:  number
+  avgScore:        number
+  riskLevel:       string
+  byTopic:         { topicNum: number; topic: string; score: number; riskLevel: string }[]
+  matrix:          MatrixResult[]
+  ai:              AiClassification | null
+  assessedBy:      string | null
+  cnpj:            string | null
+  city:            string | null
+  state:           string | null
+  address:         string | null
+  responsible:     string | null
+  employeeCount:   number | null
+  workModality:    string | null
+  drpsValidatedAt: Date | null
+  drpsValidatedBy: string | null
+  drpsNotes:       string | null
 }): string {
-  const { sectorName, companyName, totalResponses, avgScore, riskLevel, byTopic, matrix, ai, assessedBy } = opts
+  const {
+    sectorName, companyName, totalResponses, avgScore, riskLevel, byTopic, matrix, ai, assessedBy,
+    cnpj, city, state, address, responsible, employeeCount, workModality,
+    drpsValidatedAt, drpsValidatedBy, drpsNotes,
+  } = opts
   const date     = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   const mainColor = riskColors[riskLevel] ?? '#64748b'
   const mainBg    = riskBg[riskLevel]    ?? '#f8fafc'
@@ -177,18 +191,35 @@ function buildHtml(opts: {
 
   <!-- Cabeçalho -->
   <div style="border-bottom:3px solid #1e40af;padding-bottom:20px;margin-bottom:28px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
       <div>
-        <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
+        <p style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
           Diagnóstico de Risco Psicossocial — DRPS NR-1
         </p>
         <h1 style="font-size:22px;color:#1e40af;font-weight:900;">${companyName}</h1>
-        <h2 style="font-size:16px;color:#374151;font-weight:600;margin-top:2px;">Setor: ${sectorName}</h2>
+        <h2 style="font-size:15px;color:#374151;font-weight:600;margin-top:2px;">Setor: ${sectorName}</h2>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:#64748b;">
+          ${cnpj ? `<span>CNPJ: <strong>${cnpj}</strong></span>` : ''}
+          ${(city || state) ? `<span>📍 ${[city, state].filter(Boolean).join('/')}</span>` : ''}
+          ${address ? `<span>${address}</span>` : ''}
+          ${responsible ? `<span>Responsável: <strong>${responsible}</strong></span>` : ''}
+          ${employeeCount != null ? `<span>👥 ${employeeCount} colaboradores CLT</span>` : ''}
+          ${workModality ? `<span>🏢 ${{ presencial: 'Presencial', hibrido: 'Híbrido', remoto: 'Remoto' }[workModality] ?? workModality}</span>` : ''}
+        </div>
       </div>
-      <div style="text-align:right;font-size:11px;color:#94a3b8;">
+      <div style="text-align:right;font-size:11px;color:#94a3b8;flex-shrink:0;">
         <p>Emitido em ${date}</p>
         <p>${totalResponses} respondente${totalResponses !== 1 ? 's' : ''} (anônimos)</p>
         ${assessedBy ? `<p style="margin-top:4px;color:#64748b;font-weight:600;">Avaliador: ${assessedBy}</p>` : ''}
+        ${drpsValidatedAt ? `
+          <div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;text-align:right;">
+            <p style="color:#15803d;font-weight:700;font-size:10px;">✅ DRPS Validado</p>
+            <p style="color:#166534;font-size:10px;">${new Date(drpsValidatedAt).toLocaleDateString('pt-BR')}</p>
+            <p style="color:#166534;font-size:9px;font-weight:600;">${drpsValidatedBy ?? ''}</p>
+          </div>` : `
+          <div style="margin-top:8px;background:#fefce8;border:1px solid #fef08a;border-radius:6px;padding:6px 10px;text-align:right;">
+            <p style="color:#854d0e;font-size:10px;font-weight:600;">⏳ Aguardando validação</p>
+          </div>`}
       </div>
     </div>
   </div>
@@ -285,8 +316,41 @@ function buildHtml(opts: {
 
   ${aiSection}
 
+  ${drpsNotes ? `
+  <div style="margin-top:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+    <p style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">📝 Observações Técnicas da Psicóloga Responsável</p>
+    <p style="font-size:12px;color:#374151;line-height:1.6;">${drpsNotes}</p>
+  </div>` : ''}
+
+  <!-- Assinatura -->
+  <div style="margin-top:40px;padding-top:20px;border-top:2px solid #e2e8f0;">
+    ${drpsValidatedAt ? `
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
+      <div>
+        <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica pela Avaliação</p>
+        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma</p>
+        <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
+        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">
+          Assinatura digital registrada em ${new Date(drpsValidatedAt).toLocaleString('pt-BR')}
+        </p>
+      </div>
+      <div style="text-align:right;">
+        <div style="display:inline-block;background:#f0fdf4;border:2px solid #16a34a;border-radius:8px;padding:10px 20px;">
+          <p style="font-size:10px;font-weight:700;color:#15803d;">✅ DOCUMENTO VALIDADO</p>
+          <p style="font-size:9px;color:#166534;margin-top:2px;">Conforme NR-1 / MTE</p>
+        </div>
+      </div>
+    </div>` : `
+    <div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:14px;">
+      <p style="font-size:11px;color:#854d0e;font-weight:600;">⏳ Documento Pendente de Validação</p>
+      <p style="font-size:10px;color:#92400e;margin-top:4px;">
+        Este DRPS aguarda revisão e assinatura da psicóloga responsável Annie Talma (CRP/05/44595) antes de ter validade oficial conforme a NR-1.
+      </p>
+    </div>`}
+  </div>
+
   <!-- Rodapé -->
-  <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
+  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
     <p>Documento gerado pelo sistema NR-1 Risk — Diagnóstico de Risco Psicossocial.</p>
     <p style="margin-top:2px;">As respostas são coletadas de forma anônima e agregadas por setor. Este documento deve integrar o PGR da empresa.</p>
     <p style="margin-top:4px;font-weight:600;color:#64748b;">NR-1 Risk · ${companyName} · ${sectorName} · ${date}</p>
@@ -307,7 +371,15 @@ export async function GET(
 
     const sector = await prisma.sector.findFirst({
       where: { id: params.sectorId, companyId },
-      include: { company: { select: { name: true } } },
+      include: {
+        company: {
+          select: {
+            name: true, cnpj: true, city: true, state: true, address: true,
+            responsible: true, employeeCount: true, workModality: true,
+            drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true, drpsNotes: true,
+          },
+        },
+      },
     })
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
@@ -364,15 +436,25 @@ export async function GET(
     const filename = `DRPS-${sector.name.replace(/\s+/g, '-')}-${date}.html`
 
     const html = buildHtml({
-      sectorName:     sector.name,
-      companyName:    sector.company.name,
-      totalResponses: responses.length,
-      avgScore:       parseFloat(total.toFixed(2)),
+      sectorName:      sector.name,
+      companyName:     sector.company.name,
+      totalResponses:  responses.length,
+      avgScore:        parseFloat(total.toFixed(2)),
       riskLevel,
       byTopic,
       matrix,
-      ai:             (latestAi?.classification as AiClassification) ?? null,
+      ai:              (latestAi?.classification as AiClassification) ?? null,
       assessedBy,
+      cnpj:            sector.company.cnpj ?? null,
+      city:            sector.company.city ?? null,
+      state:           sector.company.state ?? null,
+      address:         sector.company.address ?? null,
+      responsible:     sector.company.responsible ?? null,
+      employeeCount:   sector.company.employeeCount ?? null,
+      workModality:    sector.company.workModality ?? null,
+      drpsValidatedAt: sector.company.drpsValidatedAt ?? null,
+      drpsValidatedBy: sector.company.drpsValidatedBy ?? null,
+      drpsNotes:       sector.company.drpsNotes ?? null,
     })
 
     return new NextResponse(html, {

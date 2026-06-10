@@ -25,6 +25,10 @@ model Company {
   workModality     String?            // presencial | remoto | hibrido
   termsAcceptedAt  DateTime?
   termsAcceptedIp  String?
+  drpsStatus       String             @default("pendente") // pendente | em_revisao | aprovado | rejeitado
+  drpsValidatedAt  DateTime?
+  drpsValidatedBy  String?
+  drpsNotes        String?
   createdAt        DateTime           @default(now())
   sectors          Sector[]
   users            User[]

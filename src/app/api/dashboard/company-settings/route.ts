@@ -20,6 +20,7 @@ const SELECT = {
   id: true, name: true, fantasyName: true, cnpj: true,
   responsible: true, phone: true, address: true, city: true, state: true,
   employeeCount: true, workModality: true,
+  drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true,
 }
 
 export async function GET(req: NextRequest) {
