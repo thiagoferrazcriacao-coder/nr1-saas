@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin(req)
+    requireAdmin(req)
 
     const body  = await req.json()
     const { action, notes } = schema.parse(body)

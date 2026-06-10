@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin(req)
+    requireAdmin(req)
 
     const company = await prisma.company.findUnique({
       where: { id: params.id },
