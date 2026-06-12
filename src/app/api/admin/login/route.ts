@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { signAdminToken } from '@/lib/admin-auth'
 import { z } from 'zod'
