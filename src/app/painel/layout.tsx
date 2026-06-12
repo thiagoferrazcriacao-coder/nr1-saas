@@ -47,6 +47,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
       badge: !assessmentDone ? 'Pendente' : undefined,
     },
     { href: '/painel/relatorio-geral', label: 'Relatório Geral', icon: '📊' },
+    { href: '/painel/calculadora', label: 'Calculadora NR-1', icon: '🧮' },
     { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },
   ]
 
