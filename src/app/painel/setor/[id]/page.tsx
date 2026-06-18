@@ -259,7 +259,7 @@ export default function SetorReportPage() {
         {([
           { key: 'scores', label: '📊 Scores por Tópico' },
           { key: 'matrix', label: '⚖️ Matriz de Risco NR-1' },
-          { key: 'ia',     label: '🤖 Análise IA' },
+          { key: 'ia',     label: '🧭 Análise Técnica' },
         ] as const).map((tab) => (
           <button
             key={tab.key}
@@ -585,7 +585,7 @@ export default function SetorReportPage() {
           ) : (
             <div className="bg-gray-50 rounded-2xl border border-gray-100 p-12 text-center">
               <div className="text-4xl mb-3">⏳</div>
-              <p className="text-gray-500 font-medium">Análise IA em processamento</p>
+              <p className="text-gray-500 font-medium">Análise técnica em processamento</p>
               <p className="text-gray-400 text-sm mt-1">Recarregue a página em alguns instantes</p>
             </div>
           )}

@@ -226,7 +226,7 @@ export default function LandingPage() {
               { icon: '📊', item: 'Inventário completo de Riscos Psicossociais por setor' },
               { icon: '🔢', item: 'Matriz de Risco compatível com a NR-1 (Gravidade × Probabilidade)' },
               { icon: '📁', item: 'Documento de Critérios adotados no GRO' },
-              { icon: '🎯', item: 'Plano de Ação com recomendações priorizadas por IA' },
+              { icon: '🎯', item: 'Plano de Ação com recomendações priorizadas por análise técnica' },
               { icon: '🗄️', item: 'Orientação de guarda da documentação (20 anos) e comunicados internos prontos' },
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3 bg-[#f0f7ff] border border-blue-100 rounded-xl p-4">
@@ -264,7 +264,7 @@ export default function LandingPage() {
               { n: '1', titulo: 'Acesso', desc: 'Empresa cria a conta na plataforma e cadastra seus dados.' },
               { n: '2', titulo: 'Cadastro', desc: 'Cria os setores e gera links únicos ou QR codes para cada equipe.' },
               { n: '3', titulo: 'Equipe responde', desc: 'Colaboradores respondem 50 perguntas anônimas pelo celular, de onde estiverem.' },
-              { n: '4', titulo: 'Análise por IA', desc: 'A plataforma gera diagnóstico automático por setor e identifica os pontos críticos.' },
+              { n: '4', titulo: 'Análise Técnica', desc: 'A plataforma gera diagnóstico automático por setor, fundamentado em modelos científicos validados internacionalmente, e identifica os pontos críticos.' },
               { n: '5', titulo: 'Documentos', desc: 'DRPS assinado pela psicóloga é liberado para download. Empresa está em conformidade.' },
             ].map((step) => (
               <div key={step.n} className="text-center">

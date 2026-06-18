@@ -62,7 +62,7 @@ const SLIDES = [
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
           {[
             {i:'📋',t:<><strong style={{color:'#fff'}}>DRPS assinado por psicóloga com CRP</strong> — documento com validade legal perante o MTE e a Justiça do Trabalho</>},
-            {i:'📊',t:<><strong style={{color:'#fff'}}>Inventário de Riscos Psicossociais</strong> por setor, com análise por inteligência artificial</>},
+            {i:'📊',t:<><strong style={{color:'#fff'}}>Inventário de Riscos Psicossociais</strong> por setor, com análise técnica fundamentada em modelos validados internacionalmente</>},
             {i:'🎯',t:<><strong style={{color:'#fff'}}>Matriz de Risco NR-1 + Plano de Ação</strong> com recomendações priorizadas por criticidade</>},
             {i:'🔒',t:<><strong style={{color:'#fff'}}>100% anônimo para o colaborador</strong> — responde pelo celular, de onde estiver, sem paralisar a operação</>},
           ].map((r,i) => (
@@ -88,7 +88,7 @@ const SLIDES = [
             {n:'1',t:'Acesso',d:'Cria a conta na plataforma'},
             {n:'2',t:'Setores',d:'Gera links e QR codes por equipe'},
             {n:'3',t:'Respostas',d:'Colaboradores respondem anonimamente'},
-            {n:'4',t:'Análise IA',d:'Diagnóstico automático por setor'},
+            {n:'4',t:'Análise Técnica',d:'Diagnóstico automático por setor'},
             {n:'5',t:'Documentos',d:'DRPS assinado pronto para download'},
           ].map((s,i) => (
             <div key={s.n} style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',position:'relative'}}>

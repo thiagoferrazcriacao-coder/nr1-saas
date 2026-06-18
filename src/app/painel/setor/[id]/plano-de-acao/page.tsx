@@ -110,7 +110,7 @@ export default function PlanoDeAcaoPage() {
           {saved && <span className="text-green-600 text-sm font-medium">✅ Salvo</span>}
           {!hasPlan && items.length > 0 && (
             <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-xl font-medium">
-              Sugestão da IA — revise e salve
+              Sugestão automática — revise e salve
             </span>
           )}
           <button
@@ -150,7 +150,7 @@ export default function PlanoDeAcaoPage() {
           <div className="text-4xl mb-3">📋</div>
           <p className="text-gray-500 font-medium">Nenhuma ação disponível</p>
           <p className="text-gray-400 text-sm mt-1">
-            O Plano de Ação é gerado automaticamente após a análise de IA do questionário dos colaboradores.
+            O Plano de Ação é gerado automaticamente após a análise técnica do questionário dos colaboradores.
           </p>
         </div>
       )}

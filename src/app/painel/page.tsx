@@ -253,10 +253,10 @@ export default function PainelPage() {
             <p className="text-gray-400 text-sm mt-1">—</p>
           )}
         </div>
-        <Link href="/painel/calculadora" className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
-          <p className="text-indigo-600 text-xs uppercase tracking-wide font-medium">Calculadora</p>
-          <p className="text-lg font-bold text-indigo-800 mt-1 group-hover:underline">ROI de Conformidade</p>
-          <p className="text-indigo-500 text-xs mt-1">Simule o custo da NR-1 →</p>
+        <Link href="/painel/documentos" className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
+          <p className="text-blue-600 text-xs uppercase tracking-wide font-medium">Documentos</p>
+          <p className="text-lg font-bold text-blue-800 mt-1 group-hover:underline">DRPS, PGR e Plano de Ação</p>
+          <p className="text-blue-500 text-xs mt-1">Gere seus documentos da NR-1 →</p>
         </Link>
       </div>
 
