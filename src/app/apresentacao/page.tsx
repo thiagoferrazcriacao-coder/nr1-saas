@@ -236,7 +236,7 @@ export default function ApresentacaoPage() {
         <div className="nav">
           <button id="btnPrev" onClick={() => {}} disabled>← Anterior</button>
           <div className="dots" id="dotsContainer" />
-          <button id="btnNext" onClick={{}}>Próximo →</button>
+          <button id="btnNext" onClick={() => {}}>Próximo →</button>
         </div>
       </div>
 
