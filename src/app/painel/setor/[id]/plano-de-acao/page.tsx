@@ -24,6 +24,22 @@ const statusConfig: Record<ActionStatus, { label: string; bg: string; text: stri
   concluido:     { label: 'Concluído',      bg: 'bg-green-100',  text: 'text-green-700',  icon: '✅' },
 }
 
+type SuggestionRisk = 'baixo' | 'moderado' | 'alto' | 'critico'
+type Suggestion = {
+  programNum: number
+  program: string
+  priority: SuggestionRisk
+  factors: { topic: string; risk: SuggestionRisk }[]
+  lessons: { id: string; title: string }[]
+}
+
+const suggestionConfig: Record<SuggestionRisk, { label: string; bg: string; text: string; border: string }> = {
+  baixo:    { label: 'Baixo',    bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200' },
+  moderado: { label: 'Moderado', bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
+  alto:     { label: 'Alto',     bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  critico:  { label: 'Crítico',  bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200' },
+}
+
 const prioridadeConfig: Record<ActionPriority, { label: string; bg: string; text: string; border: string }> = {
   baixa:   { label: 'Baixa',   bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-200' },
   media:   { label: 'Média',   bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
@@ -42,13 +58,20 @@ export default function PlanoDeAcaoPage() {
   const [saving, setSaving]       = useState(false)
   const [saved, setSaved]         = useState(false)
   const [hasPlan, setHasPlan]     = useState(false)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [companySlug, setCompanySlug] = useState('')
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/dashboard/action-plans/${sectorId}`).then((r) => r.ok ? r.json() : null),
       fetch(`/api/dashboard/reports/${sectorId}`).then((r) => r.ok ? r.json() : null),
-    ]).then(([planData, reportData]) => {
+      fetch(`/api/dashboard/material/suggestions/${sectorId}`).then((r) => r.ok ? r.json() : null),
+    ]).then(([planData, reportData, suggData]) => {
       if (reportData) setSectorName(reportData.sector?.name ?? '')
+      if (suggData) {
+        setSuggestions(suggData.recommended ?? [])
+        setCompanySlug(suggData.slug ?? '')
+      }
       if (planData) {
         if (planData.plan) {
           setItems(planData.plan.items as ActionItem[])
@@ -130,6 +153,61 @@ export default function PlanoDeAcaoPage() {
           </button>
         </div>
       </div>
+
+      {/* Vídeos recomendados (ponte com o Material Didático) */}
+      {suggestions.length > 0 && (
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📚</span>
+              <div>
+                <h2 className="font-bold text-gray-900">Vídeos recomendados para este time</h2>
+                <p className="text-gray-500 text-sm mt-0.5">
+                  Sugestão automática a partir dos fatores de risco deste setor. Revise e compartilhe com a equipe.
+                </p>
+              </div>
+            </div>
+            {companySlug && (
+              <a
+                href={`/aprender/${companySlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors"
+              >
+                Abrir Material Didático
+              </a>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {suggestions.map((s) => {
+              const cfg = suggestionConfig[s.priority]
+              return (
+                <div key={s.programNum} className="bg-white border border-blue-100 rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="font-semibold text-gray-800 text-sm">
+                      Programa {s.programNum} · {s.program}
+                    </p>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+                      Prioridade: {cfg.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Por causa de: {s.factors.map((f) => f.topic).join(' · ')}
+                  </p>
+                  <ul className="mt-2 space-y-1">
+                    {s.lessons.map((l) => (
+                      <li key={l.id} className="text-sm text-gray-600 flex items-center gap-2">
+                        <span className="text-blue-400">▶</span> {l.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Progresso */}
       {hasPlan && total > 0 && (
