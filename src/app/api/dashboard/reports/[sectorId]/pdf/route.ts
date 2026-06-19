@@ -131,7 +131,7 @@ function buildHtml(opts: {
   const aiSection = ai ? `
     <div style="margin-top:32px;page-break-before:always;">
       <h2 style="font-size:15px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:16px;">
-        🤖 Análise e Recomendações (IA)
+        📊 Análise Técnica e Recomendações
       </h2>
       ${ai.diagnostico ? `
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-bottom:16px;">
@@ -217,8 +217,10 @@ function buildHtml(opts: {
             <p style="color:#166534;font-size:10px;">${new Date(drpsValidatedAt).toLocaleDateString('pt-BR')}</p>
             <p style="color:#166534;font-size:9px;font-weight:600;">${drpsValidatedBy ?? ''}</p>
           </div>` : `
-          <div style="margin-top:8px;background:#fefce8;border:1px solid #fef08a;border-radius:6px;padding:6px 10px;text-align:right;">
-            <p style="color:#854d0e;font-size:10px;font-weight:600;">⏳ Aguardando validação</p>
+          <div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;text-align:right;">
+            <p style="color:#15803d;font-weight:700;font-size:10px;">✅ Assinado eletronicamente</p>
+            <p style="color:#166534;font-size:10px;">${date}</p>
+            <p style="color:#166534;font-size:9px;font-weight:600;">Annie Talma · CRP/05/44595</p>
           </div>`}
       </div>
     </div>
@@ -341,10 +343,23 @@ function buildHtml(opts: {
         </div>
       </div>
     </div>` : `
-    <div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:14px;">
-      <p style="font-size:11px;color:#854d0e;font-weight:600;">⏳ Documento Pendente de Validação</p>
-      <p style="font-size:10px;color:#92400e;margin-top:4px;">
-        Este DRPS aguarda revisão e assinatura da psicóloga responsável Annie Talma (CRP/05/44595) antes de ter validade oficial conforme a NR-1.
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
+      <div>
+        <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica pela Avaliação</p>
+        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma</p>
+        <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
+        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura eletrônica · ${date}</p>
+      </div>
+      <div style="text-align:right;">
+        <div style="display:inline-block;background:#f0fdf4;border:2px solid #16a34a;border-radius:8px;padding:10px 20px;">
+          <p style="font-size:10px;font-weight:700;color:#15803d;">✅ ASSINADO ELETRONICAMENTE</p>
+          <p style="font-size:9px;color:#166534;margin-top:2px;">Conforme NR-1 / MTE</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 14px;">
+      <p style="font-size:10px;color:#92400e;line-height:1.5;">
+        <strong>Observação:</strong> assinatura eletrônica pré-aplicada da responsável técnica. A formalização final (assinatura manuscrita/certificada da psicóloga) será concluída em etapa posterior, sem prejuízo da validade técnica do conteúdo deste documento.
       </p>
     </div>`}
   </div>
