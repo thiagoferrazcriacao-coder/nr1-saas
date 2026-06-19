@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { calcScore, buildRiskMatrix, type MatrixResult, type Probability } from '@/lib/scoring'
 
+// Rota dinâmica: depende de autenticação (headers), não pode ser pré-renderizada
+export const dynamic = 'force-dynamic'
+
 // ─── Cores e rótulos ──────────────────────────────────────────────────────────
 
 const riskColors: Record<string, string> = {
