@@ -33,6 +33,14 @@ export default function DocumentosPage() {
     window.open(`/api/dashboard/reports/${sectorId}/pdf`, '_blank')
   }
 
+  // Abre o PGR da empresa inteira em nova aba
+  const gerarPgr = () => {
+    window.open('/api/dashboard/pgr', '_blank')
+  }
+
+  // O PGR consolida a empresa toda: habilita se houver qualquer resposta
+  const totalRespostas = sectors.reduce((acc, s) => acc + s.totalResponses, 0)
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
@@ -103,34 +111,40 @@ export default function DocumentosPage() {
         )}
       </div>
 
-      {/* ── PGR e Plano de Ação (em breve) ───────────────────── */}
-      <div className="grid gap-4">
-        {[
-          {
-            icon: '📑',
-            titulo: 'PGR — Programa de Gerenciamento de Riscos',
-            desc: 'O programa-mãe com inventário de riscos, critérios, plano de ação e cronograma de monitoramento.',
-          },
-          {
-            icon: '🎯',
-            titulo: 'Plano de Ação',
-            desc: 'Documento com as medidas concretas para tratar cada fator de risco identificado.',
-          },
-        ].map((d, i) => (
-          <div
-            key={i}
-            className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex items-start gap-4 opacity-90"
-          >
-            <span className="text-3xl flex-shrink-0 mt-0.5">{d.icon}</span>
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">{d.titulo}</h2>
-              <p className="text-gray-500 text-sm mt-1">{d.desc}</p>
-            </div>
-            <span className="flex-shrink-0 text-xs bg-gray-100 text-gray-500 border border-gray-200 px-3 py-1 rounded-full font-medium self-center">
-              Em breve
-            </span>
+      {/* ── PGR ──────────────────────────────────────────────── */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+        <div className="flex items-start gap-4">
+          <span className="text-3xl flex-shrink-0">📑</span>
+          <div className="flex-1">
+            <h2 className="font-bold text-gray-900">PGR — Programa de Gerenciamento de Riscos</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              O programa-mãe da empresa: inventário de riscos consolidado, critérios, plano de ação,
+              plano anual e cronograma de monitoramento. Reúne todos os setores em um único documento.
+            </p>
           </div>
-        ))}
+          <button
+            onClick={gerarPgr}
+            disabled={loading || totalRespostas === 0}
+            title={totalRespostas === 0 ? 'É preciso ter respostas para gerar o PGR' : 'Gerar o PGR da empresa'}
+            className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed self-center"
+          >
+            📑 Gerar PGR
+          </button>
+        </div>
+      </div>
+
+      {/* ── Plano de Ação (em breve) ─────────────────────────── */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex items-start gap-4 opacity-90">
+        <span className="text-3xl flex-shrink-0 mt-0.5">🎯</span>
+        <div className="flex-1">
+          <h2 className="font-semibold text-gray-900">Plano de Ação</h2>
+          <p className="text-gray-500 text-sm mt-1">
+            Documento com as medidas concretas para tratar cada fator de risco identificado.
+          </p>
+        </div>
+        <span className="flex-shrink-0 text-xs bg-gray-100 text-gray-500 border border-gray-200 px-3 py-1 rounded-full font-medium self-center">
+          Em breve
+        </span>
       </div>
     </div>
   )
