@@ -35,6 +35,7 @@ model Company {
   subscriptions    Subscription[]
   assessment       CompanyAssessment?
   actionPlans      ActionPlan[]
+  employees        Employee[]
 
   @@index([slug])
 }
@@ -141,6 +142,57 @@ model CompanyAssessment {
   completedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// ─── Material Didático (escola de vídeos) ───────────────────────────────────
+
+// Vídeo-aula da biblioteca genérica, compartilhada entre todas as empresas.
+// Organizada nos 10 programas do protocolo NR-1.
+model Lesson {
+  id          String           @id @default(uuid())
+  programNum  Int              // 1–10
+  program     String           // nome do programa
+  title       String
+  description String?
+  videoUrl    String
+  durationSec Int              @default(0)
+  order       Int              @default(0)
+  active      Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  progresses  LessonProgress[]
+
+  @@index([programNum])
+  @@index([order])
+}
+
+// Colaborador de uma empresa, identificado pelo e-mail (prova legal de quem assistiu).
+model Employee {
+  id         String           @id @default(uuid())
+  companyId  String
+  email      String
+  name       String?
+  createdAt  DateTime         @default(now())
+  company    Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  progresses LessonProgress[]
+
+  @@unique([companyId, email])
+  @@index([companyId])
+}
+
+// Quanto cada colaborador assistiu de cada vídeo. percent = maior % alcançado (0–100).
+model LessonProgress {
+  id         String   @id @default(uuid())
+  employeeId String
+  lessonId   String
+  percent    Int      @default(0)     // 0–100 (máximo já assistido)
+  completed  Boolean  @default(false) // true quando percent >= 90
+  updatedAt  DateTime @updatedAt
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, lessonId])
+  @@index([employeeId])
+  @@index([lessonId])
 }
 
 // Plano de ação vinculado a um setor
