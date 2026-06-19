@@ -114,6 +114,14 @@ export default function PlanoDeAcaoPage() {
             </span>
           )}
           <button
+            onClick={() => window.open(`/api/dashboard/action-plans/${sectorId}/pdf`, '_blank')}
+            disabled={items.length === 0}
+            title={items.length === 0 ? 'Sem ações para gerar o documento' : 'Gerar o documento do Plano de Ação'}
+            className="bg-white text-primary-800 border border-primary-200 px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
+          >
+            📄 Baixar documento
+          </button>
+          <button
             onClick={handleSave}
             disabled={saving || items.length === 0}
             className="bg-primary-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"

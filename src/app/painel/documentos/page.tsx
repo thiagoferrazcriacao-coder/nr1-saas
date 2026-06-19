@@ -38,6 +38,11 @@ export default function DocumentosPage() {
     window.open('/api/dashboard/pgr', '_blank')
   }
 
+  // Abre o Plano de Ação do setor em nova aba
+  const gerarPlano = (sectorId: string) => {
+    window.open(`/api/dashboard/action-plans/${sectorId}/pdf`, '_blank')
+  }
+
   // O PGR consolida a empresa toda: habilita se houver qualquer resposta
   const totalRespostas = sectors.reduce((acc, s) => acc + s.totalResponses, 0)
 
@@ -133,18 +138,57 @@ export default function DocumentosPage() {
         </div>
       </div>
 
-      {/* ── Plano de Ação (em breve) ─────────────────────────── */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex items-start gap-4 opacity-90">
-        <span className="text-3xl flex-shrink-0 mt-0.5">🎯</span>
-        <div className="flex-1">
-          <h2 className="font-semibold text-gray-900">Plano de Ação</h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Documento com as medidas concretas para tratar cada fator de risco identificado.
-          </p>
+      {/* ── Plano de Ação ────────────────────────────────────── */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
+        <div className="flex items-start gap-4 mb-5">
+          <span className="text-3xl flex-shrink-0">🎯</span>
+          <div className="flex-1">
+            <h2 className="font-bold text-gray-900">Plano de Ação</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Documento com as medidas concretas para tratar cada fator de risco, com responsável,
+              prazo e status. Gerado por setor a partir do plano cadastrado (ou da sugestão automática).
+            </p>
+          </div>
         </div>
-        <span className="flex-shrink-0 text-xs bg-gray-100 text-gray-500 border border-gray-200 px-3 py-1 rounded-full font-medium self-center">
-          Em breve
-        </span>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-7 h-7 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : sectors.length === 0 ? (
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
+            <p className="text-gray-500 text-sm">
+              Nenhum setor criado ainda. Crie setores e colete respostas para gerar o Plano de Ação.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {sectors.map((s) => {
+              const semRespostas = s.totalResponses === 0
+              return (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 border border-gray-100 rounded-xl px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 truncate">{s.name}</p>
+                    <span className="text-xs text-gray-400">
+                      {s.totalResponses} resposta{s.totalResponses !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => gerarPlano(s.id)}
+                    disabled={semRespostas}
+                    title={semRespostas ? 'Este setor ainda não tem respostas' : 'Gerar o Plano de Ação deste setor'}
+                    className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    🎯 Gerar Plano de Ação
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
