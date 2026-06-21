@@ -23,8 +23,8 @@ export default function MaterialDidaticoPage() {
   const [r2ok, setR2ok] = useState(true)
   const [loading, setLoading] = useState(true)
 
-  // upload
-  const [programNum, setProgramNum] = useState(1)
+  // modal de upload
+  const [uploadProgram, setUploadProgram] = useState<number | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -33,6 +33,7 @@ export default function MaterialDidaticoPage() {
   const [error, setError] = useState('')
 
   // ui
+  const [linkOpen, setLinkOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
 
@@ -48,6 +49,11 @@ export default function MaterialDidaticoPage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
+  const openUpload = (programNum: number) => {
+    setUploadProgram(programNum); setTitle(''); setDescription(''); setFile(null); setProgress(0); setError('')
+  }
+  const closeUpload = () => { if (!uploading) setUploadProgram(null) }
+
   const readDuration = (f: File): Promise<number> =>
     new Promise((resolve) => {
       try {
@@ -62,11 +68,11 @@ export default function MaterialDidaticoPage() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (uploadProgram == null) return
     if (!file) { setError('Escolha um arquivo de vídeo.'); return }
     if (!title.trim()) { setError('Dê um título à aula.'); return }
 
-    setUploading(true)
-    setProgress(0)
+    setUploading(true); setProgress(0)
     try {
       const urlRes = await fetch('/api/dashboard/material/upload-url', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -76,7 +82,6 @@ export default function MaterialDidaticoPage() {
       if (!urlRes.ok) { setError(urlData.error ?? 'Falha ao preparar o upload.'); setUploading(false); return }
 
       const durationSec = await readDuration(file)
-
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open('PUT', urlData.uploadUrl)
@@ -89,11 +94,11 @@ export default function MaterialDidaticoPage() {
 
       const createRes = await fetch('/api/dashboard/material/lessons', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ programNum, title: title.trim(), description: description.trim() || undefined, videoUrl: urlData.publicUrl, durationSec }),
+        body: JSON.stringify({ programNum: uploadProgram, title: title.trim(), description: description.trim() || undefined, videoUrl: urlData.publicUrl, durationSec }),
       })
       if (!createRes.ok) { const d = await createRes.json(); setError(d.error ?? 'Falha ao salvar.'); setUploading(false); return }
 
-      setTitle(''); setDescription(''); setFile(null); setProgress(0)
+      setUploadProgram(null)
       fetchAll()
     } catch (err) {
       setError((err as Error).message || 'Erro no upload.')
@@ -107,8 +112,7 @@ export default function MaterialDidaticoPage() {
     fetchAll()
   }
   const editLesson = async (l: Lesson) => {
-    const t = window.prompt('Título da aula:', l.title)
-    if (t === null) return
+    const t = window.prompt('Título da aula:', l.title); if (t === null) return
     const d = window.prompt('Descrição (opcional):', l.description ?? '')
     await fetch(`/api/dashboard/material/lessons/${l.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: t.trim() || l.title, description: (d ?? '').trim() || null }) })
     fetchAll()
@@ -129,10 +133,27 @@ export default function MaterialDidaticoPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">Material Didático</h1>
-        <p className="text-gray-500 mt-1">A escola online da sua empresa: suba os vídeos, compartilhe com a equipe e acompanhe quem assistiu.</p>
+      {/* Cabeçalho + botão compacto de compartilhar */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Material Didático</h1>
+          <p className="text-gray-500 mt-1">Monte as aulas por tema e acompanhe quem assistiu.</p>
+        </div>
+        <button onClick={() => setLinkOpen((v) => !v)} className="flex-shrink-0 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity">
+          📤 Enviar para colaboradores
+        </button>
       </div>
+
+      {linkOpen && (
+        <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4">
+          <p className="text-sm text-[#0E2A47] font-medium mb-2">Compartilhe este link — cada colaborador cria a própria conta e assiste:</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input readOnly value={link} onFocus={(e) => e.target.select()} className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 font-mono" />
+            <button onClick={copy} className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">{copied ? '✅ Copiado' : '📋 Copiar'}</button>
+            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-white text-primary-800 border border-primary-200 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Abrir</a>
+          </div>
+        </div>
+      )}
 
       {!r2ok && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
@@ -141,86 +162,62 @@ export default function MaterialDidaticoPage() {
         </div>
       )}
 
-      {/* Upload */}
-      <form onSubmit={handleUpload} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-        <h2 className="font-bold text-gray-900 mb-4">➕ Adicionar vídeo-aula</h2>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">Categoria / programa</label>
-        <select value={programNum} onChange={(e) => setProgramNum(Number(e.target.value))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4">
-          {PROGRAMS.map((p) => <option key={p.num} value={p.num}>{p.num}. {p.name}</option>)}
-        </select>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">Título</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 1 — Gestão do estresse" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
-        <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 resize-none" />
-        <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo</label>
-        <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-4" />
-        {uploading && (
-          <div className="mb-4">
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] transition-all" style={{ width: `${progress}%` }} /></div>
-            <p className="text-xs text-gray-400 mt-1">Enviando… {progress}%</p>
-          </div>
-        )}
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-        <button type="submit" disabled={uploading || !r2ok} className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
-          {uploading ? 'Enviando…' : '⬆️ Enviar vídeo'}
-        </button>
-      </form>
-
-      {/* Biblioteca */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-        <h2 className="font-bold text-gray-900 mb-4">📚 Seus materiais ({lessons.length})</h2>
-        {lessons.length === 0 ? (
-          <p className="text-gray-400 text-sm">Nenhum vídeo ainda. Adicione o primeiro acima.</p>
-        ) : (
-          <div className="space-y-4">
-            {PROGRAMS.filter((p) => lessons.some((l) => l.programNum === p.num)).map((p) => (
-              <div key={p.num}>
-                <p className="text-xs font-semibold text-primary-800 mb-2">{p.num}. {p.name}</p>
-                <div className="space-y-2">
-                  {lessons.filter((l) => l.programNum === p.num).map((l) => (
-                    <div key={l.id} className="flex items-center justify-between gap-3 border border-gray-100 rounded-xl px-4 py-2.5">
-                      <p className={`text-sm font-medium truncate ${l.active ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{l.title}</p>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => toggleActive(l)} title={l.active ? 'Desativar' : 'Ativar'} className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">{l.active ? '👁️' : '🚫'}</button>
-                        <button onClick={() => editLesson(l)} title="Editar" className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">✏️</button>
-                        <button onClick={() => deleteLesson(l)} title="Excluir" className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">🗑️</button>
-                      </div>
+      {/* Planos de aula (temas) */}
+      <div>
+        <h2 className="font-bold text-gray-900 mb-1">Planos de aula</h2>
+        <p className="text-gray-500 text-sm mb-4">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} em {PROGRAMS.length} temas. Adicione quantos vídeos quiser em cada tema.</p>
+        <div className="space-y-3">
+          {PROGRAMS.map((p) => {
+            const ls = lessons.filter((l) => l.programNum === p.num)
+            return (
+              <div key={p.num} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-[#F6F9FC] to-white border-b border-gray-100">
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#0E2A47] truncate">{p.num}. {p.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{ls.length} vídeo{ls.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  <button onClick={() => openUpload(p.num)} disabled={!r2ok} className="flex-shrink-0 text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-3 py-2 rounded-xl hover:bg-[#E0F5F6] transition-colors disabled:opacity-40">
+                    ➕ Adicionar vídeo
+                  </button>
+                </div>
+                <div className="px-5 py-3">
+                  {ls.length === 0 ? (
+                    <p className="text-gray-400 text-sm py-1">Nenhum vídeo neste tema ainda.</p>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {ls.map((l, i) => (
+                        <div key={l.id} className="flex items-center justify-between gap-3 py-2.5">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-7 h-7 rounded-lg bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                            <p className={`text-sm font-medium truncate ${l.active ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{l.title}</p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button onClick={() => toggleActive(l)} title={l.active ? 'Desativar' : 'Ativar'} className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">{l.active ? '👁️' : '🚫'}</button>
+                            <button onClick={() => editLesson(l)} title="Editar" className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">✏️</button>
+                            <button onClick={() => deleteLesson(l)} title="Excluir" className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">🗑️</button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Link para colaboradores */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-        <div className="flex items-start gap-3 mb-4">
-          <span className="text-2xl">🔗</span>
-          <div>
-            <h2 className="font-bold text-gray-900">Link para os colaboradores</h2>
-            <p className="text-gray-500 text-sm mt-1">Cada pessoa abre o link, <strong>cria a própria conta</strong> e assiste. Você acompanha tudo no relatório abaixo.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input readOnly value={link} onFocus={(e) => e.target.select()} className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 font-mono" />
-          <button onClick={copy} className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">{copied ? '✅ Copiado' : '📋 Copiar'}</button>
-          <a href={link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-white text-primary-800 border border-primary-200 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Abrir</a>
+            )
+          })}
         </div>
       </div>
 
-      {/* Relatório */}
+      {/* Relatório de presença */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
         <div className="flex items-start gap-3 mb-4">
           <span className="text-2xl">🧾</span>
           <div>
             <h2 className="font-bold text-gray-900">Relatório de presença</h2>
-            <p className="text-gray-500 text-sm mt-1">Quanto cada colaborador assistiu. Concluído = 90% ou mais. {report?.totalLessons ?? 0} vídeos disponíveis.</p>
+            <p className="text-gray-500 text-sm mt-1">Clique num colaborador para ver, aula por aula, o que ele assistiu. Concluído = 90% ou mais.</p>
           </div>
         </div>
         {!report || report.employees.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-8 text-center"><p className="text-gray-500 text-sm">Nenhum colaborador entrou ainda. Compartilhe o link acima.</p></div>
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-8 text-center"><p className="text-gray-500 text-sm">Nenhum colaborador entrou ainda. Use o botão &quot;Enviar para colaboradores&quot; lá em cima.</p></div>
         ) : (
           <div className="space-y-2">
             {report.employees.map((e) => {
@@ -244,10 +241,12 @@ export default function MaterialDidaticoPage() {
                     </div>
                   </button>
                   {isOpen && (
-                    <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3 space-y-2">
-                      {e.perLesson.map((l) => (
+                    <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3 space-y-1.5">
+                      {e.perLesson.length === 0 ? (
+                        <p className="text-xs text-gray-400">Nenhuma aula disponível ainda.</p>
+                      ) : e.perLesson.map((l) => (
                         <div key={l.lessonId} className="flex items-center justify-between gap-3">
-                          <p className="text-sm text-gray-600 truncate min-w-0">{l.title}</p>
+                          <p className="text-sm text-gray-600 truncate min-w-0"><span className="text-gray-400">{l.program} · </span>{l.title}</p>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${l.percent}%`, background: barColor(l.percent) }} /></div>
                             <span className={`text-xs font-semibold w-16 text-right ${l.completed ? 'text-green-600' : 'text-gray-500'}`}>{l.completed ? '✅ 90%+' : `${l.percent}%`}</span>
@@ -262,6 +261,38 @@ export default function MaterialDidaticoPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de upload */}
+      {uploadProgram != null && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeUpload}>
+          <form onSubmit={handleUpload} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs text-[#109CA1] font-bold">{PROGRAMS.find((p) => p.num === uploadProgram)?.name}</p>
+                <h3 className="font-bold text-gray-900">Adicionar vídeo-aula</h3>
+              </div>
+              <button type="button" onClick={closeUpload} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+            </div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Título da aula</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 1 — Introdução" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 resize-none" />
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo</label>
+            <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-4" />
+            {uploading && (
+              <div className="mb-4">
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] transition-all" style={{ width: `${progress}%` }} /></div>
+                <p className="text-xs text-gray-400 mt-1">Enviando… {progress}%</p>
+              </div>
+            )}
+            {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={closeUpload} disabled={uploading} className="flex-1 border border-gray-200 text-gray-600 font-semibold text-sm py-2.5 rounded-xl hover:bg-gray-50 disabled:opacity-40">Cancelar</button>
+              <button type="submit" disabled={uploading} className="flex-1 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-semibold text-sm py-2.5 rounded-xl hover:opacity-90 disabled:opacity-40">{uploading ? 'Enviando…' : '⬆️ Enviar'}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

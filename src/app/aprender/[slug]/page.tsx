@@ -189,41 +189,88 @@ export default function AprenderPage() {
     )
   }
 
-  // Lista de vídeos (área de membros)
+  // Área de membros (estilo plataforma de estudo)
+  const total = lessons.length
   const concluidos = lessons.filter((l) => l.completed).length
+  const overall = total ? Math.round(lessons.reduce((s, l) => s + l.percent, 0) / total) : 0
+
+  // Agrupa por tema (as aulas já vêm ordenadas por programa)
+  const modules: { programNum: number; program: string; items: Lesson[] }[] = []
+  for (const l of lessons) {
+    let m = modules.find((x) => x.programNum === l.programNum)
+    if (!m) { m = { programNum: l.programNum, program: l.program, items: [] }; modules.push(m) }
+    m.items.push(l)
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px 48px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12 }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px 48px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12 }}>
           <div>
             <p style={{ fontSize: 13, color: '#64748b' }}>{companyName} · Material Didático NR-1</p>
-            <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', marginTop: 2 }}>Seus vídeos</h1>
-            <p style={{ fontSize: 13, color: '#475569', marginTop: 6 }}>
-              {concluidos} de {lessons.length} concluído{concluidos !== 1 ? 's' : ''} · conta como concluído ao atingir 90%.
-            </p>
+            <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', marginTop: 2 }}>Sua jornada de aprendizado</h1>
           </div>
           <button onClick={logout} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 10, padding: '7px 14px', fontSize: 13, color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>Sair</button>
         </div>
 
-        {lessons.length === 0 ? (
+        {/* Progresso geral do curso */}
+        <div style={{ background: 'linear-gradient(120deg,#0E2A47,#143A5E)', borderRadius: 18, padding: 22, color: '#fff', marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <p style={{ fontSize: 12, color: '#9FC2D6', textTransform: 'uppercase', letterSpacing: '.5px' }}>Seu progresso no curso</p>
+              <p style={{ fontSize: 13, color: '#cfe2f0', marginTop: 4 }}>{concluidos} de {total} aula{total !== 1 ? 's' : ''} concluída{concluidos !== 1 ? 's' : ''} · concluído = 90%</p>
+            </div>
+            <span style={{ fontSize: 34, fontWeight: 900, lineHeight: 1 }}>{overall}%</span>
+          </div>
+          <div style={{ height: 10, background: 'rgba(255,255,255,.15)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ width: `${overall}%`, height: '100%', background: 'linear-gradient(90deg,#17C3C9,#3F7DE0)', transition: 'width .5s' }} />
+          </div>
+        </div>
+
+        {total === 0 ? (
           <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 32, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
-            Ainda não há vídeos disponíveis. Volte em breve!
+            Ainda não há aulas disponíveis. Volte em breve!
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {lessons.map((l) => (
-              <button key={l.id} onClick={() => openLesson(l)} style={{ textAlign: 'left', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16, cursor: 'pointer', display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div style={{ width: 46, height: 46, borderRadius: 12, background: l.completed ? '#dcfce7' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 22 }}>{l.completed ? '✅' : '▶️'}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 11, color: '#109CA1', fontWeight: 600 }}>{l.program}</p>
-                  <p style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>{l.title}</p>
-                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${l.percent}%`, height: '100%', background: l.completed ? '#22c55e' : '#17C3C9' }} /></div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: l.completed ? '#16a34a' : '#64748b', minWidth: 38, textAlign: 'right' }}>{l.percent}%</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {modules.map((m, mi) => {
+              const mTotal = m.items.length
+              const mDone = m.items.filter((l) => l.completed).length
+              const mPct = mTotal ? Math.round(m.items.reduce((s, l) => s + l.percent, 0) / mTotal) : 0
+              return (
+                <div key={m.programNum}>
+                  {/* Cabeçalho do módulo */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px' }}>Módulo {mi + 1}</p>
+                      <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>{m.program}</h2>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>{mDone}/{mTotal} · {mPct}%</span>
+                      <div style={{ width: 110, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
+                        <div style={{ width: `${mPct}%`, height: '100%', background: mPct >= 90 ? '#22c55e' : '#17C3C9' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Aulas do módulo */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {m.items.map((l, i) => (
+                      <button key={l.id} onClick={() => openLesson(l)} style={{ textAlign: 'left', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', gap: 13, alignItems: 'center' }}>
+                        <div style={{ width: 42, height: 42, borderRadius: 11, background: l.completed ? '#dcfce7' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>{l.completed ? '✅' : '▶️'}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}><span style={{ color: '#94a3b8' }}>Aula {i + 1} · </span>{l.title}</p>
+                          <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${l.percent}%`, height: '100%', background: l.completed ? '#22c55e' : '#17C3C9' }} /></div>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: l.completed ? '#16a34a' : '#64748b', minWidth: 38, textAlign: 'right' }}>{l.percent}%</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </button>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
