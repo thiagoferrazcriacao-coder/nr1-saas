@@ -35,7 +35,7 @@ export default function CheckoutPage({ searchParams }: { searchParams: { plano?:
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-zelo-2.png" alt="Zelo" className="h-12 w-auto" />
+            <img src="/logo-zelo-3.png" alt="Zelo" className="h-12 w-auto" />
           </Link>
           <Link href="/#precos" className="text-sm text-gray-500 hover:text-[#0E2A47]">← Voltar aos planos</Link>
         </div>

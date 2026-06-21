@@ -216,7 +216,7 @@ export default function ApresentacaoPage() {
       {/* Logo */}
       <div style={{position:'absolute',top:'18px',left:'28px',zIndex:10,background:'#fff',padding:'8px 14px',borderRadius:'12px',boxShadow:'0 4px 14px rgba(0,0,0,.25)'}}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-zelo-2.png" alt="Zelo" style={{height:'34px',display:'block'}} />
+        <img src="/logo-zelo-3.png" alt="Zelo" style={{height:'34px',display:'block'}} />
       </div>
 
       {/* Número do slide */}

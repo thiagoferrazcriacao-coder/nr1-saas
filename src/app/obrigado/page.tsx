@@ -11,7 +11,7 @@ export default function ObrigadoPage() {
       <header className="px-4 py-4">
         <div className="max-w-5xl mx-auto">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-zelo-2.png" alt="Zelo" className="h-12 w-auto" />
+          <img src="/logo-zelo-3.png" alt="Zelo" className="h-12 w-auto" />
         </div>
       </header>
 
