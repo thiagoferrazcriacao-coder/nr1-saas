@@ -1,40 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { getEmployeeFromReq } from '@/lib/employee-auth'
 
 export const dynamic = 'force-dynamic'
 
 const schema = z.object({
-  employeeId: z.string().uuid(),
-  lessonId:   z.string().uuid(),
-  percent:    z.number().min(0).max(100),
+  lessonId: z.string().uuid(),
+  percent:  z.number().min(0).max(100),
 })
 
-// POST — registra o progresso de assistir. Só sobe (guarda o maior % alcançado).
+// POST — registra o progresso (colaborador identificado pela sessão). Só sobe.
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const parsed = schema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
-    }
-    const { employeeId, lessonId } = parsed.data
-    const percent = Math.round(parsed.data.percent)
+  const session = getEmployeeFromReq(req)
+  if (!session) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
 
-    // Valida existência do colaborador e do vídeo
-    const [employee, lesson] = await Promise.all([
-      prisma.employee.findUnique({ where: { id: employeeId }, select: { id: true } }),
-      prisma.lesson.findUnique({ where: { id: lessonId }, select: { id: true } }),
-    ])
-    if (!employee || !lesson) {
-      return NextResponse.json({ error: 'Registro não encontrado.' }, { status: 404 })
-    }
+  try {
+    const parsed = schema.safeParse(await req.json())
+    if (!parsed.success) return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
+
+    const { lessonId } = parsed.data
+    const percent = Math.round(parsed.data.percent)
+    const employeeId = session.employeeId
+
+    // A aula precisa existir e ser da mesma empresa do colaborador
+    const lesson = await prisma.lesson.findFirst({
+      where: { id: lessonId, companyId: session.companyId },
+      select: { id: true },
+    })
+    if (!lesson) return NextResponse.json({ error: 'Aula não encontrada.' }, { status: 404 })
 
     const existing = await prisma.lessonProgress.findUnique({
       where: { employeeId_lessonId: { employeeId, lessonId } },
     })
-
-    // Só atualiza se o novo % for maior que o já registrado
     const newPercent = Math.max(percent, existing?.percent ?? 0)
     const completed = newPercent >= 90
 
@@ -43,7 +41,6 @@ export async function POST(req: NextRequest) {
       create: { employeeId, lessonId, percent: newPercent, completed },
       update: { percent: newPercent, completed },
     })
-
     return NextResponse.json({ percent: saved.percent, completed: saved.completed })
   } catch (err) {
     console.error(err)

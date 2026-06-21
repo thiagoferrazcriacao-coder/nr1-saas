@@ -89,17 +89,12 @@ export default function AdminPage() {
             <p className="text-slate-400 text-xs">Painel da Annie</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/admin/videos" className="text-slate-300 hover:text-white text-sm font-medium transition-colors">
-            🎬 Vídeos
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="text-slate-400 hover:text-white text-sm transition-colors"
-          >
-            Sair →
-          </button>
-        </div>
+        <button
+          onClick={handleLogout}
+          className="text-slate-400 hover:text-white text-sm transition-colors"
+        >
+          Sair →
+        </button>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { requireAdmin } from '@/lib/admin-auth'
+import { requireAuth } from '@/lib/auth'
 import { getR2Client, r2Configured, R2_BUCKET, R2_PUBLIC_URL } from '@/lib/r2'
 
 const schema = z.object({
@@ -11,41 +11,37 @@ const schema = z.object({
   contentType: z.string().trim().min(1).max(120),
 })
 
-// POST — gera um link temporário para o navegador enviar o vídeo direto ao R2
-// (evita o limite de tamanho das funções serverless).
+// POST — gera um link temporário para o navegador enviar o arquivo direto ao R2
 export async function POST(req: NextRequest) {
+  let companyId: string
   try {
-    requireAdmin(req)
+    companyId = requireAuth(req).companyId
+  } catch {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
 
+  try {
     if (!r2Configured()) {
       return NextResponse.json(
-        { error: 'O armazenamento de vídeos (R2) ainda não foi configurado. Defina as chaves do R2 nas variáveis de ambiente.' },
+        { error: 'O armazenamento de vídeos ainda não foi configurado pelo administrador.' },
         { status: 503 }
       )
     }
 
     const parsed = schema.safeParse(await req.json())
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
-    }
+    if (!parsed.success) return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
 
-    // Nome seguro e único do arquivo
     const safe = parsed.data.filename.normalize('NFD').replace(/[^\w.\-]+/g, '_')
-    const key = `videos/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`
+    const key = `videos/${companyId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`
 
     const command = new PutObjectCommand({
-      Bucket:      R2_BUCKET,
-      Key:         key,
-      ContentType: parsed.data.contentType,
+      Bucket: R2_BUCKET, Key: key, ContentType: parsed.data.contentType,
     })
     const uploadUrl = await getSignedUrl(getR2Client(), command, { expiresIn: 3600 })
     const publicUrl = `${R2_PUBLIC_URL}/${key}`
 
     return NextResponse.json({ uploadUrl, publicUrl, key })
   } catch (err) {
-    if ((err as Error).message === 'Não autorizado') {
-      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-    }
     console.error(err)
     return NextResponse.json({ error: 'Não foi possível preparar o upload.' }, { status: 500 })
   }

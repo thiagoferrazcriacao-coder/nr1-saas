@@ -36,6 +36,7 @@ model Company {
   assessment       CompanyAssessment?
   actionPlans      ActionPlan[]
   employees        Employee[]
+  lessons          Lesson[]
 
   @@index([slug])
 }
@@ -146,12 +147,13 @@ model CompanyAssessment {
 
 // ─── Material Didático (escola de vídeos) ───────────────────────────────────
 
-// Vídeo-aula da biblioteca genérica, compartilhada entre todas as empresas.
-// Organizada nos 10 programas do protocolo NR-1.
+// Material didático (vídeo-aula etc.) — agora pertence a UMA empresa.
+// Cada empresa gerencia a sua própria biblioteca dentro da plataforma.
 model Lesson {
   id          String           @id @default(uuid())
-  programNum  Int              // 1–10
-  program     String           // nome do programa
+  companyId   String?          // dono do material (null = legado, ignorado nas queries)
+  programNum  Int              // 1–10 (categoria, usada na sugestão automática)
+  program     String           // nome do programa/categoria
   title       String
   description String?
   videoUrl    String
@@ -159,21 +161,25 @@ model Lesson {
   order       Int              @default(0)
   active      Boolean          @default(true)
   createdAt   DateTime         @default(now())
+  company     Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   progresses  LessonProgress[]
 
+  @@index([companyId])
   @@index([programNum])
   @@index([order])
 }
 
-// Colaborador de uma empresa, identificado pelo e-mail (prova legal de quem assistiu).
+// Colaborador de uma empresa. Cria a própria conta (e-mail + senha) e acessa
+// uma área de membros com a evolução dele.
 model Employee {
-  id         String           @id @default(uuid())
-  companyId  String
-  email      String
-  name       String?
-  createdAt  DateTime         @default(now())
-  company    Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  progresses LessonProgress[]
+  id           String           @id @default(uuid())
+  companyId    String
+  email        String
+  name         String?
+  passwordHash String?          // definido quando o colaborador cria a conta
+  createdAt    DateTime         @default(now())
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  progresses   LessonProgress[]
 
   @@unique([companyId, email])
   @@index([companyId])

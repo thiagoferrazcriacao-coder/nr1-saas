@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { ensureLessons } from '@/lib/lessons-seed'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +15,9 @@ export async function GET(req: NextRequest) {
     })
     if (!company) return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 })
 
-    await ensureLessons()
-
     const lessons = await prisma.lesson.findMany({
-      where:   { active: true },
-      orderBy: { order: 'asc' },
+      where:   { companyId, active: true },
+      orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
       select:  { id: true, title: true, program: true, programNum: true },
     })
     const totalLessons = lessons.length

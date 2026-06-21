@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { calcScore, buildRiskMatrix, type Probability, type RiskLevel } from '@/lib/scoring'
-import { ensureLessons, FACTOR_TO_PROGRAM } from '@/lib/lessons-seed'
+import { FACTOR_TO_PROGRAM } from '@/lib/lessons-seed'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,9 +74,8 @@ export async function GET(
       return NextResponse.json({ slug: sector.company.slug, recommended: [] })
     }
 
-    await ensureLessons()
     const lessons = await prisma.lesson.findMany({
-      where:   { active: true, programNum: { in: Array.from(groups.keys()) } },
+      where:   { companyId, active: true, programNum: { in: Array.from(groups.keys()) } },
       orderBy: { order: 'asc' },
       select:  { id: true, programNum: true, program: true, title: true },
     })

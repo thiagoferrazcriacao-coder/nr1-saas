@@ -1,0 +1,11 @@
+Material Didatico todo na plataforma + conta do colaborador
+
+- Materiais agora sao POR EMPRESA: o gestor sobe/gerencia na aba Material Didatico
+- Remove a area externa /admin/videos e as APIs /api/admin/lessons
+- Novas APIs do gestor: /api/dashboard/material/lessons (+[id]) e upload-url (R2 por empresa)
+- Colaborador cria a propria conta (email+senha): /api/aprender/[slug]/signup, login, me (sessao por cookie JWT)
+- Progresso passa a usar a sessao do colaborador
+- Pagina /aprender vira criar-conta/login + area de membros com a evolucao
+- schema: Lesson.companyId, Employee.passwordHash (aditivos, nullable)
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

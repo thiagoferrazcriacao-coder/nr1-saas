@@ -2,22 +2,21 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAdmin } from '@/lib/admin-auth'
+import { requireAuth } from '@/lib/auth'
 import { r2Configured } from '@/lib/r2'
-import { PROGRAMS } from '@/lib/lessons-seed'
+import { PROGRAMS } from '@/lib/programs'
 
-// GET — lista todas as aulas (biblioteca global)
+// GET — lista as aulas da empresa
 export async function GET(req: NextRequest) {
   try {
-    requireAdmin(req)
-    const lessons = await prisma.lesson.findMany({ orderBy: [{ programNum: 'asc' }, { order: 'asc' }] })
+    const { companyId } = requireAuth(req)
+    const lessons = await prisma.lesson.findMany({
+      where: { companyId },
+      orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
+    })
     return NextResponse.json({ lessons, r2Configured: r2Configured() })
-  } catch (err) {
-    if ((err as Error).message === 'Não autorizado') {
-      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-    }
-    console.error(err)
-    return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 }
 
@@ -31,24 +30,30 @@ const createSchema = z.object({
 
 // POST — cria a aula após o upload do vídeo
 export async function POST(req: NextRequest) {
+  let companyId: string
   try {
-    requireAdmin(req)
+    companyId = requireAuth(req).companyId
+  } catch {
+    return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
+  }
+
+  try {
     const parsed = createSchema.safeParse(await req.json())
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0]?.message ?? 'Dados inválidos.' }, { status: 400 })
     }
     const program = PROGRAMS.find((p) => p.num === parsed.data.programNum)
-    if (!program) return NextResponse.json({ error: 'Programa inválido.' }, { status: 400 })
+    if (!program) return NextResponse.json({ error: 'Categoria inválida.' }, { status: 400 })
 
-    // Próxima ordem dentro do programa
     const last = await prisma.lesson.findFirst({
-      where: { programNum: parsed.data.programNum },
+      where: { companyId, programNum: parsed.data.programNum },
       orderBy: { order: 'desc' },
       select: { order: true },
     })
 
     const lesson = await prisma.lesson.create({
       data: {
+        companyId,
         programNum:  parsed.data.programNum,
         program:     program.name,
         title:       parsed.data.title,
@@ -60,9 +65,6 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ lesson })
   } catch (err) {
-    if ((err as Error).message === 'Não autorizado') {
-      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
-    }
     console.error(err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
   }
