@@ -2,55 +2,34 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { calcScore, buildRiskMatrix, type MatrixResult, type Probability } from '@/lib/scoring'
+import { FACTOR_ANALYSIS } from '@/lib/drps-content'
 
-type AiClassification = {
-  diagnostico?: string
-  acoes_imediatas?: string[]
-  acoes_preventivas?: string[]
-  topicos_criticos?: string[]
-  adequacao_nr1?: { nivel_conformidade?: string; justificativa?: string }
-  prioridade_intervencao?: string
-}
+export const dynamic = 'force-dynamic'
 
-// ─── Cores ────────────────────────────────────────────────────────────────────
+// ─── Cores e rótulos ──────────────────────────────────────────────────────────
 
 const riskColors: Record<string, string> = {
-  baixo:    '#16a34a',
-  moderado: '#ca8a04',
-  alto:     '#ea580c',
-  critico:  '#dc2626',
+  baixo: '#16a34a', moderado: '#ca8a04', alto: '#ea580c', critico: '#dc2626',
 }
-
 const riskBg: Record<string, string> = {
-  baixo:    '#f0fdf4',
-  moderado: '#fefce8',
-  alto:     '#fff7ed',
-  critico:  '#fef2f2',
+  baixo: '#f0fdf4', moderado: '#fefce8', alto: '#fff7ed', critico: '#fef2f2',
 }
-
 const riskLabel: Record<string, string> = {
   baixo: 'Baixo', moderado: 'Moderado', alto: 'Alto', critico: 'Crítico',
 }
-
-const gravLabel: Record<string, string> = {
-  baixa: 'Baixa', media: 'Média', alta: 'Alta',
-}
-
-const probLabel: Record<string, string> = {
-  baixa: 'Baixa', media: 'Média', alta: 'Alta',
-}
+const gravLabel: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
+const probLabel: Record<string, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
 
 // ─── Builder do HTML ──────────────────────────────────────────────────────────
 
 function buildHtml(opts: {
   sectorName:      string
   companyName:     string
+  fantasyName:     string | null
   totalResponses:  number
   avgScore:        number
   riskLevel:       string
-  byTopic:         { topicNum: number; topic: string; score: number; riskLevel: string }[]
   matrix:          MatrixResult[]
-  ai:              AiClassification | null
   assessedBy:      string | null
   cnpj:            string | null
   city:            string | null
@@ -64,108 +43,91 @@ function buildHtml(opts: {
   drpsNotes:       string | null
 }): string {
   const {
-    sectorName, companyName, totalResponses, avgScore, riskLevel, byTopic, matrix, ai, assessedBy,
-    cnpj, city, state, address, responsible, employeeCount, workModality,
+    sectorName, companyName, fantasyName, totalResponses, matrix, assessedBy,
+    cnpj, city, state, address, responsible, employeeCount,
     drpsValidatedAt, drpsValidatedBy, drpsNotes,
   } = opts
-  const date     = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-  const mainColor = riskColors[riskLevel] ?? '#64748b'
-  const mainBg    = riskBg[riskLevel]    ?? '#f8fafc'
 
-  // Risco final dominante da matriz
-  const matrixFinal = (['critico','alto','moderado','baixo'] as const)
-    .find((l) => matrix.some((m) => m.riskFinal === l)) ?? riskLevel
+  const now = new Date()
+  const date = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  const proxima = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate())
+    .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 
-  // ── Tabela de scores de gravidade ─────────────────────────────────────────
-  const gravRows = byTopic.map((t) => {
-    const c   = riskColors[t.riskLevel]
-    const bg  = riskBg[t.riskLevel]
-    const pct = Math.round((t.score / 4) * 100)
-    return `
-      <tr style="border-bottom:1px solid #f1f5f9;">
-        <td style="padding:8px 12px;font-size:12px;color:#374151;">${t.topicNum}. ${t.topic}</td>
-        <td style="padding:8px 12px;text-align:center;font-weight:bold;color:${c};font-size:13px;">${t.score.toFixed(2)}</td>
-        <td style="padding:8px 12px;width:160px;">
-          <div style="background:#e2e8f0;border-radius:4px;height:8px;">
-            <div style="width:${pct}%;height:8px;background:${c};border-radius:4px;"></div>
-          </div>
-        </td>
-        <td style="padding:8px 12px;text-align:center;">
-          <span style="background:${bg};color:${c};border:1px solid ${c}40;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:bold;">
-            ${riskLabel[t.riskLevel] ?? t.riskLevel}
-          </span>
-        </td>
-      </tr>`
-  }).join('')
+  // Distribuição dos riscos
+  const nBaixo    = matrix.filter((m) => m.riskFinal === 'baixo').length
+  const nModerado = matrix.filter((m) => m.riskFinal === 'moderado').length
+  const nAltoCrit = matrix.filter((m) => m.riskFinal === 'alto' || m.riskFinal === 'critico').length
+  const elevados  = matrix.filter((m) => m.riskFinal !== 'baixo')
 
-  // ── Tabela da Matriz NR-1 ─────────────────────────────────────────────────
+  const participacao = employeeCount && employeeCount > 0
+    ? Math.min(100, Math.round((totalResponses / employeeCount) * 100))
+    : null
+
+  // Frase-resumo adaptada ao perfil
+  const resumoFrase = nAltoCrit > 0
+    ? `A avaliação identificou <strong>${nAltoCrit} fator${nAltoCrit !== 1 ? 'es' : ''}</strong> em nível Alto ou Crítico, que demanda${nAltoCrit !== 1 ? 'm' : ''} intervenção imediata, além de ${nModerado} em nível moderado. A priorização das medidas está detalhada no Plano de Ação integrante do PGR.`
+    : nModerado > 0
+      ? `Resultado tecnicamente classificado como positivo. A organização apresenta perfil de baixa exposição aos riscos psicossociais previstos pela NR-1, com <strong>${nModerado} fator${nModerado !== 1 ? 'es' : ''}</strong> em nível moderado que demanda${nModerado !== 1 ? 'm' : ''} ações preventivas estruturadas para evitar evolução para níveis críticos.`
+      : 'Resultado tecnicamente classificado como positivo. A organização apresenta perfil de baixa exposição aos fatores de risco psicossocial previstos pela NR-1, sem fatores em nível moderado, alto ou crítico no momento da avaliação.'
+
+  const sec = (n: string, title: string) => `
+    <h2 style="font-size:14px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:7px;margin:30px 0 14px;">
+      ${n}. ${title}
+    </h2>`
+
+  // ── 4. Matriz de risco completa ───────────────────────────────────────────
   const matrixRows = matrix.map((m) => {
-    const gravC  = riskColors[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']
-    const gravBg = riskBg[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']
-    const probC  = m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
-    const probBg = m.probabilidade === 'alta' ? '#fef2f2' : m.probabilidade === 'media' ? '#fefce8' : '#f0fdf4'
-    const finC   = riskColors[m.riskFinal]
-    const finBg  = riskBg[m.riskFinal]
+    const gravC = riskColors[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']
+    const probC = m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
+    const finC  = riskColors[m.riskFinal]
+    const finBg = riskBg[m.riskFinal]
     return `
       <tr style="border-bottom:1px solid #f1f5f9;">
-        <td style="padding:8px 12px;font-size:12px;color:#374151;">${m.topicNum}. ${m.topic}</td>
-        <td style="padding:8px 12px;text-align:center;">
-          <span style="background:${gravBg};color:${gravC};border:1px solid ${gravC}40;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:bold;">
-            ${gravLabel[m.gravidade]} (${m.gravScore.toFixed(1)})
-          </span>
-        </td>
-        <td style="padding:8px 12px;text-align:center;">
-          <span style="background:${probBg};color:${probC};border:1px solid ${probC}40;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:bold;">
-            ${probLabel[m.probabilidade]}
-          </span>
-        </td>
-        <td style="padding:8px 12px;text-align:center;">
-          <span style="background:${finBg};color:${finC};border:1px solid ${finC}40;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:bold;">
-            ${riskLabel[m.riskFinal]}
-          </span>
+        <td style="padding:7px 10px;font-size:11px;color:#94a3b8;text-align:center;">${String(m.topicNum).padStart(2, '0')}</td>
+        <td style="padding:7px 10px;font-size:11px;color:#374151;">${m.topic}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:11px;color:${gravC};font-weight:600;">${gravLabel[m.gravidade]}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:11px;color:${probC};font-weight:600;">${probLabel[m.probabilidade]}</td>
+        <td style="padding:7px 10px;text-align:center;">
+          <span style="background:${finBg};color:${finC};border:1px solid ${finC}40;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:bold;">${riskLabel[m.riskFinal]}</span>
         </td>
       </tr>`
   }).join('')
 
-  // ── Seção de IA ───────────────────────────────────────────────────────────
-  const aiSection = ai ? `
-    <div style="margin-top:32px;page-break-before:always;">
-      <h2 style="font-size:15px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:16px;">
-        📊 Análise Técnica e Recomendações
-      </h2>
-      ${ai.diagnostico ? `
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-bottom:16px;">
-          <strong style="color:#1e40af;font-size:13px;">📋 Diagnóstico</strong>
-          <p style="margin:8px 0 0;font-size:12px;color:#1e3a8a;line-height:1.6;">${ai.diagnostico}</p>
-        </div>` : ''}
-      ${ai.adequacao_nr1 ? `
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:16px;">
-          <strong style="font-size:13px;">⚖️ Adequação NR-1: </strong>
-          <span style="font-size:13px;font-weight:bold;">${ai.adequacao_nr1.nivel_conformidade?.replace('_',' ') ?? '-'}</span>
-          ${ai.adequacao_nr1.justificativa ? `<p style="margin:6px 0 0;font-size:11px;color:#64748b;">${ai.adequacao_nr1.justificativa}</p>` : ''}
-        </div>` : ''}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-        ${ai.acoes_imediatas?.length ? `
-          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;">
-            <strong style="color:#dc2626;font-size:13px;">🚨 Ações Imediatas</strong>
-            <ol style="margin:8px 0 0;padding-left:18px;font-size:11px;color:#7f1d1d;line-height:1.7;">
-              ${ai.acoes_imediatas.map((a) => `<li>${a}</li>`).join('')}
-            </ol>
-          </div>` : ''}
-        ${ai.acoes_preventivas?.length ? `
-          <div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:14px;">
-            <strong style="color:#854d0e;font-size:13px;">🛡️ Ações Preventivas</strong>
-            <ol style="margin:8px 0 0;padding-left:18px;font-size:11px;color:#713f12;line-height:1.7;">
-              ${ai.acoes_preventivas.map((a) => `<li>${a}</li>`).join('')}
-            </ol>
-          </div>` : ''}
-      </div>
-      ${ai.topicos_criticos?.length ? `
-        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px;">
-          <strong style="color:#9a3412;font-size:13px;">⚠️ Tópicos Prioritários</strong>
-          <p style="margin:6px 0 0;font-size:12px;color:#7c2d12;">${ai.topicos_criticos.join(' · ')}</p>
-        </div>` : ''}
-    </div>` : ''
+  // ── 5. Análise qualitativa por fator ──────────────────────────────────────
+  const analise = matrix.map((m) => {
+    const fa = FACTOR_ANALYSIS[m.topicNum]
+    const elevado = m.riskFinal !== 'baixo'
+    const finC = riskColors[m.riskFinal], finBg = riskBg[m.riskFinal]
+    const gravC = riskColors[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']
+    const probC = m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
+    let texto = elevado ? (fa?.exposicao ?? '') : (fa?.protetivo ?? '')
+    if (m.riskFinal === 'alto' || m.riskFinal === 'critico') {
+      texto = `<strong style="color:${finC};">A intervenção é prioritária e de implementação imediata.</strong> ${texto}`
+    }
+    return `
+      <div style="margin-bottom:18px;page-break-inside:avoid;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:800;color:#1e3a8a;">${String(m.topicNum).padStart(2, '0')}. ${m.topic}</span>
+          <span style="font-size:10px;color:${gravC};">Gravidade: <strong>${gravLabel[m.gravidade]}</strong></span>
+          <span style="font-size:10px;color:${probC};">Probabilidade: <strong>${probLabel[m.probabilidade]}</strong></span>
+          <span style="background:${finBg};color:${finC};border:1px solid ${finC}40;padding:1px 9px;border-radius:20px;font-size:10px;font-weight:bold;">${riskLabel[m.riskFinal]}</span>
+        </div>
+        <p style="font-size:11.5px;color:#374151;line-height:1.6;text-align:justify;">${texto}</p>
+      </div>`
+  }).join('')
+
+  // ── 6. Pontos de atenção ──────────────────────────────────────────────────
+  const pontosAtencao = elevados.length
+    ? elevados.map((m) => {
+        const fa = FACTOR_ANALYSIS[m.topicNum]
+        const finC = riskColors[m.riskFinal]
+        return `
+          <div style="margin-bottom:12px;background:${riskBg[m.riskFinal]};border:1px solid ${finC}40;border-radius:8px;padding:12px 14px;">
+            <p style="font-size:12px;font-weight:700;color:${finC};">Fator ${String(m.topicNum).padStart(2, '0')} — ${m.topic} (${riskLabel[m.riskFinal]})</p>
+            <p style="font-size:11px;color:#475569;margin-top:4px;line-height:1.55;">${fa?.medida ?? ''}</p>
+          </div>`
+      }).join('')
+    : `<p style="font-size:12px;color:#374151;line-height:1.6;">Nenhum fator foi classificado acima do nível Baixo no momento da avaliação. Recomenda-se a manutenção das boas práticas vigentes e o monitoramento contínuo previsto no PGR.</p>`
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -176,150 +138,143 @@ function buildHtml(opts: {
     body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;background:white;font-size:13px;}
     table{border-collapse:collapse;width:100%;}
     th{background:#f8fafc;font-weight:600;color:#6b7280;}
+    p.txt{font-size:12px;color:#374151;line-height:1.65;margin-bottom:10px;text-align:justify;}
     @media print{.no-print{display:none!important;}body{padding:20px;}}
   </style>
 </head>
 <body style="padding:40px 48px;max-width:900px;margin:0 auto;">
 
-  <!-- Botão imprimir (some ao imprimir) -->
   <div class="no-print" style="text-align:right;margin-bottom:20px;">
-    <button onclick="window.print()"
-      style="background:#1e40af;color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;">
+    <button onclick="window.print()" style="background:#1e40af;color:white;border:none;padding:10px 24px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;">
       🖨️ Imprimir / Salvar PDF
     </button>
   </div>
 
-  <!-- Cabeçalho -->
-  <div style="border-bottom:3px solid #1e40af;padding-bottom:20px;margin-bottom:28px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
-      <div>
-        <p style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">
-          Diagnóstico de Risco Psicossocial — DRPS NR-1
-        </p>
-        <h1 style="font-size:22px;color:#1e40af;font-weight:900;">${companyName}</h1>
-        <h2 style="font-size:15px;color:#374151;font-weight:600;margin-top:2px;">Setor: ${sectorName}</h2>
-        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:#64748b;">
-          ${cnpj ? `<span>CNPJ: <strong>${cnpj}</strong></span>` : ''}
-          ${(city || state) ? `<span>📍 ${[city, state].filter(Boolean).join('/')}</span>` : ''}
-          ${address ? `<span>${address}</span>` : ''}
-          ${responsible ? `<span>Responsável: <strong>${responsible}</strong></span>` : ''}
-          ${employeeCount != null ? `<span>👥 ${employeeCount} colaboradores CLT</span>` : ''}
-          ${workModality ? `<span>🏢 ${{ presencial: 'Presencial', hibrido: 'Híbrido', remoto: 'Remoto' }[workModality] ?? workModality}</span>` : ''}
-        </div>
-      </div>
-      <div style="text-align:right;font-size:11px;color:#94a3b8;flex-shrink:0;">
-        <p>Emitido em ${date}</p>
-        <p>${totalResponses} respondente${totalResponses !== 1 ? 's' : ''} (anônimos)</p>
-        ${assessedBy ? `<p style="margin-top:4px;color:#64748b;font-weight:600;">Avaliador: ${assessedBy}</p>` : ''}
-        ${drpsValidatedAt ? `
-          <div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;text-align:right;">
-            <p style="color:#15803d;font-weight:700;font-size:10px;">✅ DRPS Validado</p>
-            <p style="color:#166534;font-size:10px;">${new Date(drpsValidatedAt).toLocaleDateString('pt-BR')}</p>
-            <p style="color:#166534;font-size:9px;font-weight:600;">${drpsValidatedBy ?? ''}</p>
-          </div>` : `
-          <div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:6px 10px;text-align:right;">
-            <p style="color:#15803d;font-weight:700;font-size:10px;">✅ Assinado eletronicamente</p>
-            <p style="color:#166534;font-size:10px;">${date}</p>
-            <p style="color:#166534;font-size:9px;font-weight:600;">Annie Talma · CRP/05/44595</p>
-          </div>`}
-      </div>
-    </div>
+  <!-- Capa -->
+  <div style="text-align:center;border-bottom:3px solid #1e40af;padding-bottom:24px;margin-bottom:8px;">
+    <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Relatório Técnico</p>
+    <h1 style="font-size:30px;color:#1e40af;font-weight:900;margin-top:6px;">DRPS</h1>
+    <p style="font-size:14px;color:#475569;margin-top:2px;">Diagnóstico de Riscos Psicossociais</p>
+    <p style="font-size:13px;color:#1e3a8a;font-weight:600;margin-top:14px;">${companyName} — Setor: ${sectorName}</p>
+    <p style="font-size:11px;color:#94a3b8;margin-top:2px;">${date}</p>
   </div>
 
-  <!-- Cards de resumo -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;">
-    <div style="background:${mainBg};border:2px solid ${mainColor}30;border-radius:12px;padding:20px;">
-      <p style="font-size:11px;color:${mainColor};font-weight:600;">Score de Gravidade Médio</p>
-      <p style="font-size:36px;font-weight:900;color:${mainColor};line-height:1.1;margin-top:4px;">${avgScore.toFixed(2)}</p>
-      <p style="font-size:11px;color:${mainColor};margin-top:2px;">de 4.0 — ${riskLabel[riskLevel] ?? riskLevel}</p>
-    </div>
-    <div style="background:${riskBg[matrixFinal]};border:2px solid ${riskColors[matrixFinal]}30;border-radius:12px;padding:20px;">
-      <p style="font-size:11px;color:${riskColors[matrixFinal]};font-weight:600;">Risco Final (Matriz NR-1)</p>
-      <p style="font-size:24px;font-weight:900;color:${riskColors[matrixFinal]};line-height:1.2;margin-top:8px;">
-        ${riskLabel[matrixFinal]}
-      </p>
-      <p style="font-size:11px;color:${riskColors[matrixFinal]};margin-top:2px;">Gravidade × Probabilidade</p>
-    </div>
-    <div style="background:#f8fafc;border:2px solid #e2e8f030;border-radius:12px;padding:20px;">
-      <p style="font-size:11px;color:#64748b;font-weight:600;">Tópicos Alto/Crítico</p>
-      <p style="font-size:36px;font-weight:900;color:#1f2937;line-height:1.1;margin-top:4px;">
-        ${matrix.filter((m) => m.riskFinal === 'critico' || m.riskFinal === 'alto').length}
-      </p>
-      <p style="font-size:11px;color:#94a3b8;margin-top:2px;">de ${matrix.length} tópicos</p>
-    </div>
-  </div>
-
-  <!-- Tabela de Gravidade -->
-  <h2 style="font-size:14px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:14px;">
-    1. Gravidade por Tópico (resultado do questionário)
-  </h2>
-  <table style="margin-bottom:28px;">
-    <thead>
-      <tr style="border-bottom:2px solid #e2e8f0;">
-        <th style="padding:10px 12px;text-align:left;font-size:11px;">Tópico</th>
-        <th style="padding:10px 12px;text-align:center;font-size:11px;">Score</th>
-        <th style="padding:10px 12px;font-size:11px;">Nível visual</th>
-        <th style="padding:10px 12px;text-align:center;font-size:11px;">Gravidade</th>
-      </tr>
-    </thead>
-    <tbody>${gravRows}</tbody>
+  ${sec('1', 'Identificação')}
+  <table style="font-size:12px;margin-bottom:4px;">
+    <tbody>
+      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;width:38%;">Razão social</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${companyName}</td></tr>
+      ${fantasyName ? `<tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Nome fantasia</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${fantasyName}</td></tr>` : ''}
+      ${cnpj ? `<tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">CNPJ</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${cnpj}</td></tr>` : ''}
+      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Setor avaliado</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${sectorName}</td></tr>
+      ${(city || state) ? `<tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Localização</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${[city, state].filter(Boolean).join('/')}${address ? ' · ' + address : ''}</td></tr>` : ''}
+      ${responsible ? `<tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Responsável pela organização</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${responsible}</td></tr>` : ''}
+      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Data do relatório</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${date}</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Responsável técnica</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">Annie Talma Ferreira Coelho — CRP/05/44595</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Próxima reaplicação</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${proxima}</td></tr>
+    </tbody>
   </table>
 
-  <!-- Matriz NR-1 -->
-  <h2 style="font-size:14px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;margin-bottom:14px;">
-    2. Matriz de Risco NR-1 — Gravidade × Probabilidade
-  </h2>
-  <table style="margin-bottom:16px;">
+  ${sec('2', 'Resumo Executivo')}
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center;">
+      <p style="font-size:26px;font-weight:900;color:#1e3a8a;">${totalResponses}</p>
+      <p style="font-size:10px;color:#64748b;text-transform:uppercase;">Respondentes</p>
+    </div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center;">
+      <p style="font-size:26px;font-weight:900;color:#1e3a8a;">${participacao != null ? participacao + '%' : '—'}</p>
+      <p style="font-size:10px;color:#64748b;text-transform:uppercase;">Taxa de participação</p>
+    </div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center;">
+      <p style="font-size:26px;font-weight:900;color:#1e3a8a;">13</p>
+      <p style="font-size:10px;color:#64748b;text-transform:uppercase;">Fatores avaliados</p>
+    </div>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;text-align:center;">
+      <p style="font-size:26px;font-weight:900;color:#1e3a8a;">50</p>
+      <p style="font-size:10px;color:#64748b;text-transform:uppercase;">Itens aplicados</p>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;text-align:center;">
+      <p style="font-size:22px;font-weight:900;color:#16a34a;">${nBaixo}</p>
+      <p style="font-size:10px;color:#15803d;text-transform:uppercase;">Risco Baixo</p>
+    </div>
+    <div style="background:#fefce8;border:1px solid #fef08a;border-radius:10px;padding:12px;text-align:center;">
+      <p style="font-size:22px;font-weight:900;color:#ca8a04;">${nModerado}</p>
+      <p style="font-size:10px;color:#854d0e;text-transform:uppercase;">Risco Moderado</p>
+    </div>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;text-align:center;">
+      <p style="font-size:22px;font-weight:900;color:#dc2626;">${nAltoCrit}</p>
+      <p style="font-size:10px;color:#991b1b;text-transform:uppercase;">Risco Alto ou Crítico</p>
+    </div>
+  </div>
+  <p class="txt">${resumoFrase}</p>
+
+  ${sec('3', 'Metodologia')}
+  <p class="txt">
+    A presente avaliação foi conduzida com base em instrumento técnico estruturado de rastreamento organizacional para
+    identificação, análise e classificação de fatores de risco psicossocial relacionados ao trabalho, em conformidade com a
+    Norma Regulamentadora 1 (NR-1), a Portaria MTE nº 1.419/2024 e a Portaria MTP nº 6.730/2023. A fundamentação teórica
+    integra referenciais consolidados da psicodinâmica do trabalho e dos modelos de estresse ocupacional
+    Demanda-Controle de Karasek e Esforço-Recompensa de Siegrist, além das diretrizes da Organização Mundial da Saúde (OMS)
+    e da Organização Internacional do Trabalho (OIT). O instrumento, de caráter coletivo e organizacional, não se configura
+    como avaliação clínica individual, estando alinhado ao Gerenciamento de Riscos Ocupacionais (GRO).
+  </p>
+  <p class="txt">
+    <strong>Coleta:</strong> questionário estruturado em formato digital, com anonimato dos participantes, confidencialidade e
+    tratamento agregado dos dados (LGPD). As respostas foram registradas em escala Likert de 0 a 4, representando a frequência
+    percebida; itens de natureza protetiva foram tratados por lógica invertida.
+    <strong>Gravidade:</strong> determinada pela conversão das respostas em valores numéricos e cálculo das médias por item e por fator.
+    <strong>Probabilidade:</strong> definida por análise técnica especializada, considerando histórico, contexto e a efetividade dos controles.
+    <strong>Classificação final:</strong> cruzamento entre gravidade e probabilidade na Matriz de Risco NR-1 (Baixo, Moderado, Alto ou Crítico).
+  </p>
+
+  ${sec('4', 'Matriz de Risco Completa')}
+  <table style="margin-bottom:8px;">
     <thead>
       <tr style="border-bottom:2px solid #e2e8f0;">
-        <th style="padding:10px 12px;text-align:left;font-size:11px;">Tópico</th>
-        <th style="padding:10px 12px;text-align:center;font-size:11px;">Gravidade</th>
-        <th style="padding:10px 12px;text-align:center;font-size:11px;">Probabilidade</th>
-        <th style="padding:10px 12px;text-align:center;font-size:11px;">Risco Final</th>
+        <th style="padding:9px 10px;text-align:center;font-size:11px;">Nº</th>
+        <th style="padding:9px 10px;text-align:left;font-size:11px;">Fator de Risco Psicossocial</th>
+        <th style="padding:9px 10px;text-align:center;font-size:11px;">Gravidade</th>
+        <th style="padding:9px 10px;text-align:center;font-size:11px;">Probabilidade</th>
+        <th style="padding:9px 10px;text-align:center;font-size:11px;">Classificação</th>
       </tr>
     </thead>
     <tbody>${matrixRows}</tbody>
   </table>
 
-  <!-- Tabela de referência da matriz -->
-  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:28px;display:inline-block;">
-    <p style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:8px;text-transform:uppercase;">Tabela de Referência NR-1</p>
-    <table style="font-size:11px;width:auto;">
-      <thead>
-        <tr>
-          <th style="padding:4px 10px;background:#f1f5f9;border:1px solid #e2e8f0;">Prob ╲ Grav</th>
-          <th style="padding:4px 10px;background:#f0fdf4;color:#16a34a;border:1px solid #e2e8f0;">Baixa</th>
-          <th style="padding:4px 10px;background:#fefce8;color:#ca8a04;border:1px solid #e2e8f0;">Média</th>
-          <th style="padding:4px 10px;background:#fef2f2;color:#dc2626;border:1px solid #e2e8f0;">Alta</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="padding:4px 10px;font-weight:600;background:#f1f5f9;border:1px solid #e2e8f0;">Alta</td>
-          <td style="padding:4px 10px;text-align:center;background:#fefce8;color:#ca8a04;font-weight:bold;border:1px solid #e2e8f0;">Moderado</td>
-          <td style="padding:4px 10px;text-align:center;background:#fff7ed;color:#ea580c;font-weight:bold;border:1px solid #e2e8f0;">Alto</td>
-          <td style="padding:4px 10px;text-align:center;background:#fef2f2;color:#dc2626;font-weight:bold;border:1px solid #e2e8f0;">Crítico</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 10px;font-weight:600;background:#f1f5f9;border:1px solid #e2e8f0;">Média</td>
-          <td style="padding:4px 10px;text-align:center;background:#f0fdf4;color:#16a34a;font-weight:bold;border:1px solid #e2e8f0;">Baixo</td>
-          <td style="padding:4px 10px;text-align:center;background:#fefce8;color:#ca8a04;font-weight:bold;border:1px solid #e2e8f0;">Moderado</td>
-          <td style="padding:4px 10px;text-align:center;background:#fff7ed;color:#ea580c;font-weight:bold;border:1px solid #e2e8f0;">Alto</td>
-        </tr>
-        <tr>
-          <td style="padding:4px 10px;font-weight:600;background:#f1f5f9;border:1px solid #e2e8f0;">Baixa</td>
-          <td style="padding:4px 10px;text-align:center;background:#f0fdf4;color:#16a34a;font-weight:bold;border:1px solid #e2e8f0;">Baixo</td>
-          <td style="padding:4px 10px;text-align:center;background:#f0fdf4;color:#16a34a;font-weight:bold;border:1px solid #e2e8f0;">Baixo</td>
-          <td style="padding:4px 10px;text-align:center;background:#fefce8;color:#ca8a04;font-weight:bold;border:1px solid #e2e8f0;">Moderado</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  ${sec('5', 'Análise Qualitativa por Fator de Risco')}
+  <p class="txt" style="margin-bottom:16px;">
+    Avaliação técnica individualizada dos 13 fatores de risco psicossocial, fundamentada em referenciais consolidados da
+    psicodinâmica do trabalho e dos modelos contemporâneos de estresse ocupacional.
+  </p>
+  ${analise}
 
-  ${aiSection}
+  ${sec('6', 'Pontos de Atenção')}
+  ${elevados.length ? `<p class="txt">Os fatores classificados acima do nível Baixo demandam ação preventiva. As medidas técnicas recomendadas estão estruturadas no Plano de Ação integrante do PGR.</p>` : ''}
+  ${pontosAtencao}
+
+  ${sec('7', 'Plano de Ação Recomendado')}
+  <p class="txt">
+    Recomenda-se a adesão ao Plano de Ação Anual do Protocolo NR-1, instrumento estruturado em 52 sessões semanais de
+    30 minutos, distribuídas em dez programas técnicos que cobrem integralmente os 13 fatores de risco psicossocial previstos
+    na norma. ${elevados.length ? 'Para os fatores classificados acima do nível Baixo, foram previstas ações específicas de controle, conforme detalhado no Plano de Ação integrante do PGR.' : ''}
+    O acompanhamento contínuo contempla registro eletrônico de presença dos colaboradores nas sessões, documentação das
+    medidas adotadas e reaplicação completa do DRPS prevista para ${proxima}.
+  </p>
+
+  ${sec('8', 'Considerações Finais')}
+  <p class="txt">
+    ${nAltoCrit > 0
+      ? `A organização apresenta fatores que exigem intervenção imediata, plenamente endereçáveis pelas ações estruturadas previstas no Plano de Ação, com expectativa técnica de redução do nível de exposição mediante implementação consistente das medidas indicadas.`
+      : `A organização apresenta, no momento da avaliação, perfil tecnicamente classificado como de baixa exposição aos fatores de risco psicossocial. ${elevados.length ? 'Os pontos identificados em nível moderado são plenamente endereçáveis pelas ações estruturadas previstas no Plano de Ação.' : ''}`}
+    O presente relatório atende aos requisitos técnicos da NR-1 para diagnóstico de fatores de risco psicossocial, devendo
+    integrar a documentação oficial do Programa de Gerenciamento de Riscos (PGR) como anexo técnico, com guarda mínima de
+    20 anos. O resultado não substitui avaliações clínicas individuais, restringindo-se à análise organizacional dos fatores de
+    risco psicossocial no contexto coletivo de trabalho.
+  </p>
 
   ${drpsNotes ? `
-  <div style="margin-top:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
+  <div style="margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
     <p style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">📝 Observações Técnicas da Psicóloga Responsável</p>
     <p style="font-size:12px;color:#374151;line-height:1.6;">${drpsNotes}</p>
   </div>` : ''}
@@ -330,11 +285,9 @@ function buildHtml(opts: {
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
       <div>
         <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica pela Avaliação</p>
-        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma</p>
+        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma Ferreira Coelho</p>
         <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
-        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">
-          Assinatura digital registrada em ${new Date(drpsValidatedAt).toLocaleString('pt-BR')}
-        </p>
+        <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura digital registrada em ${new Date(drpsValidatedAt).toLocaleString('pt-BR')}</p>
       </div>
       <div style="text-align:right;">
         <div style="display:inline-block;background:#f0fdf4;border:2px solid #16a34a;border-radius:8px;padding:10px 20px;">
@@ -342,11 +295,12 @@ function buildHtml(opts: {
           <p style="font-size:9px;color:#166534;margin-top:2px;">Conforme NR-1 / MTE</p>
         </div>
       </div>
-    </div>` : `
+    </div>
+    ${drpsValidatedBy ? `<p style="font-size:9px;color:#94a3b8;margin-top:6px;">Validado por ${drpsValidatedBy}.</p>` : ''}` : `
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
       <div>
         <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica pela Avaliação</p>
-        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma</p>
+        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma Ferreira Coelho</p>
         <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
         <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura eletrônica · ${date}</p>
       </div>
@@ -359,16 +313,16 @@ function buildHtml(opts: {
     </div>
     <div style="margin-top:14px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 14px;">
       <p style="font-size:10px;color:#92400e;line-height:1.5;">
-        <strong>Observação:</strong> assinatura eletrônica pré-aplicada da responsável técnica. A formalização final (assinatura manuscrita/certificada da psicóloga) será concluída em etapa posterior, sem prejuízo da validade técnica do conteúdo deste documento.
+        <strong>Observação:</strong> assinatura eletrônica pré-aplicada da responsável técnica. A formalização final
+        (assinatura manuscrita/certificada da psicóloga) será concluída em etapa posterior, sem prejuízo da validade técnica deste documento.
       </p>
     </div>`}
   </div>
 
-  <!-- Rodapé -->
-  <div style="margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
-    <p>Documento gerado pelo sistema NR-1 Risk — Diagnóstico de Risco Psicossocial.</p>
-    <p style="margin-top:2px;">As respostas são coletadas de forma anônima e agregadas por setor. Este documento deve integrar o PGR da empresa.</p>
-    <p style="margin-top:4px;font-weight:600;color:#64748b;">NR-1 Risk · ${companyName} · ${sectorName} · ${date}</p>
+  <div style="margin-top:18px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
+    <p>DRPS — Diagnóstico de Riscos Psicossociais · Documento técnico em conformidade com a NR-1 · Portaria MTE 1.419/2024 · Portaria MTP 6.730/2023.</p>
+    ${assessedBy ? `<p style="margin-top:2px;">Avaliação de probabilidade conduzida por ${assessedBy}.</p>` : ''}
+    <p style="margin-top:4px;font-weight:600;color:#64748b;">${companyName} · ${sectorName} · ${date}</p>
   </div>
 
 </body>
@@ -389,7 +343,7 @@ export async function GET(
       include: {
         company: {
           select: {
-            name: true, cnpj: true, city: true, state: true, address: true,
+            name: true, fantasyName: true, cnpj: true, city: true, state: true, address: true,
             responsible: true, employeeCount: true, workModality: true,
             drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true, drpsNotes: true,
           },
@@ -399,17 +353,9 @@ export async function GET(
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
     const [responses, assessments] = await Promise.all([
-      prisma.response.findMany({
-        where: { sectorId: params.sectorId },
-        include: { aiAnalysis: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.topicAssessment.findMany({
-        where: { sectorId: params.sectorId },
-        orderBy: { topicNum: 'asc' },
-      }),
+      prisma.response.findMany({ where: { sectorId: params.sectorId }, orderBy: { createdAt: 'desc' } }),
+      prisma.topicAssessment.findMany({ where: { sectorId: params.sectorId }, orderBy: { topicNum: 'asc' } }),
     ])
-
     if (responses.length === 0) return NextResponse.json({ error: 'Sem respostas.' }, { status: 404 })
 
     const questions = await prisma.question.findMany({
@@ -431,20 +377,12 @@ export async function GET(
 
     const { total, riskLevel, byTopic } = calcScore(avgAnswers, questions)
 
-    const assessmentInput = assessments.map((a) => ({
-      topicNum:    a.topicNum,
-      probability: a.probability as Probability,
-    }))
-
-    // Usa 'media' como padrão para tópicos sem avaliação
     const fullAssessments = byTopic.map((t) => {
-      const found = assessmentInput.find((a) => a.topicNum === t.topicNum)
-      return { topicNum: t.topicNum, probability: found?.probability ?? ('media' as Probability) }
+      const found = assessments.find((a) => a.topicNum === t.topicNum)
+      return { topicNum: t.topicNum, probability: (found?.probability as Probability) ?? 'media' }
     })
 
     const matrix = buildRiskMatrix(byTopic, fullAssessments)
-
-    const latestAi   = responses.find((r) => r.aiAnalysis?.classification)?.aiAnalysis
     const assessedBy = assessments[0]?.assessedBy ?? null
 
     const date     = new Date().toISOString().split('T')[0]
@@ -453,12 +391,11 @@ export async function GET(
     const html = buildHtml({
       sectorName:      sector.name,
       companyName:     sector.company.name,
+      fantasyName:     sector.company.fantasyName ?? null,
       totalResponses:  responses.length,
       avgScore:        parseFloat(total.toFixed(2)),
       riskLevel,
-      byTopic,
       matrix,
-      ai:              (latestAi?.classification as AiClassification) ?? null,
       assessedBy,
       cnpj:            sector.company.cnpj ?? null,
       city:            sector.company.city ?? null,
