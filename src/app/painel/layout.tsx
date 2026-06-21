@@ -77,15 +77,8 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         }`}
       >
         <div className="p-5 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-primary-800 rounded-xl flex items-center justify-center">
-              <span className="text-white text-lg">🧠</span>
-            </div>
-            <div>
-              <p className="font-bold text-gray-900 text-sm">NR-1 Risk</p>
-              <p className="text-gray-400 text-xs">Painel da Empresa</p>
-            </div>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-zelo.png" alt="Zelo — Plataforma de NR1" className="h-10 w-auto" />
         </div>
 
         <nav className="p-4 space-y-1 flex-1">
@@ -132,7 +125,8 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-semibold text-gray-800">NR-1 Risk</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-zelo.png" alt="Zelo" className="h-7 w-auto" />
         </header>
 
         {/* Banner avaliação pendente */}

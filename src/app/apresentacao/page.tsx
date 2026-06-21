@@ -117,7 +117,7 @@ const SLIDES = [
           {[
             {ini:'RC',nome:'Rafael Coelho',cargo:'Gestão de Projetos',desc:'Condução e entrega do programa de adequação',ft:false,crp:false},
             {ini:'AT',nome:'Annie Talma F. Coelho',cargo:'Psicóloga Responsável Técnica',desc:'Assina o DRPS. Validade legal garantida perante o MTE e a Justiça do Trabalho.',ft:true,crp:true},
-            {ini:'TF',nome:'Thiago Ferraz',cargo:'Tecnologia e Plataforma',desc:'Desenvolvimento e operação do sistema NR-1 Risk',ft:false,crp:false},
+            {ini:'TF',nome:'Thiago Ferraz',cargo:'Tecnologia e Plataforma',desc:'Desenvolvimento e operação do sistema Zelo',ft:false,crp:false},
           ].map(p => (
             <div key={p.ini} style={{background:'rgba(255,255,255,.05)',border:`1px solid ${p.ft?'rgba(249,115,22,.5)':'rgba(255,255,255,.08)'}`,borderRadius:'14px',padding:'22px',textAlign:'center'}}>
               <div style={{width:'56px',height:'56px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:'18px',margin:'0 auto 12px',background:p.ft?'rgba(249,115,22,.2)':'rgba(30,58,95,.8)',color:p.ft?'#f97316':'#7a9bb8'}}>{p.ini}</div>

@@ -281,8 +281,8 @@ function buildPgrHtml(opts: {
   </div>
 
   <div style="margin-top:18px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
-    <p>Programa de Gerenciamento de Riscos Psicossociais gerado pelo sistema NR-1 Risk.</p>
-    <p style="margin-top:4px;font-weight:600;color:#64748b;">NR-1 Risk · ${companyName} · ${date}</p>
+    <p>Programa de Gerenciamento de Riscos Psicossociais gerado pelo sistema Zelo.</p>
+    <p style="margin-top:4px;font-weight:600;color:#64748b;">Zelo · ${companyName} · ${date}</p>
   </div>
 
 </body>

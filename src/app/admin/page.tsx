@@ -85,7 +85,7 @@ export default function AdminPage() {
             <span className="text-lg">🧠</span>
           </div>
           <div>
-            <p className="font-bold text-white text-sm">NR-1 Risk</p>
+            <p className="font-bold text-white text-sm">Zelo</p>
             <p className="text-slate-400 text-xs">Painel da Annie</p>
           </div>
         </div>

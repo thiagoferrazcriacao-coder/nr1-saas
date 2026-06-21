@@ -46,7 +46,7 @@ export default function TermosPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-800 rounded-2xl mb-3">
             <span className="text-white text-2xl">🧠</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">NR-1 Risk</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Zelo</h1>
           <p className="text-gray-500 text-sm mt-1">Termos de Uso e Política de Privacidade</p>
         </div>
 
@@ -61,7 +61,7 @@ export default function TermosPage() {
           >
             <h2 className="font-bold text-gray-900 text-base">1. Objeto e Aceitação</h2>
             <p>
-              Ao utilizar a plataforma NR-1 Risk, a empresa contratante ("Cliente") concorda com os presentes
+              Ao utilizar a plataforma Zelo, a empresa contratante ("Cliente") concorda com os presentes
               Termos de Uso e com a Política de Privacidade, formando contrato válido entre as partes.
               O aceite é registrado eletronicamente com data, hora e endereço IP, conforme art. 10 da MP 2.200-2/2001,
               substituindo assinatura física para fins de validade jurídica.
@@ -106,7 +106,7 @@ export default function TermosPage() {
 
             <h2 className="font-bold text-gray-900 text-base">6. Limitação de Responsabilidade</h2>
             <p>
-              A NR-1 Risk não é escritório de advocacia e não presta assessoria jurídica. Os documentos
+              A Zelo não é escritório de advocacia e não presta assessoria jurídica. Os documentos
               gerados são instrumentos técnicos de conformidade trabalhista. Em caso de fiscalização ou
               litígio, recomendamos consultar advogado especializado em direito do trabalho.
             </p>

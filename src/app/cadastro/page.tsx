@@ -91,7 +91,7 @@ export default function CadastroPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-800 rounded-2xl mb-4 shadow-lg">
             <span className="text-white text-2xl">🧠</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">NR-1 Risk</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Zelo</h1>
           <p className="text-gray-500 text-sm mt-1">Crie a conta da sua empresa</p>
         </div>
 

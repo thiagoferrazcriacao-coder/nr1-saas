@@ -177,8 +177,8 @@ function buildHtml(opts: {
   </div>
 
   <div style="margin-top:18px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
-    <p>Plano de Ação gerado pelo sistema NR-1 Risk. Documento integrante do PGR da empresa.</p>
-    <p style="margin-top:4px;font-weight:600;color:#64748b;">NR-1 Risk · ${companyName} · ${sectorName} · ${date}</p>
+    <p>Plano de Ação gerado pelo sistema Zelo. Documento integrante do PGR da empresa.</p>
+    <p style="margin-top:4px;font-weight:600;color:#64748b;">Zelo · ${companyName} · ${sectorName} · ${date}</p>
   </div>
 
 </body>

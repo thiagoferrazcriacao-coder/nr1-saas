@@ -5,13 +5,13 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'NR-1 Risk — Análise de Risco Psicossocial',
+  title: 'Zelo — Análise de Risco Psicossocial',
   description: 'Avaliação de risco psicossocial para adequação à NR-1',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'NR-1 Risk',
+    title: 'Zelo',
   },
 }
 
