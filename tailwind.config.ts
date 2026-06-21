@@ -9,14 +9,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Paleta Zelo — marinho como cor base
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50:  '#EAF2F8',
+          100: '#D5E4F0',
+          200: '#AAC6DD',
+          300: '#7FA8C9',
+          400: '#3F6F95',
+          500: '#21527F',
+          600: '#163D60',
+          700: '#1A3F63', // hover (marinho mais claro)
+          800: '#0E2A47', // marinho principal
+          900: '#081A2E',
+        },
+        // Turquesa e azul da logo (acentos)
+        teal: {
+          400: '#33D0D5',
+          500: '#17C3C9',
+          600: '#109CA1',
+        },
+        brand: {
+          navy: '#0E2A47',
+          teal: '#17C3C9',
+          blue: '#5B8DEF',
         },
         risk: {
           baixo: '#16a34a',

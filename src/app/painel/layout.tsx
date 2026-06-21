@@ -76,9 +76,9 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
           sidebarOpen ? 'translate-x-0 flex flex-col' : '-translate-x-full'
         }`}
       >
-        <div className="p-5 border-b border-gray-100">
+        <div className="px-5 py-6 border-b border-gray-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-zelo.png" alt="Zelo — Plataforma de NR1" className="h-10 w-auto" />
+          <img src="/logo-zelo.png" alt="Zelo — Plataforma de NR1" className="h-14 w-auto" />
         </div>
 
         <nav className="p-4 space-y-1 flex-1">
@@ -87,9 +87,9 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
               key={item.href}
               href={item.href}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 pathname === item.href || (item.href !== '/painel' && pathname.startsWith(item.href))
-                  ? 'bg-primary-800 text-white'
+                  ? 'bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white shadow-sm shadow-[#17C3C9]/30'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
@@ -126,7 +126,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
             </svg>
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-zelo.png" alt="Zelo" className="h-7 w-auto" />
+          <img src="/logo-zelo.png" alt="Zelo" className="h-9 w-auto" />
         </header>
 
         {/* Banner avaliação pendente */}

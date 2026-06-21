@@ -8,12 +8,12 @@ const SLIDES = [
     num: '1 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',justifyContent:'center',flex:1}}>
-        <div style={{display:'inline-flex',alignItems:'center',gap:'8px',background:'rgba(249,115,22,.15)',border:'1px solid rgba(249,115,22,.35)',color:'#f97316',fontSize:'11px',fontWeight:700,letterSpacing:'.08em',padding:'6px 14px',borderRadius:'20px',marginBottom:'24px',width:'fit-content',textTransform:'uppercase'}}>
-          <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#f97316',display:'inline-block'}} />
+        <div style={{display:'inline-flex',alignItems:'center',gap:'8px',background:'rgba(23,195,201,.15)',border:'1px solid rgba(23,195,201,.35)',color:'#17C3C9',fontSize:'11px',fontWeight:700,letterSpacing:'.08em',padding:'6px 14px',borderRadius:'20px',marginBottom:'24px',width:'fit-content',textTransform:'uppercase'}}>
+          <span style={{width:'7px',height:'7px',borderRadius:'50%',background:'#17C3C9',display:'inline-block'}} />
           Norma em vigor desde 26/05/2026
         </div>
         <h1 style={{fontSize:'50px',fontWeight:900,color:'#fff',lineHeight:1.05,marginBottom:'20px',letterSpacing:'-.02em'}}>
-          Sua empresa tem<br /><span style={{color:'#f97316'}}>funcionário CLT?</span><br />Você precisa ver isso.
+          Sua empresa tem<br /><span style={{color:'#17C3C9'}}>funcionário CLT?</span><br />Você precisa ver isso.
         </h1>
         <p style={{fontSize:'18px',color:'#7a9bb8',lineHeight:1.65,maxWidth:'600px'}}>
           A NR-1 passou a exigir o diagnóstico de riscos psicossociais de <strong style={{color:'#c0d8ef'}}>toda</strong> empresa com ao menos 1 funcionário CLT. Quem não cumprir responde com multa e processo trabalhista.
@@ -31,9 +31,9 @@ const SLIDES = [
     num: '2 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#f97316',marginBottom:'14px'}}>O risco real</div>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>O risco real</div>
         <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,marginBottom:'8px',letterSpacing:'-.02em'}}>A multa é o menor<br />dos problemas.</h2>
-        <div style={{width:'44px',height:'3px',background:'#f97316',borderRadius:'2px',margin:'12px 0 26px'}} />
+        <div style={{width:'44px',height:'3px',background:'#17C3C9',borderRadius:'2px',margin:'12px 0 26px'}} />
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
           {[
             {n:'R$ 3,4M', t:'Condenação real', d:'Recife, 2026 — assédio moral organizacional. Dano moral coletivo após inquérito do MPT.', acc:false},
@@ -41,8 +41,8 @@ const SLIDES = [
             {n:'Reintegração', t:'TST, 2025', d:'Gerente em licença por burnout — dispensa declarada nula e reintegração imediata determinada.', acc:false},
             {n:'Nexo presumido', t:'Sem documentação, você perde', d:'Qualquer afastamento por ansiedade ou burnout vira ação com culpa presumida contra a empresa.', acc:true},
           ].map(c => (
-            <div key={c.t} style={{background:c.acc?'rgba(249,115,22,.07)':'rgba(255,255,255,0.05)',border:`1px solid ${c.acc?'rgba(249,115,22,.4)':'rgba(255,255,255,0.08)'}`,borderRadius:'14px',padding:'22px'}}>
-              <div style={{fontSize:c.acc?'17px':'28px',fontWeight:900,color:'#f97316',lineHeight:1}}>{c.n}</div>
+            <div key={c.t} style={{background:c.acc?'rgba(23,195,201,.07)':'rgba(255,255,255,0.05)',border:`1px solid ${c.acc?'rgba(23,195,201,.4)':'rgba(255,255,255,0.08)'}`,borderRadius:'14px',padding:'22px'}}>
+              <div style={{fontSize:c.acc?'17px':'28px',fontWeight:900,color:'#17C3C9',lineHeight:1}}>{c.n}</div>
               <div style={{fontSize:'13px',fontWeight:700,color:'#fff',margin:'8px 0 5px'}}>{c.t}</div>
               <div style={{fontSize:'12px',color:'#5e82a0',lineHeight:1.55}}>{c.d}</div>
             </div>
@@ -56,9 +56,9 @@ const SLIDES = [
     num: '3 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#f97316',marginBottom:'14px'}}>A solução</div>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>A solução</div>
         <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,letterSpacing:'-.02em'}}>Adequação completa.<br />Em poucos dias.</h2>
-        <div style={{width:'44px',height:'3px',background:'#f97316',borderRadius:'2px',margin:'12px 0 26px'}} />
+        <div style={{width:'44px',height:'3px',background:'#17C3C9',borderRadius:'2px',margin:'12px 0 26px'}} />
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
           {[
             {i:'📋',t:<><strong style={{color:'#fff'}}>DRPS assinado por psicóloga com CRP</strong> — documento com validade legal perante o MTE e a Justiça do Trabalho</>},
@@ -80,9 +80,9 @@ const SLIDES = [
     num: '4 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#f97316',marginBottom:'14px'}}>Como funciona</div>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>Como funciona</div>
         <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,letterSpacing:'-.02em'}}>5 passos. Ninguém<br />para a operação.</h2>
-        <div style={{width:'44px',height:'3px',background:'#f97316',borderRadius:'2px',margin:'12px 0 28px'}} />
+        <div style={{width:'44px',height:'3px',background:'#17C3C9',borderRadius:'2px',margin:'12px 0 28px'}} />
         <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:0}}>
           {[
             {n:'1',t:'Acesso',d:'Cria a conta na plataforma'},
@@ -92,8 +92,8 @@ const SLIDES = [
             {n:'5',t:'Documentos',d:'DRPS assinado pronto para download'},
           ].map((s,i) => (
             <div key={s.n} style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',position:'relative'}}>
-              {i < 4 && <div style={{content:'',position:'absolute',top:'22px',left:'62%',width:'76%',height:'1px',background:'rgba(249,115,22,.3)'}} />}
-              <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'#f97316',color:'#fff',fontWeight:900,fontSize:'18px',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',zIndex:1}}>{s.n}</div>
+              {i < 4 && <div style={{content:'',position:'absolute',top:'22px',left:'62%',width:'76%',height:'1px',background:'rgba(23,195,201,.3)'}} />}
+              <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'#17C3C9',color:'#fff',fontWeight:900,fontSize:'18px',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',zIndex:1}}>{s.n}</div>
               <div style={{fontSize:'13px',fontWeight:700,color:'#fff',marginTop:'10px'}}>{s.t}</div>
               <div style={{fontSize:'11px',color:'#5e82a0',marginTop:'5px',lineHeight:1.4}}>{s.d}</div>
             </div>
@@ -110,21 +110,21 @@ const SLIDES = [
     num: '5 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#f97316',marginBottom:'14px'}}>Equipe técnica</div>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>Equipe técnica</div>
         <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,letterSpacing:'-.02em'}}>Responsabilidade legal<br />em quem assina.</h2>
-        <div style={{width:'44px',height:'3px',background:'#f97316',borderRadius:'2px',margin:'12px 0 26px'}} />
+        <div style={{width:'44px',height:'3px',background:'#17C3C9',borderRadius:'2px',margin:'12px 0 26px'}} />
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px'}}>
           {[
             {ini:'RC',nome:'Rafael Coelho',cargo:'Gestão de Projetos',desc:'Condução e entrega do programa de adequação',ft:false,crp:false},
             {ini:'AT',nome:'Annie Talma F. Coelho',cargo:'Psicóloga Responsável Técnica',desc:'Assina o DRPS. Validade legal garantida perante o MTE e a Justiça do Trabalho.',ft:true,crp:true},
             {ini:'TF',nome:'Thiago Ferraz',cargo:'Tecnologia e Plataforma',desc:'Desenvolvimento e operação do sistema Zelo',ft:false,crp:false},
           ].map(p => (
-            <div key={p.ini} style={{background:'rgba(255,255,255,.05)',border:`1px solid ${p.ft?'rgba(249,115,22,.5)':'rgba(255,255,255,.08)'}`,borderRadius:'14px',padding:'22px',textAlign:'center'}}>
-              <div style={{width:'56px',height:'56px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:'18px',margin:'0 auto 12px',background:p.ft?'rgba(249,115,22,.2)':'rgba(30,58,95,.8)',color:p.ft?'#f97316':'#7a9bb8'}}>{p.ini}</div>
+            <div key={p.ini} style={{background:'rgba(255,255,255,.05)',border:`1px solid ${p.ft?'rgba(23,195,201,.5)':'rgba(255,255,255,.08)'}`,borderRadius:'14px',padding:'22px',textAlign:'center'}}>
+              <div style={{width:'56px',height:'56px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:'18px',margin:'0 auto 12px',background:p.ft?'rgba(23,195,201,.2)':'rgba(30,58,95,.8)',color:p.ft?'#17C3C9':'#7a9bb8'}}>{p.ini}</div>
               <div style={{fontSize:'15px',fontWeight:700,color:'#fff'}}>{p.nome}</div>
-              <div style={{fontSize:'11px',color:'#f97316',fontWeight:700,margin:'4px 0 8px'}}>{p.cargo}</div>
+              <div style={{fontSize:'11px',color:'#17C3C9',fontWeight:700,margin:'4px 0 8px'}}>{p.cargo}</div>
               <div style={{fontSize:'12px',color:'#5e82a0',lineHeight:1.5}}>{p.desc}</div>
-              {p.crp && <div style={{background:'rgba(249,115,22,.1)',border:'1px solid rgba(249,115,22,.3)',borderRadius:'6px',padding:'4px 10px',fontSize:'10px',color:'#f97316',fontWeight:700,marginTop:'10px',display:'inline-block',letterSpacing:'.04em'}}>CRP / 05 / 44595</div>}
+              {p.crp && <div style={{background:'rgba(23,195,201,.1)',border:'1px solid rgba(23,195,201,.3)',borderRadius:'6px',padding:'4px 10px',fontSize:'10px',color:'#17C3C9',fontWeight:700,marginTop:'10px',display:'inline-block',letterSpacing:'.04em'}}>CRP / 05 / 44595</div>}
             </div>
           ))}
         </div>
@@ -136,9 +136,9 @@ const SLIDES = [
     num: '6 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#f97316',marginBottom:'14px'}}>Investimento</div>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>Investimento</div>
         <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,letterSpacing:'-.02em'}}>Muito menos que<br />uma única multa.</h2>
-        <div style={{width:'44px',height:'3px',background:'#f97316',borderRadius:'2px',margin:'12px 0 20px'}} />
+        <div style={{width:'44px',height:'3px',background:'#17C3C9',borderRadius:'2px',margin:'12px 0 20px'}} />
         <table style={{width:'100%',borderCollapse:'collapse'}}>
           <thead>
             <tr style={{background:'rgba(30,58,95,.8)'}}>
@@ -174,12 +174,12 @@ const SLIDES = [
     num: '7 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center',alignItems:'center',textAlign:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#f97316',marginBottom:'14px'}}>Próximo passo</div>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>Próximo passo</div>
         <h2 style={{fontSize:'56px',fontWeight:900,color:'#fff',letterSpacing:'-.03em',marginBottom:'16px'}}>Agora.</h2>
         <p style={{color:'#7a9bb8',fontSize:'18px',maxWidth:'500px',lineHeight:1.65,marginBottom:'32px'}}>
           A fiscalização chega por denúncia — sem aviso. A adequação leva dias. O processo trabalhista pode levar anos.
         </p>
-        <div style={{background:'#f97316',borderRadius:'16px',padding:'32px 48px',maxWidth:'520px',width:'100%'}}>
+        <div style={{background:'#17C3C9',borderRadius:'16px',padding:'32px 48px',maxWidth:'520px',width:'100%'}}>
           <h3 style={{fontSize:'26px',fontWeight:900,color:'#fff',marginBottom:'10px'}}>Começar a adequação hoje</h3>
           <p style={{color:'rgba(255,255,255,.8)',fontSize:'16px',marginBottom:'22px'}}>Acesse agora e tenha o DRPS assinado em dias</p>
           <a href="https://nr1-saas.vercel.app" target="_blank" rel="noopener noreferrer" style={{display:'inline-block',background:'#fff',color:'#ea580c',fontWeight:900,fontSize:'16px',padding:'14px 36px',borderRadius:'10px',textDecoration:'none'}}>
@@ -213,13 +213,19 @@ export default function ApresentacaoPage() {
   return (
     <div style={{width:'100vw',height:'100vh',display:'flex',flexDirection:'column',background:'#0f1e2e',fontFamily:"'Inter',system-ui,sans-serif",overflow:'hidden'}}>
 
+      {/* Logo */}
+      <div style={{position:'absolute',top:'18px',left:'28px',zIndex:10,background:'#fff',padding:'8px 14px',borderRadius:'12px',boxShadow:'0 4px 14px rgba(0,0,0,.25)'}}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-zelo.png" alt="Zelo" style={{height:'34px',display:'block'}} />
+      </div>
+
       {/* Número do slide */}
       <div style={{position:'absolute',top:'20px',right:'28px',fontSize:'11px',color:'rgba(255,255,255,0.2)',letterSpacing:'.06em',zIndex:10}}>
         {slide.num}
       </div>
 
       {/* Conteúdo */}
-      <div style={{flex:1,padding:'56px 80px',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+      <div style={{flex:1,padding:'84px 80px 48px',display:'flex',flexDirection:'column',overflow:'hidden'}}>
         {slide.content}
       </div>
 
@@ -238,7 +244,7 @@ export default function ApresentacaoPage() {
             <div
               key={i}
               onClick={() => goTo(i)}
-              style={{width:i===cur?'22px':'7px',height:'7px',borderRadius:i===cur?'4px':'50%',background:i===cur?'#f97316':'rgba(255,255,255,0.2)',cursor:'pointer',transition:'all .2s'}}
+              style={{width:i===cur?'22px':'7px',height:'7px',borderRadius:i===cur?'4px':'50%',background:i===cur?'#17C3C9':'rgba(255,255,255,0.2)',cursor:'pointer',transition:'all .2s'}}
             />
           ))}
         </div>
