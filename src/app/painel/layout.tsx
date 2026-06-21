@@ -76,12 +76,12 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
           sidebarOpen ? 'translate-x-0 flex flex-col' : '-translate-x-full'
         }`}
       >
-        <div className="px-4 py-6 border-b border-gray-100 flex justify-center">
+        <div className="px-4 pt-5 pb-3 border-b border-gray-100 flex justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-zelo.png" alt="Zelo — Plataforma de NR1" className="w-full max-w-[210px] h-auto" />
         </div>
 
-        <nav className="p-4 space-y-1 flex-1">
+        <nav className="px-4 pt-2 pb-4 space-y-1 flex-1">
           {navItems.map((item) => (
             <Link
               key={item.href}
