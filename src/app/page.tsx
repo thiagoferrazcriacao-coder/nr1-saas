@@ -16,7 +16,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-zelo.png" alt="Zelo — Plataforma de NR1" className="h-16 w-auto" />
+          <img src="/logo-zelo.png" alt="Zelo — Plataforma de NR1" className="h-20 sm:h-24 w-auto" />
           <div className="flex items-center gap-4">
             <a href="#precos" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-[#0E2A47] transition-colors">Preços</a>
             <a href="#como-funciona" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-[#0E2A47] transition-colors">Como funciona</a>
@@ -28,7 +28,7 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO */}
-      <section className="pt-28 pb-16 px-4 bg-gradient-to-b from-[#F0FBFC] to-white">
+      <section className="pt-36 pb-16 px-4 bg-gradient-to-b from-[#F0FBFC] to-white">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           {/* Texto */}
           <div>
