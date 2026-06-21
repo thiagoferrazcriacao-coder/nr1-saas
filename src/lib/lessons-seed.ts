@@ -18,6 +18,8 @@ const SEED_LESSONS = [
   { programNum: 10, program: 'Saúde Mental, Acolhimento e Trabalho Remoto',    title: 'Aula 1 — Cuidando da saúde mental da equipe',         video: 'WeAreGoingOnBullrun.mp4' },
 ]
 
+export { PROGRAMS } from '@/lib/programs'
+
 // Liga cada fator de risco (tópico 1–13) ao programa de vídeo correspondente (1–10).
 // É o que permite sugerir automaticamente os vídeos certos a partir do resultado da avaliação.
 export const FACTOR_TO_PROGRAM: Record<number, number> = {
