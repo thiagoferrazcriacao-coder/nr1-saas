@@ -14,9 +14,9 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-zelo-2.png" alt="Zelo — Plataforma de NR1" className="h-20 sm:h-24 w-auto" />
+          <img src="/logo-zelo-2.png" alt="Zelo — Plataforma de NR1" className="h-12 sm:h-14 w-auto" />
           <div className="flex items-center gap-4">
             <a href="#precos" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-[#0E2A47] transition-colors">Preços</a>
             <a href="#como-funciona" className="hidden sm:block text-sm font-medium text-gray-500 hover:text-[#0E2A47] transition-colors">Como funciona</a>
@@ -28,7 +28,7 @@ export default function LandingPage() {
       </nav>
 
       {/* HERO */}
-      <section className="pt-36 pb-16 px-4 bg-gradient-to-b from-[#F0FBFC] to-white">
+      <section className="pt-28 pb-16 px-4 bg-gradient-to-b from-[#F0FBFC] to-white">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           {/* Texto */}
           <div>
@@ -261,8 +261,119 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* EQUIPE */}
+      {/* VEJA A PLATAFORMA POR DENTRO */}
+      <section className="bg-white py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-4">
+              ✦ SIMPLES DE USAR
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Veja a plataforma por dentro</h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              Tudo num painel claro e visual. Você acompanha o risco de cada setor e gera os documentos com um clique — sem planilha, sem complicação.
+            </p>
+          </div>
+
+          {/* Mockup do navegador com o relatório */}
+          <div className="rounded-2xl border border-gray-200 shadow-2xl shadow-[#0E2A47]/20 overflow-hidden max-w-4xl mx-auto">
+            <div className="bg-[#0E2A47] px-4 py-3 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#ff5f57] inline-block" />
+              <span className="w-3 h-3 rounded-full bg-[#febc2e] inline-block" />
+              <span className="w-3 h-3 rounded-full bg-[#28c840] inline-block" />
+              <div className="ml-3 flex-1 bg-white/10 rounded-md px-3 py-1 text-xs text-[#9FC2D6] truncate">app.zelo.com.br/painel · Relatório do setor</div>
+            </div>
+            <div className="p-6 bg-[#F8FAFC]">
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-5">
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Relatório de Risco Psicossocial</p>
+                  <h3 className="text-lg font-black text-[#0E2A47]">Setor: Comercial</h3>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200">Risco Moderado</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {[
+                  { l: 'Score Gravidade', v: '1.6', c: '#ca8a04' },
+                  { l: 'Risco Final', v: 'Moderado', c: '#ca8a04' },
+                  { l: 'Fatores Alto/Crítico', v: '2', c: '#0E2A47' },
+                ].map((s) => (
+                  <div key={s.l} className="bg-white rounded-xl border border-gray-100 p-3 text-center">
+                    <p className="text-[10px] text-gray-400 uppercase">{s.l}</p>
+                    <p className="text-xl font-black mt-1" style={{ color: s.c }}>{s.v}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-2.5">
+                {[
+                  { f: 'Sobrecarga de Trabalho', pct: 72, c: '#ea580c', lvl: 'Alto' },
+                  { f: 'Reconhecimento', pct: 58, c: '#ca8a04', lvl: 'Moderado' },
+                  { f: 'Comunicação', pct: 30, c: '#16a34a', lvl: 'Baixo' },
+                  { f: 'Assédio', pct: 12, c: '#16a34a', lvl: 'Baixo' },
+                  { f: 'Suporte e Apoio', pct: 24, c: '#16a34a', lvl: 'Baixo' },
+                ].map((row) => (
+                  <div key={row.f} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-600 w-40 flex-shrink-0 truncate">{row.f}</span>
+                    <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: row.c }} />
+                    </div>
+                    <span className="text-[10px] font-bold w-16 text-right" style={{ color: row.c }}>{row.lvl}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 mt-5">
+                <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-xs font-semibold px-4 py-2 rounded-lg">📄 Gerar DRPS</span>
+                <span className="bg-white border border-gray-200 text-[#0E2A47] text-xs font-semibold px-4 py-2 rounded-lg">📊 Ver gráfico</span>
+                <span className="bg-white border border-gray-200 text-[#0E2A47] text-xs font-semibold px-4 py-2 rounded-lg">🎯 Plano de Ação</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-5">
+            Painel real do Zelo · cada setor com seu diagnóstico, gráfico e documentos prontos para baixar.
+          </p>
+        </div>
+      </section>
+
+      {/* BENEFÍCIOS (gatilhos positivos) */}
       <section className="bg-[#F6F9FC] py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Muito além de cumprir a lei</h2>
+            <div className="w-16 h-1.5 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#5B8DEF] mb-4 mx-auto" />
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+              A NR-1 é o ponto de partida. O que a sua empresa ganha de verdade é um ambiente mais forte — e o Zelo já entrega o caminho pronto para implementar.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: '🌱', titulo: 'Cultura mais forte', desc: 'Um ambiente que acolhe, respeita e valoriza as pessoas — base de qualquer empresa que cresce.' },
+              { icon: '🤝', titulo: 'Menos conflitos e assédio', desc: 'Identifica e trata cedo situações de assédio e discriminação, criando um clima respeitoso e inclusivo.' },
+              { icon: '❤️', titulo: 'Talentos que ficam', desc: 'Gente bem cuidada não vai embora. Menos rotatividade significa menos custo de contratar e treinar.' },
+              { icon: '📈', titulo: 'Produtividade que sobe', desc: 'Equipe saudável falta menos, entrega mais e atende melhor o seu cliente.' },
+              { icon: '🏆', titulo: 'Marca empregadora', desc: 'Sua empresa vira referência como um bom lugar para trabalhar — e atrai os melhores profissionais.' },
+              { icon: '🧭', titulo: 'Decisões com dados reais', desc: 'Você enxerga o clima de cada setor com clareza e age onde realmente importa — sem achismo.' },
+            ].map((b) => (
+              <div key={b.titulo} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                <div className="w-11 h-11 rounded-xl bg-[#F0FBFC] flex items-center justify-center text-2xl mb-3">{b.icon}</div>
+                <h3 className="font-bold text-[#0E2A47] mb-1.5">{b.titulo}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{b.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] rounded-2xl p-6 text-center">
+            <p className="text-white text-lg font-bold">
+              O Zelo entrega o diagnóstico, o plano e os treinamentos prontos. Você só implementa — e colhe os resultados.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* EQUIPE */}
+      <section className="bg-white py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Responsabilidade técnica completa</h2>
           <div className="w-16 h-1.5 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#5B8DEF] mb-4" />
@@ -293,41 +404,46 @@ export default function LandingPage() {
       </section>
 
       {/* PREÇOS */}
-      <section id="precos" className="bg-white py-20 px-4">
-        <div className="max-w-4xl mx-auto">
+      <section id="precos" className="bg-[#F6F9FC] py-20 px-4">
+        <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Investimento por porte da empresa</h2>
           <div className="w-16 h-1.5 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#5B8DEF] mb-4" />
           <p className="text-gray-500 text-lg mb-8 max-w-2xl">Valor único pela adequação completa. Pagamento e aceite direto na plataforma.</p>
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 shadow-sm mb-6">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[#0E2A47] text-white">
-                  <th className="text-left px-6 py-4 font-semibold text-sm">Colaboradores CLT</th>
-                  <th className="text-left px-6 py-4 font-semibold text-sm">Investimento único</th>
-                  <th className="text-left px-6 py-4 font-semibold text-sm text-[#5BD9DD]">Economia vs. 1 multa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { faixa: 'Até 10', valor: 'R$ 1.497', economia: 'Poupa até R$ 5.211' },
-                  { faixa: '11 a 30', valor: 'R$ 1.997', economia: 'Poupa até R$ 4.711' },
-                  { faixa: '31 a 50', valor: 'R$ 2.497', economia: 'Poupa até R$ 4.211' },
-                  { faixa: '51 a 100', valor: 'R$ 2.997', economia: 'Poupa até R$ 3.711' },
-                  { faixa: 'Acima de 100', valor: 'Sob consulta', economia: 'Condição especial' },
-                ].map((row, i) => (
-                  <tr key={i} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-[#F6F9FC]'}`}>
-                    <td className="px-6 py-4 font-medium text-gray-700">{row.faixa}</td>
-                    <td className="px-6 py-4 font-bold text-[#0E2A47] text-lg">{row.valor}</td>
-                    <td className="px-6 py-4 text-[#109CA1] font-semibold text-sm">{row.economia}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 mt-8">
+            {[
+              { slug: 'ate-10',    icon: '🏠', faixa: 'Até 10 CLT',      valor: 'R$ 1.497',     economia: 'Poupa até R$ 5.211', popular: false },
+              { slug: '11-30',     icon: '🏢', faixa: '11 a 30 CLT',     valor: 'R$ 1.997',     economia: 'Poupa até R$ 4.711', popular: true  },
+              { slug: '31-50',     icon: '🏬', faixa: '31 a 50 CLT',     valor: 'R$ 2.497',     economia: 'Poupa até R$ 4.211', popular: false },
+              { slug: '51-100',    icon: '🏭', faixa: '51 a 100 CLT',    valor: 'R$ 2.997',     economia: 'Poupa até R$ 3.711', popular: false },
+              { slug: 'acima-100', icon: '🏙️', faixa: 'Acima de 100 CLT', valor: 'Sob consulta', economia: 'Condição especial',  popular: false },
+            ].map((p) => (
+              <div key={p.slug} className={`relative bg-white rounded-2xl border p-6 flex flex-col ${p.popular ? 'border-[#17C3C9] shadow-xl shadow-[#17C3C9]/20 ring-1 ring-[#17C3C9]' : 'border-gray-200 shadow-sm'}`}>
+                {p.popular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap">★ MAIS ESCOLHIDO</span>
+                )}
+                <div className="text-3xl mb-2">{p.icon}</div>
+                <p className="text-sm font-semibold text-gray-500">{p.faixa}</p>
+                <p className="text-3xl font-black text-[#0E2A47] mt-2 leading-none">{p.valor}</p>
+                {p.valor !== 'Sob consulta' && <p className="text-xs text-gray-400 mt-1">pagamento único</p>}
+                <div className="mt-3 inline-flex items-center gap-1 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-2.5 py-1 rounded-lg w-fit">💸 {p.economia}</div>
+                <ul className="mt-4 space-y-1.5 text-sm text-gray-600 flex-1">
+                  {['DRPS + PGR + Plano de Ação', 'Treinamentos em vídeo', 'Suporte incluso'].map((f) => (
+                    <li key={f} className="flex items-start gap-2"><span className="text-[#17C3C9] font-bold">✓</span> {f}</li>
+                  ))}
+                </ul>
+                <Link
+                  href={`/checkout?plano=${p.slug}`}
+                  className={`mt-5 block text-center px-5 py-3 rounded-xl font-bold text-sm transition-opacity ${p.popular ? 'bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white hover:opacity-90' : 'bg-[#0E2A47] text-white hover:bg-[#0A1F36]'}`}
+                >
+                  {p.valor === 'Sob consulta' ? 'Falar com a gente →' : 'Contratar agora →'}
+                </Link>
+              </div>
+            ))}
           </div>
 
           <div className="bg-[#FFF9F0] border border-[#FFE3B3] rounded-xl p-4 text-sm text-[#8A5A00] mb-10">
-            <strong>Para referência:</strong> uma multa por um único item autuado pode chegar a <strong>R$ 6.708,08</strong> (art. 201 da CLT). Uma única condenação trabalhista por passivo psicossocial supera o investimento de toda a adequação.
+            <strong>Pagamento único, sem mensalidade.</strong> A adequação completa fica pronta em poucos dias e a documentação tem validade de 20 anos.
           </div>
 
           {/* CTA principal */}
