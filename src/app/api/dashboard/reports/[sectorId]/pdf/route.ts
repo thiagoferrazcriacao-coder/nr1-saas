@@ -101,14 +101,18 @@ function buildHtml(opts: {
     const gravC = riskColors[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']
     const probC = m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
     let texto = elevado ? (fa?.exposicao ?? '') : (fa?.protetivo ?? '')
-    if (m.riskFinal === 'alto' || m.riskFinal === 'critico') {
+    if (m.riskFinal === 'critico') {
+      texto = `<strong style="color:${finC};">Trata-se de risco CRÍTICO, exigindo ação imediata e obrigatória, com medidas de controle adotadas em caráter emergencial.</strong> ${texto}`
+    } else if (m.riskFinal === 'alto') {
       texto = `<strong style="color:${finC};">A intervenção é prioritária e de implementação imediata.</strong> ${texto}`
     }
+    const grav = m.gravScore.toFixed(1).replace('.', ',')
     return `
       <div style="margin-bottom:18px;page-break-inside:avoid;">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
           <span style="font-size:13px;font-weight:800;color:#1e3a8a;">${String(m.topicNum).padStart(2, '0')}. ${m.topic}</span>
           <span style="font-size:10px;color:${gravC};">Gravidade: <strong>${gravLabel[m.gravidade]}</strong></span>
+          <span style="font-size:10px;color:#64748b;">Pontuação: <strong>${grav}/4,0</strong></span>
           <span style="font-size:10px;color:${probC};">Probabilidade: <strong>${probLabel[m.probabilidade]}</strong></span>
           <span style="background:${finBg};color:${finC};border:1px solid ${finC}40;padding:1px 9px;border-radius:20px;font-size:10px;font-weight:bold;">${riskLabel[m.riskFinal]}</span>
         </div>

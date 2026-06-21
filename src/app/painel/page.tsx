@@ -92,17 +92,25 @@ export default function PainelPage() {
   const [creating, setCreating]     = useState(false)
   const [copiedId, setCopiedId]     = useState<string | null>(null)
   const [qrSector, setQrSector]     = useState<Sector | null>(null)
+  const [assessmentDone, setAssessmentDone] = useState(true) // assume preenchida até confirmar
 
   const fetchData = async () => {
     try {
-      const [sectorsRes, settingsRes] = await Promise.all([
+      const [sectorsRes, settingsRes, assessmentRes] = await Promise.all([
         fetch('/api/dashboard/sectors'),
         fetch('/api/dashboard/company-settings'),
+        fetch('/api/dashboard/company-assessment'),
       ])
       if (sectorsRes.ok) setSectors(await sectorsRes.json())
       if (settingsRes.ok) {
         const { company: c } = await settingsRes.json()
         setCompany(c)
+      }
+      if (assessmentRes.ok) {
+        const { assessment } = await assessmentRes.json()
+        setAssessmentDone(!!assessment)
+      } else {
+        setAssessmentDone(false)
       }
     } finally {
       setLoading(false)
@@ -260,6 +268,28 @@ export default function PainelPage() {
         </Link>
       </div>
 
+      {/* Trava: link do time só libera após a Avaliação do Gestor */}
+      {!loading && !assessmentDone && sectors.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3">
+            <span className="text-xl">🔒</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Link bloqueado</p>
+              <p className="text-sm text-amber-800 mt-0.5">
+                Para enviar o questionário ao time, primeiro preencha a <strong>Avaliação do Gestor</strong>.
+                Ela define a probabilidade de cada risco — sem ela, o DRPS sai incompleto.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/painel/avaliacao-gestor"
+            className="flex-shrink-0 bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-amber-700 transition-colors"
+          >
+            Preencher agora
+          </Link>
+        </div>
+      )}
+
       {/* Lista de setores */}
       {loading ? (
         <div className="flex justify-center py-12">
@@ -330,16 +360,19 @@ export default function PainelPage() {
                   <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                     <button
                       onClick={() => setQrSector(sector)}
-                      className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-                      title="Gerar QR Code"
+                      disabled={!assessmentDone}
+                      title={assessmentDone ? 'Gerar QR Code' : 'Preencha a Avaliação do Gestor para liberar o QR Code'}
+                      className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     >
-                      📱 QR Code
+                      {assessmentDone ? '📱 QR Code' : '🔒 QR Code'}
                     </button>
                     <button
                       onClick={() => handleCopy(sector)}
-                      className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                      disabled={!assessmentDone}
+                      title={assessmentDone ? 'Copiar link do questionário' : 'Preencha a Avaliação do Gestor para liberar o link'}
+                      className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     >
-                      {copiedId === sector.id ? '✅ Copiado!' : '🔗 Link'}
+                      {!assessmentDone ? '🔒 Link' : copiedId === sector.id ? '✅ Copiado!' : '🔗 Link'}
                     </button>
                     {sector.totalResponses > 0 && (
                       <Link
