@@ -9,6 +9,8 @@ const patchSchema = z.object({
   description: z.string().trim().max(1000).nullable().optional(),
   order:       z.number().int().min(0).optional(),
   active:      z.boolean().optional(),
+  videoUrl:    z.string().url().optional(),
+  durationSec: z.number().int().min(0).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

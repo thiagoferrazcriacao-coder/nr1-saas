@@ -22,6 +22,8 @@ export default function AdminVideosPage() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
   const [preview, setPreview] = useState<Lesson | null>(null) // vídeo aberto pra conferir
+  const [editId, setEditId] = useState<string | null>(null)   // null = adicionar; id = substituir o vídeo dessa aula
+  const [editTitle, setEditTitle] = useState('')              // título da aula que está sendo substituída (referência)
 
   const fetchLessons = useCallback(() => {
     fetch('/api/admin/lessons')
@@ -32,8 +34,9 @@ export default function AdminVideosPage() {
 
   useEffect(() => { fetchLessons() }, [fetchLessons])
 
-  const openUpload = (p: number) => { setUploadProgram(p); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
-  const closeUpload = () => { if (!uploading) setUploadProgram(null) }
+  const openUpload = (p: number) => { setEditId(null); setUploadProgram(p); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
   // Testa se o navegador consegue MOSTRAR a imagem do vídeo (pega .MOV/HEVC do iPhone, que só tem áudio)
   const checkPlayable = (f: File) => {
@@ -62,27 +65,40 @@ export default function AdminVideosPage() {
       } catch { resolve(0) }
     })
 
+  // Envia o arquivo pro R2 e devolve a URL pública + duração
+  const uploadToR2 = async (f: File): Promise<{ publicUrl: string; durationSec: number }> => {
+    const urlRes = await fetch('/api/admin/lessons/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: f.name, contentType: f.type || 'video/mp4' }) })
+    const urlData = await urlRes.json()
+    if (!urlRes.ok) throw new Error(urlData.error ?? 'Falha ao preparar o upload.')
+    const durationSec = await readDuration(f)
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', urlData.uploadUrl); xhr.setRequestHeader('Content-Type', f.type || 'video/mp4')
+      xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100)) }
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('Falha no envio.')))
+      xhr.onerror = () => reject(new Error('Falha no envio.')); xhr.send(f)
+    })
+    return { publicUrl: urlData.publicUrl, durationSec }
+  }
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault(); setError('')
     if (uploadProgram == null) return
     if (!file) { setError('Escolha um arquivo de vídeo.'); return }
-    if (!title.trim()) { setError('Dê um título à aula.'); return }
+    if (!editId && !title.trim()) { setError('Dê um título à aula.'); return }
     setUploading(true); setProgress(0)
     try {
-      const urlRes = await fetch('/api/admin/lessons/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name, contentType: file.type || 'video/mp4' }) })
-      const urlData = await urlRes.json()
-      if (!urlRes.ok) { setError(urlData.error ?? 'Falha ao preparar o upload.'); setUploading(false); return }
-      const durationSec = await readDuration(file)
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest()
-        xhr.open('PUT', urlData.uploadUrl); xhr.setRequestHeader('Content-Type', file.type || 'video/mp4')
-        xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100)) }
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('Falha no envio.')))
-        xhr.onerror = () => reject(new Error('Falha no envio.')); xhr.send(file)
-      })
-      const createRes = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, title: title.trim(), description: description.trim() || undefined, videoUrl: urlData.publicUrl, durationSec }) })
-      if (!createRes.ok) { const d = await createRes.json(); setError(d.error ?? 'Falha ao salvar.'); setUploading(false); return }
-      setUploadProgram(null); fetchLessons()
+      const { publicUrl, durationSec } = await uploadToR2(file)
+      if (editId) {
+        // Substituir o vídeo da aula (mantém título, posição, etc.)
+        const res = await fetch(`/api/admin/lessons/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoUrl: publicUrl, durationSec }) })
+        if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Falha ao substituir.'); setUploading(false); return }
+      } else {
+        // Criar nova aula
+        const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, title: title.trim(), description: description.trim() || undefined, videoUrl: publicUrl, durationSec }) })
+        if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Falha ao salvar.'); setUploading(false); return }
+      }
+      setUploadProgram(null); setEditId(null); fetchLessons()
     } catch (err) { setError((err as Error).message || 'Erro no upload.') } finally { setUploading(false) }
   }
 
@@ -139,6 +155,7 @@ export default function AdminVideosPage() {
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             <button onClick={() => setPreview(l)} title="Ver o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-[#CCEFF1] bg-[#F0FBFC] text-[#109CA1] hover:bg-[#E0F5F6]">▶ Ver</button>
+                            <button onClick={() => openReplace(l)} disabled={!r2ok} title="Substituir o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-40">🔄 Substituir</button>
                             <button onClick={() => toggleActive(l)} title={l.active ? 'Desativar' : 'Ativar'} className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">{l.active ? '👁️' : '🚫'}</button>
                             <button onClick={() => editLesson(l)} title="Editar" className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">✏️</button>
                             <button onClick={() => deleteLesson(l)} title="Excluir" className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">🗑️</button>
@@ -183,14 +200,20 @@ export default function AdminVideosPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs text-[#109CA1] font-bold">{PROGRAMS.find((p) => p.num === uploadProgram)?.name}</p>
-                <h3 className="font-bold text-gray-900">Adicionar vídeo-aula</h3>
+                <h3 className="font-bold text-gray-900">{editId ? 'Substituir vídeo' : 'Adicionar vídeo-aula'}</h3>
               </div>
               <button type="button" onClick={closeUpload} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
             </div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Título da aula</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 1 — Introdução" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 resize-none" />
+            {editId ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4">
+                <p className="text-amber-800 text-xs leading-relaxed">Trocando o vídeo da aula <strong>&quot;{editTitle}&quot;</strong>. O título e a posição continuam os mesmos — só o arquivo do vídeo muda.</p>
+              </div>
+            ) : (<>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Título da aula</label>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 1 — Introdução" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 resize-none" />
+            </>)}
             <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo <span className="font-normal text-gray-400">(de preferência MP4)</span></label>
             <input type="file" accept="video/mp4,video/webm,video/*" onChange={(e) => onPickFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-2" />
             {checking && <div className="mb-4 text-xs text-gray-400">Verificando o vídeo…</div>}
@@ -209,7 +232,7 @@ export default function AdminVideosPage() {
             {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
             <div className="flex gap-2">
               <button type="button" onClick={closeUpload} disabled={uploading} className="flex-1 border border-gray-200 text-gray-600 font-semibold text-sm py-2.5 rounded-xl hover:bg-gray-50 disabled:opacity-40">Cancelar</button>
-              <button type="submit" disabled={uploading} className="flex-1 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-semibold text-sm py-2.5 rounded-xl hover:opacity-90 disabled:opacity-40">{uploading ? 'Enviando…' : '⬆️ Enviar'}</button>
+              <button type="submit" disabled={uploading} className="flex-1 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-semibold text-sm py-2.5 rounded-xl hover:opacity-90 disabled:opacity-40">{uploading ? 'Enviando…' : editId ? '🔄 Substituir vídeo' : '⬆️ Enviar'}</button>
             </div>
           </form>
         </div>
