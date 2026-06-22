@@ -16,62 +16,37 @@ export default function AdminLoginPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       })
       if (!res.ok) { setError('Usuário ou senha incorretos.'); return }
       router.replace('/admin')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F0FBFC] to-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">🔐</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Painel Admin</h1>
-          <p className="text-slate-400 text-sm mt-1">Zelo — Área restrita</p>
+        <div className="text-center mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-zelo-3.png" alt="Zelo" className="h-12 w-auto mx-auto" />
+          <p className="text-gray-500 text-sm mt-3">Painel do administrador</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-slate-800 rounded-2xl p-6 space-y-4 border border-slate-700">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl shadow-[#0E2A47]/10 border border-gray-100 p-7 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Usuário</label>
-            <input
-              type="text"
-              required
-              autoCapitalize="none"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
+            <input type="text" required autoCapitalize="none" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#17C3C9] text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Senha de acesso</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#17C3C9] text-sm" />
           </div>
-
-          {error && (
-            <p className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-2">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors disabled:opacity-50 text-sm"
-          >
+          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>}
+          <button type="submit" disabled={loading}
+            className="w-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>

@@ -17,32 +17,33 @@ export async function GET(req: NextRequest) {
         state:           true,
         responsible:     true,
         employeeCount:   true,
-        workModality:    true,
+        plan:            true,
         drpsStatus:      true,
-        drpsValidatedAt: true,
-        drpsValidatedBy: true,
-        drpsNotes:       true,
-        termsAcceptedAt: true,
         createdAt:       true,
-        _count: {
-          select: { sectors: true },
-        },
-        sectors: {
-          select: {
-            _count: { select: { responses: true } },
-          },
-        },
+        users:           { select: { email: true }, take: 1 },
+        sectors:         { select: { _count: { select: { responses: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     })
 
     const result = companies.map((c) => ({
-      ...c,
+      id: c.id,
+      name: c.name,
+      fantasyName: c.fantasyName,
+      cnpj: c.cnpj,
+      city: c.city,
+      state: c.state,
+      responsible: c.responsible,
+      employeeCount: c.employeeCount,
+      plan: c.plan,
+      drpsStatus: c.drpsStatus,
+      email: c.users[0]?.email ?? null,
       totalResponses: c.sectors.reduce((sum, s) => sum + s._count.responses, 0),
-      sectors: undefined,
+      sectorsCount: c.sectors.length,
+      createdAt: c.createdAt,
     }))
 
-    return NextResponse.json({ companies: result })
+    return NextResponse.json({ companies: result, total: result.length })
   } catch (err) {
     if ((err as Error).message === 'Não autorizado') {
       return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })

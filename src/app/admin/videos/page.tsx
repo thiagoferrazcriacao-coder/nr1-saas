@@ -1,19 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { PROGRAMS } from '@/lib/programs'
 
-type Lesson = {
-  id: string
-  programNum: number
-  program: string
-  title: string
-  description: string | null
-  videoUrl: string
-  active: boolean
-}
+type Lesson = { id: string; programNum: number; program: string; title: string; description: string | null; videoUrl: string; active: boolean }
 
-export default function GerenciarVideosPage() {
+export default function AdminVideosPage() {
+  const router = useRouter()
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [r2ok, setR2ok] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -27,11 +21,11 @@ export default function GerenciarVideosPage() {
   const [error, setError] = useState('')
 
   const fetchLessons = useCallback(() => {
-    fetch('/api/dashboard/material/lessons')
-      .then((r) => (r.ok ? r.json() : null))
+    fetch('/api/admin/lessons')
+      .then((r) => { if (r.status === 401) { router.replace('/admin/login'); return null } return r.json() })
       .then((d) => { if (d) { setLessons(d.lessons ?? []); setR2ok(!!d.r2Configured) } })
       .finally(() => setLoading(false))
-  }, [])
+  }, [router])
 
   useEffect(() => { fetchLessons() }, [fetchLessons])
 
@@ -41,65 +35,43 @@ export default function GerenciarVideosPage() {
   const readDuration = (f: File): Promise<number> =>
     new Promise((resolve) => {
       try {
-        const v = document.createElement('video')
-        v.preload = 'metadata'
+        const v = document.createElement('video'); v.preload = 'metadata'
         v.onloadedmetadata = () => { URL.revokeObjectURL(v.src); resolve(Math.round(v.duration || 0)) }
-        v.onerror = () => resolve(0)
-        v.src = URL.createObjectURL(f)
+        v.onerror = () => resolve(0); v.src = URL.createObjectURL(f)
       } catch { resolve(0) }
     })
 
   const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault(); setError('')
     if (uploadProgram == null) return
     if (!file) { setError('Escolha um arquivo de vídeo.'); return }
     if (!title.trim()) { setError('Dê um título à aula.'); return }
     setUploading(true); setProgress(0)
     try {
-      const urlRes = await fetch('/api/dashboard/material/upload-url', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: file.name, contentType: file.type || 'video/mp4' }),
-      })
+      const urlRes = await fetch('/api/admin/lessons/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name, contentType: file.type || 'video/mp4' }) })
       const urlData = await urlRes.json()
       if (!urlRes.ok) { setError(urlData.error ?? 'Falha ao preparar o upload.'); setUploading(false); return }
       const durationSec = await readDuration(file)
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
-        xhr.open('PUT', urlData.uploadUrl)
-        xhr.setRequestHeader('Content-Type', file.type || 'video/mp4')
+        xhr.open('PUT', urlData.uploadUrl); xhr.setRequestHeader('Content-Type', file.type || 'video/mp4')
         xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100)) }
         xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('Falha no envio.')))
-        xhr.onerror = () => reject(new Error('Falha no envio.'))
-        xhr.send(file)
+        xhr.onerror = () => reject(new Error('Falha no envio.')); xhr.send(file)
       })
-      const createRes = await fetch('/api/dashboard/material/lessons', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ programNum: uploadProgram, title: title.trim(), description: description.trim() || undefined, videoUrl: urlData.publicUrl, durationSec }),
-      })
+      const createRes = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, title: title.trim(), description: description.trim() || undefined, videoUrl: urlData.publicUrl, durationSec }) })
       if (!createRes.ok) { const d = await createRes.json(); setError(d.error ?? 'Falha ao salvar.'); setUploading(false); return }
-      setUploadProgram(null)
-      fetchLessons()
-    } catch (err) {
-      setError((err as Error).message || 'Erro no upload.')
-    } finally { setUploading(false) }
+      setUploadProgram(null); fetchLessons()
+    } catch (err) { setError((err as Error).message || 'Erro no upload.') } finally { setUploading(false) }
   }
 
-  const toggleActive = async (l: Lesson) => {
-    await fetch(`/api/dashboard/material/lessons/${l.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !l.active }) })
-    fetchLessons()
-  }
+  const toggleActive = async (l: Lesson) => { await fetch(`/api/admin/lessons/${l.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !l.active }) }); fetchLessons() }
   const editLesson = async (l: Lesson) => {
     const t = window.prompt('Título da aula:', l.title); if (t === null) return
     const d = window.prompt('Descrição (opcional):', l.description ?? '')
-    await fetch(`/api/dashboard/material/lessons/${l.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: t.trim() || l.title, description: (d ?? '').trim() || null }) })
-    fetchLessons()
+    await fetch(`/api/admin/lessons/${l.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: t.trim() || l.title, description: (d ?? '').trim() || null }) }); fetchLessons()
   }
-  const deleteLesson = async (l: Lesson) => {
-    if (!confirm(`Excluir "${l.title}"? O progresso dos colaboradores nela também será removido.`)) return
-    await fetch(`/api/dashboard/material/lessons/${l.id}`, { method: 'DELETE' })
-    fetchLessons()
-  }
+  const deleteLesson = async (l: Lesson) => { if (!confirm(`Excluir "${l.title}"? O progresso dos colaboradores nela também será removido.`)) return; await fetch(`/api/admin/lessons/${l.id}`, { method: 'DELETE' }); fetchLessons() }
 
   if (loading) {
     return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" /></div>
@@ -131,9 +103,7 @@ export default function GerenciarVideosPage() {
                     <p className="font-bold text-[#0E2A47] truncate">{p.num}. {p.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{ls.length} vídeo{ls.length !== 1 ? 's' : ''}</p>
                   </div>
-                  <button onClick={() => openUpload(p.num)} disabled={!r2ok} className="flex-shrink-0 text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-3 py-2 rounded-xl hover:bg-[#E0F5F6] transition-colors disabled:opacity-40">
-                    ➕ Adicionar vídeo
-                  </button>
+                  <button onClick={() => openUpload(p.num)} disabled={!r2ok} className="flex-shrink-0 text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-3 py-2 rounded-xl hover:bg-[#E0F5F6] transition-colors disabled:opacity-40">➕ Adicionar vídeo</button>
                 </div>
                 <div className="px-5 py-3">
                   {ls.length === 0 ? (

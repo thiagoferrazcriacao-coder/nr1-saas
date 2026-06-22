@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 type Sector = {
@@ -85,7 +84,6 @@ function QrModal({ url, sectorName, onClose }: { url: string; sectorName: string
 }
 
 export default function PainelPage() {
-  const router = useRouter()
   const [sectors, setSectors]       = useState<Sector[]>([])
   const [company, setCompany]       = useState<CompanySettings | null>(null)
   const [loading, setLoading]       = useState(true)
@@ -119,13 +117,7 @@ export default function PainelPage() {
     }
   }
 
-  // Dono do projeto não tem "Visão Geral" de empresa — vai direto pra Empresas
-  useEffect(() => {
-    fetch('/api/auth/whoami')
-      .then((r) => r.json())
-      .then((w) => { if (w.isOwner) router.replace('/painel/empresas'); else fetchData() })
-      .catch(() => fetchData())
-  }, [router])
+  useEffect(() => { fetchData() }, [])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()

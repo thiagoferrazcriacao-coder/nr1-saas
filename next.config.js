@@ -10,9 +10,6 @@ const nextConfig = {
         destination: 'https://plataformazelo.com.br/:path*',
         permanent: true,
       },
-      // Área /admin antiga foi incorporada ao painel do dono do projeto
-      { source: '/admin', destination: '/login', permanent: false },
-      { source: '/admin/:path*', destination: '/login', permanent: false },
     ]
   },
   async headers() {
