@@ -78,15 +78,32 @@ export default function AprenderPage() {
   const lastSent = useRef<{ pct: number; at: number }>({ pct: 0, at: 0 })
   const maxWatched = useRef(0) // ponto máximo (em segundos) realmente assistido — trava o "pular pra frente"
   const wrapRef = useRef<HTMLDivElement>(null)
+  const barRef = useRef<HTMLDivElement>(null)
+  const draggingBar = useRef(false)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [curTime, setCurTime] = useState(0)
   const [dur, setDur] = useState(0)
+  const [maxSec, setMaxSec] = useState(0) // até onde já assistiu (pra liberar rever só essa parte)
 
   const fmt = (s: number) => { if (!isFinite(s) || s < 0) return '0:00'; const m = Math.floor(s / 60); const ss = Math.floor(s % 60); return `${m}:${ss < 10 ? '0' : ''}${ss}` }
   const togglePlay = () => { const v = videoRef.current; if (!v) return; if (v.paused) void v.play(); else v.pause() }
   const toggleMute = () => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted) }
   const toggleFs = () => { const el = wrapRef.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.() }
+
+  // Clicar/arrastar a barra: só deixa ir até o ponto já assistido (rever, sim; pular, não)
+  const seekFromX = (clientX: number) => {
+    const el = barRef.current, v = videoRef.current
+    if (!el || !v || !v.duration) return
+    const rect = el.getBoundingClientRect()
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const target = Math.min(frac * v.duration, maxWatched.current) // trava no máximo assistido
+    try { v.currentTime = target } catch {}
+    setCurTime(target)
+  }
+  const onBarDown = (e: React.PointerEvent) => { draggingBar.current = true; try { (e.currentTarget as Element).setPointerCapture(e.pointerId) } catch {}; seekFromX(e.clientX) }
+  const onBarMove = (e: React.PointerEvent) => { if (draggingBar.current) seekFromX(e.clientX) }
+  const onBarUp = () => { draggingBar.current = false }
 
   // Ao abrir o vídeo: retoma de onde parou e impede avançar além do já assistido
   const onLoadedMetadata = useCallback(() => {
@@ -94,9 +111,10 @@ export default function AprenderPage() {
     if (!v || !current || !v.duration) return
     setDur(v.duration)
     setMuted(v.muted)
-    if (current.completed) { maxWatched.current = v.duration; return } // já concluiu: pode rever à vontade
+    if (current.completed) { maxWatched.current = v.duration; setMaxSec(v.duration); return } // já concluiu: pode rever à vontade
     const resume = (current.percent / 100) * v.duration
     maxWatched.current = resume
+    setMaxSec(resume)
     if (resume > 1) { try { v.currentTime = resume } catch {} }
   }, [current])
 
@@ -126,7 +144,7 @@ export default function AprenderPage() {
   const onTimeUpdate = useCallback(() => {
     const v = videoRef.current
     if (!v || !current || !v.duration) return
-    if (v.currentTime > maxWatched.current) maxWatched.current = v.currentTime // avança o ponto assistido
+    if (v.currentTime > maxWatched.current) { maxWatched.current = v.currentTime; setMaxSec(v.currentTime) } // avança o ponto assistido
     setCurTime(v.currentTime)
     const pct = Math.min(100, Math.round((v.currentTime / v.duration) * 100))
     const now = Date.now()
@@ -140,7 +158,7 @@ export default function AprenderPage() {
     if (current) { lastSent.current = { pct: 100, at: Date.now() }; void sendProgress(current.id, 100) }
   }, [current, sendProgress])
 
-  const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; maxWatched.current = 0; setPlaying(false); setCurTime(0); setDur(0); setCurrent(l) }
+  const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; maxWatched.current = 0; setMaxSec(0); setPlaying(false); setCurTime(0); setDur(0); setCurrent(l) }
 
   // ─── Telas ───────────────────────────────────────────────────────────────────
   if (step === 'carregando') {
@@ -213,9 +231,15 @@ export default function AprenderPage() {
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '20px 14px 10px', background: 'linear-gradient(transparent, rgba(0,0,0,.75))', display: 'flex', alignItems: 'center', gap: 12 }}>
               <button onClick={togglePlay} aria-label={playing ? 'Pausar' : 'Tocar'} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', lineHeight: 1, width: 28 }}>{playing ? '⏸' : '▶'}</button>
               <span style={{ color: '#fff', fontSize: 12, fontVariantNumeric: 'tabular-nums', minWidth: 78 }}>{fmt(curTime)} / {fmt(dur)}</span>
-              {/* tracinho de progresso — apenas visual, NÃO clicável */}
-              <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,.25)', borderRadius: 3, overflow: 'hidden', pointerEvents: 'none' }}>
-                <div style={{ width: dur ? `${Math.min(100, (curTime / dur) * 100)}%` : '0%', height: '100%', background: '#17C3C9' }} />
+              {/* barra clicável — só deixa rever (até onde já assistiu); o resto fica travado */}
+              <div ref={barRef} onPointerDown={onBarDown} onPointerMove={onBarMove} onPointerUp={onBarUp} onPointerCancel={onBarUp}
+                style={{ flex: 1, height: 16, display: 'flex', alignItems: 'center', cursor: 'pointer', touchAction: 'none' }}>
+                <div style={{ position: 'relative', width: '100%', height: 5, background: 'rgba(255,255,255,.22)', borderRadius: 3 }}>
+                  {/* parte já assistida — liberada pra rever */}
+                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: dur ? `${Math.min(100, (maxSec / dur) * 100)}%` : '0%', background: 'rgba(255,255,255,.4)', borderRadius: 3 }} />
+                  {/* posição atual */}
+                  <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: dur ? `${Math.min(100, (curTime / dur) * 100)}%` : '0%', background: '#17C3C9', borderRadius: 3 }} />
+                </div>
               </div>
               <button onClick={toggleMute} aria-label="Som" style={{ background: 'none', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>{muted ? '🔇' : '🔊'}</button>
               <button onClick={toggleFs} aria-label="Tela cheia" style={{ background: 'none', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>⛶</button>
