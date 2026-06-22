@@ -182,8 +182,8 @@ const SLIDES = [
         <div style={{background:'#17C3C9',borderRadius:'16px',padding:'32px 48px',maxWidth:'520px',width:'100%'}}>
           <h3 style={{fontSize:'26px',fontWeight:900,color:'#fff',marginBottom:'10px'}}>Começar a adequação hoje</h3>
           <p style={{color:'rgba(255,255,255,.8)',fontSize:'16px',marginBottom:'22px'}}>Acesse agora e tenha o DRPS assinado em dias</p>
-          <a href="https://nr1-saas.vercel.app" target="_blank" rel="noopener noreferrer" style={{display:'inline-block',background:'#fff',color:'#ea580c',fontWeight:900,fontSize:'16px',padding:'14px 36px',borderRadius:'10px',textDecoration:'none'}}>
-            nr1-saas.vercel.app →
+          <a href="https://plataformazelo.com.br" target="_blank" rel="noopener noreferrer" style={{display:'inline-block',background:'#fff',color:'#109CA1',fontWeight:900,fontSize:'16px',padding:'14px 36px',borderRadius:'10px',textDecoration:'none'}}>
+            plataformazelo.com.br →
           </a>
         </div>
       </div>
