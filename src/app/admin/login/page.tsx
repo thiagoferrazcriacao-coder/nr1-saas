@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
@@ -17,9 +18,9 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username, password }),
       })
-      if (!res.ok) { setError('Senha incorreta.'); return }
+      if (!res.ok) { setError('Usuário ou senha incorretos.'); return }
       router.replace('/admin')
     } finally {
       setLoading(false)
@@ -38,6 +39,18 @@ export default function AdminLoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-slate-800 rounded-2xl p-6 space-y-4 border border-slate-700">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Usuário</label>
+            <input
+              type="text"
+              required
+              autoCapitalize="none"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
+              className="w-full px-4 py-3 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Senha de acesso</label>
             <input

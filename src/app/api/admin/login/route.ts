@@ -3,15 +3,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { signAdminToken } from '@/lib/admin-auth'
 import { z } from 'zod'
 
-const schema = z.object({ password: z.string().min(1) })
+const schema = z.object({ username: z.string().min(1), password: z.string().min(1) })
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { password } = schema.parse(body)
+    const { username, password } = schema.parse(body)
 
-    const expected = process.env.ADMIN_PASSWORD
-    if (!expected || password !== expected) {
+    const expectedUser = process.env.ADMIN_USER ?? 'admin'
+    const expectedPass = process.env.ADMIN_PASSWORD
+    if (!expectedPass || username.trim().toLowerCase() !== expectedUser.toLowerCase() || password !== expectedPass) {
       return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 })
     }
 

@@ -37,17 +37,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F0FBFC] to-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-800 rounded-2xl mb-4">
-            <span className="text-white text-2xl">🧠</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Zelo</h1>
-          <p className="text-gray-500 text-sm mt-1">Análise de Risco Psicossocial</p>
+        <div className="text-center mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-zelo-3.png" alt="Zelo — Plataforma de NR1" className="h-12 w-auto mx-auto" />
+          <p className="text-gray-500 text-sm mt-3">Acesse o painel da sua empresa</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl shadow-[#0E2A47]/10 border border-gray-100 p-7 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
             <input
@@ -55,7 +53,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-800 text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#17C3C9] text-sm"
               placeholder="seu@email.com.br"
             />
           </div>
@@ -67,7 +65,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-800 text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#17C3C9] text-sm"
               placeholder="••••••••"
             />
           </div>
@@ -81,7 +79,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-800 text-white py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
@@ -89,7 +87,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Não tem conta?{' '}
-          <Link href="/cadastro" className="text-primary-800 font-semibold hover:underline">
+          <Link href="/cadastro" className="text-[#109CA1] font-semibold hover:underline">
             Criar conta grátis
           </Link>
         </p>
