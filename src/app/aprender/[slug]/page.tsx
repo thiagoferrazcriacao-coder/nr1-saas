@@ -77,11 +77,23 @@ export default function AprenderPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const lastSent = useRef<{ pct: number; at: number }>({ pct: 0, at: 0 })
   const maxWatched = useRef(0) // ponto máximo (em segundos) realmente assistido — trava o "pular pra frente"
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const [curTime, setCurTime] = useState(0)
+  const [dur, setDur] = useState(0)
+
+  const fmt = (s: number) => { if (!isFinite(s) || s < 0) return '0:00'; const m = Math.floor(s / 60); const ss = Math.floor(s % 60); return `${m}:${ss < 10 ? '0' : ''}${ss}` }
+  const togglePlay = () => { const v = videoRef.current; if (!v) return; if (v.paused) void v.play(); else v.pause() }
+  const toggleMute = () => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted) }
+  const toggleFs = () => { const el = wrapRef.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.() }
 
   // Ao abrir o vídeo: retoma de onde parou e impede avançar além do já assistido
   const onLoadedMetadata = useCallback(() => {
     const v = videoRef.current
     if (!v || !current || !v.duration) return
+    setDur(v.duration)
+    setMuted(v.muted)
     if (current.completed) { maxWatched.current = v.duration; return } // já concluiu: pode rever à vontade
     const resume = (current.percent / 100) * v.duration
     maxWatched.current = resume
@@ -115,6 +127,7 @@ export default function AprenderPage() {
     const v = videoRef.current
     if (!v || !current || !v.duration) return
     if (v.currentTime > maxWatched.current) maxWatched.current = v.currentTime // avança o ponto assistido
+    setCurTime(v.currentTime)
     const pct = Math.min(100, Math.round((v.currentTime / v.duration) * 100))
     const now = Date.now()
     if (pct >= lastSent.current.pct + 3 && now - lastSent.current.at > 4000) {
@@ -127,7 +140,7 @@ export default function AprenderPage() {
     if (current) { lastSent.current = { pct: 100, at: Date.now() }; void sendProgress(current.id, 100) }
   }, [current, sendProgress])
 
-  const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; maxWatched.current = 0; setCurrent(l) }
+  const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; maxWatched.current = 0; setPlaying(false); setCurTime(0); setDur(0); setCurrent(l) }
 
   // ─── Telas ───────────────────────────────────────────────────────────────────
   if (step === 'carregando') {
@@ -189,11 +202,24 @@ export default function AprenderPage() {
       <div style={{ minHeight: '100vh', background: '#0f1e2e', color: '#fff' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '16px 16px 40px' }}>
           <button onClick={() => setCurrent(null)} style={{ background: 'none', border: 'none', color: '#7dd3fc', fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>← Voltar aos vídeos</button>
-          <div style={{ background: '#000', borderRadius: 12, overflow: 'hidden' }}>
-            <video ref={videoRef} src={current.videoUrl} controls playsInline controlsList="nodownload noplaybackrate"
-              onContextMenu={(e) => e.preventDefault()}
+          <div ref={wrapRef} style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
+            <video ref={videoRef} src={current.videoUrl} playsInline
+              onClick={togglePlay} onContextMenu={(e) => e.preventDefault()}
               onLoadedMetadata={onLoadedMetadata} onSeeking={onSeeking} onTimeUpdate={onTimeUpdate} onEnded={onEnded}
-              style={{ width: '100%', display: 'block', maxHeight: '60vh', background: '#000' }} />
+              onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+              style={{ width: '100%', display: 'block', maxHeight: '70vh', background: '#000', cursor: 'pointer' }} />
+
+            {/* Controles próprios — SEM barra de arrastar (não dá pra pular pra frente) */}
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '20px 14px 10px', background: 'linear-gradient(transparent, rgba(0,0,0,.75))', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={togglePlay} aria-label={playing ? 'Pausar' : 'Tocar'} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer', lineHeight: 1, width: 28 }}>{playing ? '⏸' : '▶'}</button>
+              <span style={{ color: '#fff', fontSize: 12, fontVariantNumeric: 'tabular-nums', minWidth: 78 }}>{fmt(curTime)} / {fmt(dur)}</span>
+              {/* tracinho de progresso — apenas visual, NÃO clicável */}
+              <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,.25)', borderRadius: 3, overflow: 'hidden', pointerEvents: 'none' }}>
+                <div style={{ width: dur ? `${Math.min(100, (curTime / dur) * 100)}%` : '0%', height: '100%', background: '#17C3C9' }} />
+              </div>
+              <button onClick={toggleMute} aria-label="Som" style={{ background: 'none', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>{muted ? '🔇' : '🔊'}</button>
+              <button onClick={toggleFs} aria-label="Tela cheia" style={{ background: 'none', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>⛶</button>
+            </div>
           </div>
           <p style={{ fontSize: 12, color: '#7dd3fc', marginTop: 8 }}>🔒 Para registrar sua presença, assista do início — não é possível pular para frente. Rever o que já passou, pode.</p>
           <div style={{ marginTop: 16 }}>
