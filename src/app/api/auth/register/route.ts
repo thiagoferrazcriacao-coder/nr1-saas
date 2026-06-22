@@ -3,6 +3,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { signToken, signRefreshToken } from '@/lib/auth'
+import { canSignup, SIGNUP_BLOCKED_MSG } from '@/lib/access'
 
 const schema = z.object({
   companyName: z.string().min(2).max(100),
@@ -41,6 +42,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'E-mail já cadastrado.' }, { status: 409 })
     }
 
+    // Só quem comprou (e-mail da compra na Kiwify) pode se cadastrar
+    if (!(await canSignup(email))) {
+      return NextResponse.json({ error: SIGNUP_BLOCKED_MSG }, { status: 403 })
+    }
+
+    // Plano vem da compra (quando houver) — assim a empresa já entra com o plano certo
+    const paidSale = await prisma.sale.findFirst({
+      where: { customerEmail: email, status: 'paid' },
+      orderBy: { createdAt: 'desc' },
+      select: { plan: true },
+    })
+    const plan = paidSale?.plan ?? 'starter'
+
     // Valida o código de verificação enviado por e-mail
     const verification = await prisma.emailVerification.findUnique({ where: { email } })
     if (!verification) {
@@ -71,7 +85,7 @@ export async function POST(req: NextRequest) {
         name: companyName,
         slug,
         cnpj: cnpj ?? null,
-        plan: 'starter',
+        plan,
         users: {
           create: {
             email,

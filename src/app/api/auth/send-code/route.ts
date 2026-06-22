@@ -4,6 +4,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { sendVerificationCode, emailConfigured } from '@/lib/email'
+import { canSignup, SIGNUP_BLOCKED_MSG } from '@/lib/access'
 
 const schema = z.object({ email: z.string().email('E-mail inválido.') })
 
@@ -24,6 +25,11 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
       return NextResponse.json({ error: 'Este e-mail já tem conta. Faça login.' }, { status: 409 })
+    }
+
+    // Só quem comprou (e-mail da compra na Kiwify) pode se cadastrar
+    if (!(await canSignup(email))) {
+      return NextResponse.json({ error: SIGNUP_BLOCKED_MSG }, { status: 403 })
     }
 
     // Gera código de 6 dígitos
