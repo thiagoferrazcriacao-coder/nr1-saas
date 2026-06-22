@@ -32,26 +32,24 @@ export default function TermosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F0FBFC] to-white">
+        <div className="w-8 h-8 border-4 border-[#17C3C9] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F0FBFC] to-white flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-800 rounded-2xl mb-3">
-            <span className="text-white text-2xl">🧠</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Zelo</h1>
-          <p className="text-gray-500 text-sm mt-1">Termos de Uso e Política de Privacidade</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-zelo-3.png" alt="Zelo — Plataforma de NR1" className="h-12 w-auto mx-auto" />
+          <p className="text-gray-500 text-sm mt-3">Termos de Uso e Política de Privacidade</p>
         </div>
 
         {/* Caixa de termos */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xl shadow-[#0E2A47]/10 overflow-hidden">
           <div
             className="h-80 overflow-y-auto p-6 text-sm text-gray-600 leading-relaxed space-y-4"
             onScroll={(e) => {
@@ -121,7 +119,7 @@ export default function TermosPage() {
             <h2 className="font-bold text-gray-900 text-base">8. Disposições Gerais</h2>
             <p>
               Este instrumento é regido pelas leis brasileiras. O foro eleito é o da comarca de Barra Mansa/RJ.
-              Dúvidas: contato@nr1risk.com.br
+              Dúvidas: contato@plataformazelo.com.br
             </p>
 
             <p className="text-gray-400 text-xs pt-2">Versão 1.0 — 10/06/2026</p>
@@ -137,7 +135,7 @@ export default function TermosPage() {
             <button
               onClick={handleAccept}
               disabled={!scrolled || accepting}
-              className="w-full py-3.5 rounded-xl bg-primary-800 text-white font-semibold text-sm hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {accepting
                 ? 'Registrando aceite...'
