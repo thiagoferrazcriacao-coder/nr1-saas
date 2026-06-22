@@ -15,7 +15,7 @@ const schema = z.object({
 // POST — colaborador cria a própria conta (e-mail + senha)
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
-    const company = await prisma.company.findUnique({
+    const company = await prisma.company.findFirst({
       where: { learnCode: params.slug },
       select: { id: true, name: true },
     })

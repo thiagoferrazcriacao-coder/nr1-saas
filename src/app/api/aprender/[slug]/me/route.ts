@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   if (!session) return NextResponse.json({ loggedIn: false })
 
   try {
-    const company = await prisma.company.findUnique({
+    const company = await prisma.company.findFirst({
       where: { learnCode: params.slug },
       select: { id: true, name: true },
     })

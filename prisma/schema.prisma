@@ -12,7 +12,7 @@ model Company {
   name             String
   fantasyName      String?
   slug             String             @unique
-  learnCode        String?            @unique // código neutro do link de treinamento (sem nome de pessoa)
+  learnCode        String?            // código neutro e aleatório do link de treinamento (sem nome de pessoa)
   cnpj             String?
   responsible      String?
   phone            String?
