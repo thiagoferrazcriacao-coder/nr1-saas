@@ -51,9 +51,9 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
-              <Link href="/login" className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-7 py-3.5 rounded-xl font-bold text-base hover:opacity-90 transition-opacity shadow-lg shadow-[#17C3C9]/25">
+              <a href="#precos" className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-7 py-3.5 rounded-xl font-bold text-base hover:opacity-90 transition-opacity shadow-lg shadow-[#17C3C9]/25">
                 Adequar minha empresa →
-              </Link>
+              </a>
               <a href="#como-funciona" className="inline-flex items-center justify-center gap-2 border border-gray-200 text-[#0E2A47] px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-gray-50 transition-colors">
                 Ver como funciona
               </a>
@@ -89,9 +89,9 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <Link href="/login" className="block text-center bg-[#0E2A47] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#0A1F36] transition-colors">
+            <a href="#precos" className="block text-center bg-[#0E2A47] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#0A1F36] transition-colors">
               Começar agora
-            </Link>
+            </a>
             <p className="text-center text-xs text-gray-400 mt-3">Sem contrato de longo prazo · Suporte incluso</p>
           </div>
         </div>
@@ -453,9 +453,9 @@ export default function LandingPage() {
             <p className="text-[#9FC2D6] mb-6 text-lg max-w-xl mx-auto">
               A adequação leva poucos dias. O processo trabalhista pode levar anos — e custar muito mais.
             </p>
-            <Link href="/login" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-10 py-4 rounded-xl font-bold text-xl hover:opacity-90 transition-opacity shadow-lg shadow-[#17C3C9]/25">
+            <a href="#precos" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-10 py-4 rounded-xl font-bold text-xl hover:opacity-90 transition-opacity shadow-lg shadow-[#17C3C9]/25">
               Começar adequação agora →
-            </Link>
+            </a>
             <p className="text-[#7FA6BE] text-sm mt-4">Plataforma 100% online · Sem contrato de longo prazo · Suporte incluso</p>
           </div>
         </div>
