@@ -154,8 +154,6 @@ export default function PainelPage() {
     : null
   const overallRisk      = avgRisk === null ? null
     : avgRisk <= 1 ? 'baixo' : avgRisk <= 2 ? 'moderado' : avgRisk <= 3 ? 'alto' : 'critico'
-  // Conformidade/adequação à NR-1: quanto menor o risco médio, maior a conformidade
-  const conformidade     = avgRisk === null ? null : Math.round((1 - avgRisk / 4) * 100)
 
   const employeeCount    = company?.employeeCount ?? null
   const targetPerSector  = employeeCount && sectors.length ? Math.ceil(employeeCount / sectors.length) : null
@@ -227,82 +225,46 @@ export default function PainelPage() {
         </button>
       </div>
 
-      {/* Cards principais */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-8">
-        {/* Risco psicossocial */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <p className="text-gray-500 text-sm font-medium">Risco psicossocial</p>
-          {overallRisk ? (
-            <>
-              <p className="text-xs text-gray-400 mt-3">Nível de risco médio</p>
-              <p className={`text-3xl font-black mt-1 ${riskConfig[overallRisk].text}`}>{riskConfig[overallRisk].label}</p>
-              <div className="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${Math.round((avgRisk ?? 0) / 4 * 100)}%`, background: overallRisk === 'baixo' ? '#16a34a' : overallRisk === 'moderado' ? '#ca8a04' : overallRisk === 'alto' ? '#ea580c' : '#dc2626' }} />
-              </div>
-              <p className="text-xs text-gray-400 mt-2">Pontuação média: <strong className="text-gray-600">{avgRisk?.toFixed(1)}/4,0</strong></p>
-            </>
-          ) : (
-            <p className="text-gray-400 text-sm mt-6">Sem respostas suficientes ainda.</p>
-          )}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-gray-500 text-xs uppercase tracking-wide">Setores</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{sectors.length}</p>
         </div>
-
-        {/* Conformidade NR-1 (anel) */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-6">
-          <div className="relative flex-shrink-0">
-            <svg viewBox="0 0 100 100" className="w-28 h-28 -rotate-90">
-              <defs>
-                <linearGradient id="confRing" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor="#17C3C9" />
-                  <stop offset="1" stopColor="#3F7DE0" />
-                </linearGradient>
-              </defs>
-              <circle cx="50" cy="50" r="42" fill="none" stroke="#EDF1F6" strokeWidth="11" />
-              <circle cx="50" cy="50" r="42" fill="none" stroke="url(#confRing)" strokeWidth="11" strokeLinecap="round"
-                strokeDasharray="263.9" strokeDashoffset={263.9 * (1 - (conformidade ?? 0) / 100)} />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-black text-[#0E2A47]">{conformidade != null ? `${conformidade}%` : '—'}</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-gray-500 text-sm font-medium">Conformidade NR-1</p>
-            <p className={`text-lg font-bold mt-1 ${conformidade == null ? 'text-gray-400' : conformidade >= 70 ? 'text-green-600' : conformidade >= 40 ? 'text-yellow-600' : 'text-orange-600'}`}>
-              {conformidade == null ? '—' : conformidade >= 70 ? 'Adequado' : conformidade >= 40 ? 'Atenção' : 'Crítico'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">Índice de adequação da empresa à norma.</p>
-          </div>
-        </div>
-
-        {/* Participação */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-500 text-sm font-medium">Participação</p>
-            <span className="text-xl">👥</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div>
-              <p className="text-xs text-gray-400">Colaboradores</p>
-              <p className="text-2xl font-black text-[#0E2A47] mt-0.5">{employeeCount ?? '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Questionários respondidos</p>
-              <p className="text-2xl font-black text-[#0E2A47] mt-0.5">{totalResponses}{globalProgress !== null && <span className="text-sm font-bold text-gray-400"> ({globalProgress}%)</span>}</p>
-            </div>
-          </div>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-gray-500 text-xs uppercase tracking-wide">Respostas</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{totalResponses}</p>
           {globalProgress !== null && (
-            <div className="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className={`h-full rounded-full ${globalProgress >= 80 ? 'bg-green-500' : globalProgress >= 50 ? 'bg-[#17C3C9]' : 'bg-[#3F7DE0]'}`} style={{ width: `${globalProgress}%` }} />
+            <div className="mt-2">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>{globalProgress}% dos CLTs</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${globalProgress >= 80 ? 'bg-green-500' : globalProgress >= 50 ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                  style={{ width: `${globalProgress}%` }}
+                />
+              </div>
             </div>
           )}
         </div>
-
-        {/* Documentos (atalho) */}
-        <Link href="/painel/documentos" className="bg-gradient-to-br from-[#0E2A47] to-[#11324F] rounded-2xl shadow-sm p-6 group flex flex-col justify-between text-white">
-          <div>
-            <p className="text-[#9FC2D6] text-sm font-medium">Documentos</p>
-            <p className="text-xl font-black mt-2 group-hover:underline">DRPS · PGR · Plano de Ação</p>
-          </div>
-          <p className="text-[#5BD9DD] text-sm mt-3 font-semibold">Gerar documentos da NR-1 →</p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-gray-500 text-xs uppercase tracking-wide">Risco Médio</p>
+          {overallRisk ? (
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-3xl font-bold text-gray-900">{avgRisk?.toFixed(1)}</p>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border ${riskConfig[overallRisk].bg} ${riskConfig[overallRisk].text} ${riskConfig[overallRisk].border}`}>
+                {riskConfig[overallRisk].label}
+              </span>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm mt-1">—</p>
+          )}
+        </div>
+        <Link href="/painel/documentos" className="bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100 rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow group">
+          <p className="text-blue-600 text-xs uppercase tracking-wide font-medium">Documentos</p>
+          <p className="text-lg font-bold text-blue-800 mt-1 group-hover:underline">DRPS, PGR e Plano de Ação</p>
+          <p className="text-blue-500 text-xs mt-1">Gere seus documentos da NR-1 →</p>
         </Link>
       </div>
 
