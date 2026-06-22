@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Redireciona o endereço antigo (.vercel.app) para o domínio oficial
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'nr1-saas.vercel.app' }],
+        destination: 'https://plataformazelo.com.br/:path*',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {
