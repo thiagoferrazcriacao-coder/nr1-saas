@@ -21,6 +21,7 @@ export default function AdminVideosPage() {
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
+  const [preview, setPreview] = useState<Lesson | null>(null) // vídeo aberto pra conferir
 
   const fetchLessons = useCallback(() => {
     fetch('/api/admin/lessons')
@@ -137,6 +138,7 @@ export default function AdminVideosPage() {
                             <p className={`text-sm font-medium truncate ${l.active ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{l.title}</p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
+                            <button onClick={() => setPreview(l)} title="Ver o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-[#CCEFF1] bg-[#F0FBFC] text-[#109CA1] hover:bg-[#E0F5F6]">▶ Ver</button>
                             <button onClick={() => toggleActive(l)} title={l.active ? 'Desativar' : 'Ativar'} className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">{l.active ? '👁️' : '🚫'}</button>
                             <button onClick={() => editLesson(l)} title="Editar" className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">✏️</button>
                             <button onClick={() => deleteLesson(l)} title="Excluir" className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">🗑️</button>
@@ -151,6 +153,29 @@ export default function AdminVideosPage() {
           })}
         </div>
       </div>
+
+      {/* Conferir o vídeo cadastrado */}
+      {preview && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+              <div className="min-w-0">
+                <p className="text-xs text-[#109CA1] font-bold">{preview.program}</p>
+                <h3 className="font-bold text-gray-900 truncate">{preview.title}</h3>
+              </div>
+              <button onClick={() => setPreview(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none flex-shrink-0">×</button>
+            </div>
+            <div className="bg-black">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video key={preview.id} src={preview.videoUrl} controls autoPlay className="w-full max-h-[70vh]" />
+            </div>
+            <div className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <a href={preview.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-gray-600 break-all">{preview.videoUrl}</a>
+              <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${preview.active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{preview.active ? 'Ativo' : 'Desativado'}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {uploadProgram != null && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeUpload}>
