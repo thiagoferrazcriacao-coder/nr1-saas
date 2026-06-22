@@ -61,7 +61,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#F4F7FB] flex">
       {/* Overlay mobile */}
       {sidebarOpen && (
         <div
@@ -72,46 +72,61 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-30 transform transition-transform duration-200 lg:translate-x-0 lg:static lg:flex lg:flex-col ${
+        className={`fixed top-0 left-0 h-full w-64 bg-[#0E2A47] z-30 transform transition-transform duration-200 lg:translate-x-0 lg:static lg:flex lg:flex-col ${
           sidebarOpen ? 'translate-x-0 flex flex-col' : '-translate-x-full'
         }`}
       >
-        <div className="px-4 pt-5 pb-3 border-b border-gray-100 flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-zelo-3.png" alt="Zelo — Plataforma de NR1" className="w-full max-w-[210px] h-auto" />
+        {/* Marca */}
+        <div className="px-5 pt-6 pb-5 border-b border-white/10 flex items-center gap-2.5">
+          <svg width="34" height="34" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="zsb" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#19C6C9" />
+                <stop offset="1" stopColor="#5B8DEF" />
+              </linearGradient>
+            </defs>
+            <path d="M18 17 H46 V25 L30 39 H46 V47 H18 V39 L34 25 H18 Z" fill="url(#zsb)" />
+          </svg>
+          <div className="leading-none">
+            <span className="text-white font-black text-xl">Zelo</span>
+            <span className="block text-[9px] text-[#5BD9DD] tracking-[0.15em] mt-1 font-semibold">PLATAFORMA DE NR1</span>
+          </div>
         </div>
 
-        <nav className="px-4 pt-2 pb-4 space-y-1 flex-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                pathname === item.href || (item.href !== '/painel' && pathname.startsWith(item.href))
-                  ? 'bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white shadow-sm shadow-[#17C3C9]/30'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <span className="flex items-center gap-3">
-                <span>{item.icon}</span>
-                {item.label}
-              </span>
-              {item.badge && (
-                <span className="text-xs bg-orange-100 text-orange-700 border border-orange-300 px-2 py-0.5 rounded-full font-semibold">
-                  {item.badge}
+        <nav className="px-3 pt-4 pb-4 space-y-1 flex-1">
+          {navItems.map((item) => {
+            const active = pathname === item.href || (item.href !== '/painel' && pathname.startsWith(item.href))
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  active
+                    ? 'bg-white text-[#0E2A47] font-semibold shadow-sm'
+                    : 'text-[#9FB6CE] hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <span className="text-base">{item.icon}</span>
+                  {item.label}
                 </span>
-              )}
-            </Link>
-          ))}
+                {item.badge && (
+                  <span className="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-semibold">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-3 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 w-full transition-colors"
+            className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#9FB6CE] hover:bg-red-500/10 hover:text-red-300 w-full transition-colors"
           >
-            <span>🚪</span> Sair
+            <span className="text-base">🚪</span> Sair
           </button>
         </div>
       </aside>
