@@ -16,6 +16,8 @@ export default function AdminVideosPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [fileWarning, setFileWarning] = useState('')   // aviso se o vídeo não tocar no navegador
+  const [checking, setChecking] = useState(false)      // testando o vídeo escolhido
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
@@ -29,8 +31,26 @@ export default function AdminVideosPage() {
 
   useEffect(() => { fetchLessons() }, [fetchLessons])
 
-  const openUpload = (p: number) => { setUploadProgram(p); setTitle(''); setDescription(''); setFile(null); setProgress(0); setError('') }
+  const openUpload = (p: number) => { setUploadProgram(p); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) setUploadProgram(null) }
+
+  // Testa se o navegador consegue MOSTRAR a imagem do vídeo (pega .MOV/HEVC do iPhone, que só tem áudio)
+  const checkPlayable = (f: File) => {
+    setFileWarning('')
+    const ext = (f.name.split('.').pop() || '').toLowerCase()
+    const risky = ['mov', 'avi', 'wmv', 'mkv', 'flv', 'm4v', '3gp']
+    const v = document.createElement('video')
+    v.preload = 'metadata'
+    let done = false
+    const finish = (warn: string) => { if (done) return; done = true; try { URL.revokeObjectURL(v.src) } catch {}; setFileWarning(warn); setChecking(false) }
+    const warnMsg = `⚠️ Este arquivo (.${ext}) pode não mostrar imagem no navegador — costuma ser vídeo de celular (iPhone/HEVC). Para garantir, envie em MP4 (H.264).`
+    v.onloadeddata = () => finish(v.videoWidth > 0 ? '' : warnMsg)
+    v.onerror = () => finish(`⚠️ Não foi possível ler este vídeo. Envie em MP4 (H.264) para tocar em qualquer aparelho.`)
+    setTimeout(() => finish(v.videoWidth > 0 ? '' : (risky.includes(ext) ? warnMsg : '')), 5000)
+    v.src = URL.createObjectURL(f)
+  }
+
+  const onPickFile = (f: File | null) => { setFile(f); setFileWarning(''); if (f) { setChecking(true); checkPlayable(f) } }
 
   const readDuration = (f: File): Promise<number> =>
     new Promise((resolve) => {
@@ -146,8 +166,15 @@ export default function AdminVideosPage() {
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 1 — Introdução" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
             <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 resize-none" />
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo</label>
-            <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-4" />
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo <span className="font-normal text-gray-400">(de preferência MP4)</span></label>
+            <input type="file" accept="video/mp4,video/webm,video/*" onChange={(e) => onPickFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-2" />
+            {checking && <div className="mb-4 text-xs text-gray-400">Verificando o vídeo…</div>}
+            {!checking && fileWarning && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4">
+                <p className="text-amber-800 text-xs leading-relaxed">{fileWarning}</p>
+              </div>
+            )}
+            {!checking && !fileWarning && file && <div className="mb-4 text-xs text-green-600">✓ Vídeo compatível — vai tocar normalmente.</div>}
             {uploading && (
               <div className="mb-4">
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] transition-all" style={{ width: `${progress}%` }} /></div>
