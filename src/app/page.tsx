@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { checkoutUrl } from '@/lib/kiwify'
 
 export const metadata = {
   title: 'Zelo — Plataforma de Adequação à NR-1 (Riscos Psicossociais)',
@@ -432,12 +433,12 @@ export default function LandingPage() {
                     <li key={f} className="flex items-start gap-2"><span className="text-[#17C3C9] font-bold">✓</span> {f}</li>
                   ))}
                 </ul>
-                <Link
-                  href={`/checkout?plano=${p.slug}`}
+                <a
+                  href={checkoutUrl(p.slug)}
                   className={`mt-5 block text-center px-5 py-3 rounded-xl font-bold text-sm transition-opacity ${p.popular ? 'bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white hover:opacity-90' : 'bg-[#0E2A47] text-white hover:bg-[#0A1F36]'}`}
                 >
                   {p.valor === 'Sob consulta' ? 'Falar com a gente →' : 'Contratar agora →'}
-                </Link>
+                </a>
               </div>
             ))}
           </div>
