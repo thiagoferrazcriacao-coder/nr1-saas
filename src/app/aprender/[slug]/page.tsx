@@ -76,6 +76,26 @@ export default function AprenderPage() {
   // ─── Player ────────────────────────────────────────────────────────────────
   const videoRef = useRef<HTMLVideoElement>(null)
   const lastSent = useRef<{ pct: number; at: number }>({ pct: 0, at: 0 })
+  const maxWatched = useRef(0) // ponto máximo (em segundos) realmente assistido — trava o "pular pra frente"
+
+  // Ao abrir o vídeo: retoma de onde parou e impede avançar além do já assistido
+  const onLoadedMetadata = useCallback(() => {
+    const v = videoRef.current
+    if (!v || !current || !v.duration) return
+    if (current.completed) { maxWatched.current = v.duration; return } // já concluiu: pode rever à vontade
+    const resume = (current.percent / 100) * v.duration
+    maxWatched.current = resume
+    if (resume > 1) { try { v.currentTime = resume } catch {} }
+  }, [current])
+
+  // Bloqueia arrastar a barra pra frente (só deixa rever o que já viu)
+  const onSeeking = useCallback(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.currentTime > maxWatched.current + 1.5) {
+      try { v.currentTime = maxWatched.current } catch {}
+    }
+  }, [])
 
   const sendProgress = useCallback(async (lessonId: string, percent: number) => {
     try {
@@ -94,6 +114,7 @@ export default function AprenderPage() {
   const onTimeUpdate = useCallback(() => {
     const v = videoRef.current
     if (!v || !current || !v.duration) return
+    if (v.currentTime > maxWatched.current) maxWatched.current = v.currentTime // avança o ponto assistido
     const pct = Math.min(100, Math.round((v.currentTime / v.duration) * 100))
     const now = Date.now()
     if (pct >= lastSent.current.pct + 3 && now - lastSent.current.at > 4000) {
@@ -106,7 +127,7 @@ export default function AprenderPage() {
     if (current) { lastSent.current = { pct: 100, at: Date.now() }; void sendProgress(current.id, 100) }
   }, [current, sendProgress])
 
-  const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; setCurrent(l) }
+  const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; maxWatched.current = 0; setCurrent(l) }
 
   // ─── Telas ───────────────────────────────────────────────────────────────────
   if (step === 'carregando') {
@@ -169,8 +190,12 @@ export default function AprenderPage() {
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '16px 16px 40px' }}>
           <button onClick={() => setCurrent(null)} style={{ background: 'none', border: 'none', color: '#7dd3fc', fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>← Voltar aos vídeos</button>
           <div style={{ background: '#000', borderRadius: 12, overflow: 'hidden' }}>
-            <video ref={videoRef} src={current.videoUrl} controls playsInline onTimeUpdate={onTimeUpdate} onEnded={onEnded} style={{ width: '100%', display: 'block', maxHeight: '60vh', background: '#000' }} />
+            <video ref={videoRef} src={current.videoUrl} controls playsInline controlsList="nodownload noplaybackrate"
+              onContextMenu={(e) => e.preventDefault()}
+              onLoadedMetadata={onLoadedMetadata} onSeeking={onSeeking} onTimeUpdate={onTimeUpdate} onEnded={onEnded}
+              style={{ width: '100%', display: 'block', maxHeight: '60vh', background: '#000' }} />
           </div>
+          <p style={{ fontSize: 12, color: '#7dd3fc', marginTop: 8 }}>🔒 Para registrar sua presença, assista do início — não é possível pular para frente. Rever o que já passou, pode.</p>
           <div style={{ marginTop: 16 }}>
             <p style={{ fontSize: 12, color: '#7dd3fc', textTransform: 'uppercase', letterSpacing: '.5px' }}>{current.program}</p>
             <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{current.title}</h2>
