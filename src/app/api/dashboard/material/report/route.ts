@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { ensureLearnCode } from '@/lib/learn-code'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,9 @@ export async function GET(req: NextRequest) {
       select: { slug: true },
     })
     if (!company) return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 })
+
+    // Link de treinamento usa um código neutro (sem nome de pessoa)
+    const learnCode = await ensureLearnCode(companyId)
 
     const lessons = await prisma.lesson.findMany({
       where:   { companyId: null, active: true },
@@ -50,7 +54,7 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json({
-      slug:         company.slug,
+      slug:         learnCode,
       totalLessons,
       lessons:      lessons.map((l) => ({ id: l.id, title: l.title, program: l.program })),
       employees:    rows,

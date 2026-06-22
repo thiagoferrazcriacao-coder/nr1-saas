@@ -15,7 +15,7 @@ const schema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const company = await prisma.company.findUnique({
-      where: { slug: params.slug },
+      where: { learnCode: params.slug },
       select: { id: true, name: true },
     })
     if (!company) return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 })

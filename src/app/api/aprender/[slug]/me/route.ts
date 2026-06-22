@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
   try {
     const company = await prisma.company.findUnique({
-      where: { slug: params.slug },
+      where: { learnCode: params.slug },
       select: { id: true, name: true },
     })
     if (!company || company.id !== session.companyId) {
