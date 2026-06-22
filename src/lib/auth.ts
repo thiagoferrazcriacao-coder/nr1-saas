@@ -27,6 +27,19 @@ export function verifyRefreshToken(token: string): Pick<JwtPayload, 'userId'> {
   return jwt.verify(token, JWT_REFRESH_SECRET) as Pick<JwtPayload, 'userId'>
 }
 
+/** True se o e-mail for o dono do projeto (admin geral) */
+export function isOwnerEmail(email?: string | null): boolean {
+  const owner = process.env.OWNER_EMAIL
+  return !!email && !!owner && email.trim().toLowerCase() === owner.trim().toLowerCase()
+}
+
+/** Exige que o requisitante seja o dono do projeto; lança se não for */
+export function requireOwner(req: NextRequest): JwtPayload {
+  const payload = requireAuth(req)
+  if (!isOwnerEmail(payload.email)) throw new Error('Não autorizado')
+  return payload
+}
+
 /** Extrai e valida o JWT do header Authorization ou cookie */
 export function requireAuth(req: NextRequest): JwtPayload {
   const authHeader = req.headers.get('authorization')

@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
     const percent = Math.round(parsed.data.percent)
     const employeeId = session.employeeId
 
-    // A aula precisa existir e ser da mesma empresa do colaborador
+    // A aula precisa existir na biblioteca global
     const lesson = await prisma.lesson.findFirst({
-      where: { id: lessonId, companyId: session.companyId },
+      where: { id: lessonId, companyId: null },
       select: { id: true },
     })
     if (!lesson) return NextResponse.json({ error: 'Aula não encontrada.' }, { status: 404 })

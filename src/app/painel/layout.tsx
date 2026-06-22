@@ -10,11 +10,17 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [checking, setChecking] = useState(true)
   const [assessmentDone, setAssessmentDone] = useState(true) // assume done até confirmar
+  const [isOwner, setIsOwner] = useState(false)
 
   useEffect(() => {
     fetch('/api/auth/refresh', { method: 'POST' })
       .then((r) => {
         if (!r.ok) { router.replace('/login'); return }
+        // Descobre se é o dono do projeto (admin geral)
+        fetch('/api/auth/whoami')
+          .then((r) => r.json())
+          .then((w) => setIsOwner(!!w.isOwner))
+          .catch(() => {})
         // Verifica aceite de termos antes de liberar o painel
         fetch('/api/dashboard/accept-terms')
           .then((r) => r.json())
@@ -38,19 +44,27 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 
   const isAssessmentPage = pathname === '/painel/avaliacao-gestor'
 
-  const navItems = [
-    { href: '/painel', label: 'Visão Geral', icon: '🏠' },
-    {
-      href: '/painel/avaliacao-gestor',
-      label: 'Avaliação do Gestor',
-      icon: '📋',
-      badge: !assessmentDone ? 'Pendente' : undefined,
-    },
-    { href: '/painel/relatorio-geral', label: 'Relatório Geral', icon: '📊' },
-    { href: '/painel/documentos', label: 'Documentos', icon: '📄' },
-    { href: '/painel/material-didatico', label: 'Material Didático', icon: '🎓' },
-    { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },
-  ]
+  // Menu do dono do projeto (admin geral) × menu da empresa cliente
+  const navItems = isOwner
+    ? [
+        { href: '/painel/empresas', label: 'Empresas', icon: '🏢' },
+        { href: '/painel/vendas', label: 'Vendas', icon: '💰' },
+        { href: '/painel/videos', label: 'Gerenciar Vídeos', icon: '🎬' },
+        { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },
+      ]
+    : [
+        { href: '/painel', label: 'Visão Geral', icon: '🏠' },
+        {
+          href: '/painel/avaliacao-gestor',
+          label: 'Avaliação do Gestor',
+          icon: '📋',
+          badge: !assessmentDone ? 'Pendente' : undefined,
+        },
+        { href: '/painel/relatorio-geral', label: 'Relatório Geral', icon: '📊' },
+        { href: '/painel/documentos', label: 'Documentos', icon: '📄' },
+        { href: '/painel/material-didatico', label: 'Material Didático', icon: '🎓' },
+        { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },
+      ]
 
   if (checking) {
     return (
@@ -130,7 +144,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Banner avaliação pendente */}
-        {!assessmentDone && !isAssessmentPage && (
+        {!isOwner && !assessmentDone && !isAssessmentPage && (
           <div className="bg-orange-50 border-b border-orange-200 px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
             <p className="text-sm text-orange-800 font-medium">
               ⚠️ Complete a <strong>Avaliação do Gestor</strong> para liberar todas as funcionalidades do sistema.

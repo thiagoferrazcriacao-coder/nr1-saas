@@ -75,7 +75,7 @@ export async function GET(
     }
 
     const lessons = await prisma.lesson.findMany({
-      where:   { companyId, active: true, programNum: { in: Array.from(groups.keys()) } },
+      where:   { companyId: null, active: true, programNum: { in: Array.from(groups.keys()) } },
       orderBy: { order: 'asc' },
       select:  { id: true, programNum: true, program: true, title: true },
     })

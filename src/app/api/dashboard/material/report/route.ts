@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     if (!company) return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 })
 
     const lessons = await prisma.lesson.findMany({
-      where:   { companyId, active: true },
+      where:   { companyId: null, active: true },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
       select:  { id: true, title: true, program: true, programNum: true },
     })

@@ -6,8 +6,10 @@ export async function buildMemberPayload(
   companyName: string,
   employee: { id: string; name: string | null }
 ) {
+  // Biblioteca global (mesma para todas as empresas) — companyId não é usado aqui
+  void companyId
   const lessons = await prisma.lesson.findMany({
-    where:   { companyId, active: true },
+    where:   { companyId: null, active: true },
     orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
   })
   const progresses = await prisma.lessonProgress.findMany({ where: { employeeId: employee.id } })

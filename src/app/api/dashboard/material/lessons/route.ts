@@ -2,16 +2,16 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, requireOwner } from '@/lib/auth'
 import { r2Configured } from '@/lib/r2'
 import { PROGRAMS } from '@/lib/programs'
 
-// GET — lista as aulas da empresa
+// GET — lista a biblioteca global de vídeos (qualquer usuário logado pode ver)
 export async function GET(req: NextRequest) {
   try {
-    const { companyId } = requireAuth(req)
+    requireAuth(req)
     const lessons = await prisma.lesson.findMany({
-      where: { companyId },
+      where: { companyId: null },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
     })
     return NextResponse.json({ lessons, r2Configured: r2Configured() })
@@ -28,11 +28,10 @@ const createSchema = z.object({
   durationSec: z.number().int().min(0).optional(),
 })
 
-// POST — cria a aula após o upload do vídeo
+// POST — cria aula na biblioteca global (apenas o dono do projeto)
 export async function POST(req: NextRequest) {
-  let companyId: string
   try {
-    companyId = requireAuth(req).companyId
+    requireOwner(req)
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
@@ -46,14 +45,14 @@ export async function POST(req: NextRequest) {
     if (!program) return NextResponse.json({ error: 'Categoria inválida.' }, { status: 400 })
 
     const last = await prisma.lesson.findFirst({
-      where: { companyId, programNum: parsed.data.programNum },
+      where: { companyId: null, programNum: parsed.data.programNum },
       orderBy: { order: 'desc' },
       select: { order: true },
     })
 
     const lesson = await prisma.lesson.create({
       data: {
-        companyId,
+        companyId:   null,
         programNum:  parsed.data.programNum,
         program:     program.name,
         title:       parsed.data.title,
