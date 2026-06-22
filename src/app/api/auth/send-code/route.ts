@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('[SEND-CODE]', err instanceof Error ? err.message : String(err))
-    return NextResponse.json({ error: 'Não foi possível enviar o código. Tente novamente.' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[SEND-CODE]', msg)
+    return NextResponse.json({ error: 'Não foi possível enviar o código. Tente novamente.', detail: msg }, { status: 500 })
   }
 }

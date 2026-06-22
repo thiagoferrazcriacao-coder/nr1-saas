@@ -27,10 +27,14 @@ export async function sendVerificationCode(email: string, code: string): Promise
     </p>
   </div>`
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM,
     to: email,
     subject: `${code} é o seu código de acesso — Zelo`,
     html,
   })
+  if (error) {
+    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error))
+    throw new Error(`Resend: ${msg}`)
+  }
 }
