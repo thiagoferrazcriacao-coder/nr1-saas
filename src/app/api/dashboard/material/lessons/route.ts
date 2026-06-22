@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     requireAuth(req)
     const lessons = await prisma.lesson.findMany({
-      where: { companyId: null },
+      where: { companyId: null, active: true },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
     })
     return NextResponse.json({ lessons, r2Configured: r2Configured() })

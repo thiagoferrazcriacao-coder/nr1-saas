@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { PROGRAMS } from '@/lib/programs'
 
-type Lesson = { id: string; programNum: number; program: string; title: string }
+type Lesson = { id: string; programNum: number; program: string; title: string; description: string | null; videoUrl: string }
 type PerLesson = { lessonId: string; title: string; program: string; percent: number; completed: boolean }
 type EmployeeRow = { email: string; name: string | null; avgPercent: number; completedCount: number; perLesson: PerLesson[] }
 type Report = { slug: string; totalLessons: number; employees: EmployeeRow[] }
@@ -15,6 +15,8 @@ export default function MaterialDidaticoPage() {
   const [linkOpen, setLinkOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<number | null>(null)   // tema aberto no accordion
+  const [video, setVideo] = useState<Lesson | null>(null)         // vídeo sendo assistido pelo gestor
 
   const fetchAll = useCallback(() => {
     Promise.all([
@@ -59,29 +61,55 @@ export default function MaterialDidaticoPage() {
         </div>
       )}
 
-      {/* Vídeos disponíveis (somente leitura) */}
+      {/* Vídeos disponíveis — gestor pode assistir (accordion por tema) */}
       <div>
         <h2 className="font-bold text-gray-900 mb-1">Vídeos disponíveis</h2>
-        <p className="text-gray-500 text-sm mb-4">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} liberado{lessons.length !== 1 ? 's' : ''} para a sua equipe assistir.</p>
+        <p className="text-gray-500 text-sm mb-4">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} no total. Clique num tema para abrir as aulas — você pode assistir aqui mesmo.</p>
         {lessons.length === 0 ? (
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
             <p className="text-gray-500 text-sm">Os vídeos estão sendo preparados e aparecerão aqui em breve.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {PROGRAMS.filter((p) => lessons.some((l) => l.programNum === p.num)).map((p) => (
-              <div key={p.num} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
-                <p className="font-semibold text-[#0E2A47] text-sm mb-2">{p.num}. {p.name}</p>
-                <div className="divide-y divide-gray-50">
-                  {lessons.filter((l) => l.programNum === p.num).map((l, i) => (
-                    <div key={l.id} className="flex items-center gap-3 py-2.5">
-                      <span className="w-7 h-7 rounded-lg bg-[#F0FBFC] text-[#109CA1] text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-                      <p className="text-sm font-medium text-gray-800 truncate">{l.title}</p>
+          <div className="space-y-2.5">
+            {PROGRAMS.filter((p) => lessons.some((l) => l.programNum === p.num)).map((p) => {
+              const ls = lessons.filter((l) => l.programNum === p.num)
+              const isExpanded = expanded === p.num
+              return (
+                <div key={p.num} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                  {/* Cabeçalho do tema — abre/fecha */}
+                  <button onClick={() => setExpanded(isExpanded ? null : p.num)} className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-black flex items-center justify-center flex-shrink-0">{p.num}</span>
+                      <div className="min-w-0">
+                        <p className="font-bold text-[#0E2A47] truncate">{p.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">🎬 {ls.length} aula{ls.length !== 1 ? 's' : ''} em vídeo</p>
+                      </div>
                     </div>
-                  ))}
+                    <span className={`text-gray-400 text-xs flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+
+                  {/* Aulas do tema */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 divide-y divide-gray-50">
+                      {ls.map((l, i) => (
+                        <div key={l.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-8 h-8 rounded-lg bg-[#F0FBFC] text-[#109CA1] text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{l.title}</p>
+                              {l.description && <p className="text-xs text-gray-400 truncate">{l.description}</p>}
+                            </div>
+                          </div>
+                          <button onClick={() => setVideo(l)} className="flex-shrink-0 flex items-center gap-1.5 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                            ▶ Assistir agora
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -140,6 +168,29 @@ export default function MaterialDidaticoPage() {
           </div>
         )}
       </div>
+
+      {/* Player de vídeo — o gestor assiste aqui. SEM barra de progresso (acompanhamento é só dos funcionários). */}
+      {video && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setVideo(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+              <div className="min-w-0">
+                <p className="text-xs text-[#109CA1] font-bold">{video.program}</p>
+                <h3 className="font-bold text-gray-900 truncate">{video.title}</h3>
+              </div>
+              <button onClick={() => setVideo(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none flex-shrink-0">×</button>
+            </div>
+            <div className="bg-black">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video key={video.id} src={video.videoUrl} controls autoPlay className="w-full max-h-[70vh]" />
+            </div>
+            {video.description && <p className="px-5 py-4 text-sm text-gray-600">{video.description}</p>}
+            <div className="px-5 py-3 bg-[#F0FBFC] border-t border-[#CCEFF1]">
+              <p className="text-xs text-[#0E2A47]">👀 Você está assistindo como gestor — esta visualização <strong>não</strong> entra na contagem de presença. A barra de acompanhamento é registrada apenas para os colaboradores.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
