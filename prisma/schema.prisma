@@ -201,6 +201,17 @@ model LessonProgress {
   @@index([lessonId])
 }
 
+// Código de verificação de e-mail (cadastro seguro do gestor)
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Plano de ação vinculado a um setor
 model ActionPlan {
   id        String   @id @default(uuid())
