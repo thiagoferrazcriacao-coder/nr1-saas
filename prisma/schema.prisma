@@ -201,6 +201,24 @@ model LessonProgress {
   @@index([lessonId])
 }
 
+// Venda registrada via webhook da Kiwify
+model Sale {
+  id            String   @id @default(uuid())
+  orderId       String?  @unique          // id do pedido na Kiwify
+  customerName  String?
+  customerEmail String?
+  productName   String?
+  plan          String?                   // slug do plano (ate-10, 11-30, ...) inferido pelo valor
+  amountCents   Int      @default(0)
+  status        String   @default("paid") // paid | refunded | chargeback | waiting
+  raw           Json?                      // payload bruto (auditoria)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
+}
+
 // Código de verificação de e-mail (cadastro seguro do gestor)
 model EmailVerification {
   id        String   @id @default(uuid())
