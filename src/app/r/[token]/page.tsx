@@ -172,7 +172,7 @@ export default function QuestionnairePage() {
           <div className="space-y-2">
             {SCALE.map((s) => (
               <div key={s.value} className="flex items-center gap-3 text-sm text-gray-600">
-                <span className="text-2xl w-8">{s.emoji}</span>
+                <span className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 text-sm font-bold flex items-center justify-center flex-shrink-0">{s.value}</span>
                 <span className="font-medium w-28">{s.label}</span>
               </div>
             ))}
@@ -249,7 +249,7 @@ export default function QuestionnairePage() {
                     : 'bg-white border-gray-200 text-gray-700 hover:border-primary-300'
                 }`}
               >
-                <span className="text-2xl">{option.emoji}</span>
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${selected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>{option.value}</span>
                 <span className="font-medium text-sm">{option.label}</span>
                 {selected && (
                   <span className="ml-auto text-white text-lg">✓</span>
