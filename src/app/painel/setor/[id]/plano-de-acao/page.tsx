@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 
 type RiskLevel = 'baixo' | 'moderado' | 'alto' | 'critico'
 type ItemStatus = 'pendente' | 'em_andamento' | 'concluida'
-type Cadence = 'semanal' | 'quinzenal' | 'mensal' | 'trimestral' | 'continuo'
+type Cadence = 'semanal' | 'quinzenal' | 'mensal' | 'bimestral' | 'trimestral' | 'continuo'
+type Intervention = 'semanal' | 'mensal' | 'bimestral'
 type Evidence = { url: string; name?: string; note?: string; at: string }
 
 type PlanItem = {
@@ -42,7 +43,12 @@ const statusCfg: Record<ItemStatus, { label: string; icon: string; bg: string; t
   em_andamento: { label: 'Em andamento', icon: '🔄', bg: 'bg-blue-100',  text: 'text-blue-700' },
   concluida:    { label: 'Concluída',    icon: '✅', bg: 'bg-green-100', text: 'text-green-700' },
 }
-const cadLabel: Record<Cadence, string> = { semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal', trimestral: 'Trimestral', continuo: 'Contínuo' }
+const cadLabel: Record<Cadence, string> = { semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal', bimestral: 'Bimestral', trimestral: 'Trimestral', continuo: 'Contínuo' }
+const interventionOptions: { key: Intervention; emoji: string; title: string; desc: string }[] = [
+  { key: 'semanal',   emoji: '⚡', title: 'Intervenções semanais',  desc: 'Ritmo intenso — uma ação por semana. Para quem quer resolver rápido e tem time dedicado.' },
+  { key: 'mensal',    emoji: '📅', title: 'Intervenções mensais',   desc: 'Ritmo equilibrado — uma ação por mês ao longo do ano. O mais comum para a maioria das empresas.' },
+  { key: 'bimestral', emoji: '🗓️', title: 'Intervenções bimestrais', desc: 'Ritmo leve — uma ação a cada 2 meses. Para operações enxutas, sem perder a conformidade.' },
+]
 const whenLabel = (i: PlanItem) => (i.dueWeek === 0 ? 'Contínuo' : `Semana ${i.startWeek}–${i.dueWeek}`)
 
 type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
@@ -76,6 +82,10 @@ export default function PlanoDeAcaoPage() {
   const [openFactors, setOpenFactors] = useState<Set<number>>(new Set())
   const [reaval, setReaval] = useState<Reaval | null>(null)
   const [copied, setCopied] = useState(false)
+  const [needsCadence, setNeedsCadence] = useState(false)
+  const [noData, setNoData] = useState(false)
+  const [cadence, setCadence] = useState<Intervention | null>(null)
+  const [generating, setGenerating] = useState(false)
 
   const loadReaval = useCallback(() => {
     fetch(`/api/dashboard/action-plans/${sectorId}/reavaliacao`)
@@ -84,20 +94,36 @@ export default function PlanoDeAcaoPage() {
       .catch(() => {})
   }, [sectorId])
 
+  const applyData = (d: { plan?: { items: PlanItem[]; interventionCadence?: Intervention | null }; suggested?: PlanItem[]; needsCadence?: boolean; noData?: boolean; chosenCadence?: Intervention; sectorName?: string }) => {
+    setSectorName(d.sectorName ?? '')
+    setNoData(!!d.noData)
+    setNeedsCadence(!!d.needsCadence)
+    if (d.plan?.items?.length) {
+      setItems(d.plan.items); setHasPlan(true); setCadence(d.plan.interventionCadence ?? null)
+    } else if (d.suggested?.length) {
+      setItems(d.suggested); setHasPlan(false); if (d.chosenCadence) setCadence(d.chosenCadence)
+    }
+    const first = (d.plan?.items ?? d.suggested ?? [])[0]
+    if (first) setOpenFactors(new Set([first.topicNum]))
+  }
+
   useEffect(() => {
     fetch(`/api/dashboard/action-plans/${sectorId}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!d) return
-        setSectorName(d.sectorName ?? '')
-        if (d.plan?.items?.length) { setItems(d.plan.items); setHasPlan(true) }
-        else if (d.suggested?.length) { setItems(d.suggested); setHasPlan(false) }
-        const first = (d.plan?.items ?? d.suggested ?? [])[0]
-        if (first) setOpenFactors(new Set([first.topicNum]))
-      })
+      .then((d) => d && applyData(d))
       .finally(() => setLoading(false))
     loadReaval()
   }, [sectorId, loadReaval])
+
+  // Empresa escolheu o ritmo → gera o plano nesse compasso
+  const chooseCadence = async (c: Intervention) => {
+    setCadence(c); setGenerating(true)
+    try {
+      const r = await fetch(`/api/dashboard/action-plans/${sectorId}?cadence=${c}`)
+      const d = await r.json()
+      if (r.ok) applyData(d)
+    } finally { setGenerating(false) }
+  }
 
   const copyLink = async () => {
     const url = `${window.location.origin}/r/${reaval?.linkToken ?? ''}`
@@ -113,9 +139,10 @@ export default function PlanoDeAcaoPage() {
     setSaving(true)
     try {
       const res = await fetch(`/api/dashboard/action-plans/${sectorId}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, interventionCadence: cadence ?? undefined }),
       })
-      if (res.ok) { setHasPlan(true); setSaved(true) }
+      if (res.ok) { setHasPlan(true); setSaved(true); loadReaval() }
     } finally { setSaving(false) }
   }
 
@@ -143,12 +170,19 @@ export default function PlanoDeAcaoPage() {
         <div>
           <button onClick={() => router.back()} className="text-gray-400 text-sm hover:text-gray-600 mb-2">← Voltar ao relatório</button>
           <h1 className="text-2xl font-black text-gray-900">Plano de Ação Vivo</h1>
-          <p className="text-gray-500 text-sm mt-1">{sectorName} · plano de 52 semanas · {groups.length} fatores · {total} ações</p>
+          <p className="text-gray-500 text-sm mt-1">
+            {sectorName} · plano de 52 semanas
+            {cadence ? ` · intervenções ${cadLabel[cadence].toLowerCase()}` : ''}
+            {total > 0 ? ` · ${groups.length} fatores · ${total} ações` : ''}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {saved && <span className="text-green-600 text-sm font-medium">✅ Salvo</span>}
           {!hasPlan && total > 0 && (
-            <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-xl font-medium">Gerado automaticamente — revise e salve</span>
+            <>
+              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-xl font-medium">Gerado automaticamente — revise e salve</span>
+              <button onClick={() => { setItems([]); setNeedsCadence(true) }} className="text-xs text-gray-500 hover:text-gray-700 underline">↻ trocar ritmo</button>
+            </>
           )}
           <button onClick={handleSave} disabled={saving || total === 0}
             className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50">
@@ -219,11 +253,33 @@ export default function PlanoDeAcaoPage() {
         </div>
       )}
 
-      {total === 0 && (
+      {/* Sem respostas ainda */}
+      {noData && total === 0 && (
         <div className="bg-gray-50 rounded-2xl border border-gray-100 p-12 text-center">
           <div className="text-4xl mb-3">📋</div>
           <p className="text-gray-500 font-medium">Plano ainda não disponível</p>
-          <p className="text-gray-400 text-sm mt-1">Ele é gerado automaticamente após a análise do questionário dos colaboradores deste setor.</p>
+          <p className="text-gray-400 text-sm mt-1">Ele é gerado automaticamente depois que os colaboradores deste setor responderem ao questionário.</p>
+        </div>
+      )}
+
+      {/* Seletor de ritmo das intervenções (antes de gerar o plano) */}
+      {needsCadence && total === 0 && !noData && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="text-center mb-5">
+            <h2 className="text-lg font-black text-gray-900">Como você pretende fazer suas intervenções?</h2>
+            <p className="text-gray-500 text-sm mt-1">Escolha o ritmo. O plano de 52 semanas é montado exatamente nesse compasso.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {interventionOptions.map((o) => (
+              <button key={o.key} onClick={() => chooseCadence(o.key)} disabled={generating}
+                className={`text-left border rounded-2xl p-4 transition-all disabled:opacity-50 ${cadence === o.key ? 'border-[#17C3C9] ring-2 ring-[#17C3C9]/30' : 'border-gray-200 hover:border-[#17C3C9]'}`}>
+                <div className="text-2xl mb-1">{o.emoji}</div>
+                <p className="font-bold text-[#0E2A47]">{o.title}</p>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{o.desc}</p>
+              </button>
+            ))}
+          </div>
+          {generating && <p className="text-center text-sm text-gray-400 mt-4">Montando seu plano…</p>}
         </div>
       )}
 

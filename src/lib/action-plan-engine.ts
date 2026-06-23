@@ -1,8 +1,13 @@
 import { ACTION_LIBRARY, ControlLevel } from './action-library'
 
 export type RiskLevel = 'baixo' | 'moderado' | 'alto' | 'critico'
-export type Cadence = 'semanal' | 'quinzenal' | 'mensal' | 'trimestral' | 'continuo'
+export type Cadence = 'semanal' | 'quinzenal' | 'mensal' | 'bimestral' | 'trimestral' | 'continuo'
 export type ItemStatus = 'pendente' | 'em_andamento' | 'concluida'
+
+// Ritmo de intervenção escolhido pela empresa antes de montar o plano
+export type InterventionCadence = 'semanal' | 'mensal' | 'bimestral'
+// Intervalo (em semanas) entre uma ação e a seguinte, conforme o ritmo escolhido
+const INTERVAL_WEEKS: Record<InterventionCadence, number> = { semanal: 1, mensal: 4, bimestral: 8 }
 
 export type Evidence = { url: string; name?: string; note?: string; at: string }
 
@@ -24,17 +29,9 @@ export type PlanItem = {
   evidences: Evidence[]
 }
 
-// Cadência de acompanhamento conforme a gravidade do fator
-function cadenceFor(level: RiskLevel): Cadence {
-  if (level === 'critico') return 'semanal'
-  if (level === 'alto') return 'quinzenal'
-  if (level === 'moderado') return 'mensal'
-  return 'trimestral'
-}
-
 export function cadenceLabel(c: Cadence): string {
   const map: Record<Cadence, string> = {
-    semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal', trimestral: 'Trimestral', continuo: 'Contínuo',
+    semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal', bimestral: 'Bimestral', trimestral: 'Trimestral', continuo: 'Contínuo',
   }
   return map[c]
 }
@@ -45,13 +42,18 @@ export function riskLabel(r: RiskLevel): string {
 }
 
 /**
- * Monta o Plano de Ação Vivo (52 semanas) a partir do risco de cada fator do setor.
+ * Monta o Plano de Ação Vivo (52 semanas) a partir do risco de cada fator do setor
+ * e do RITMO DE INTERVENÇÃO escolhido pela empresa (semanal/mensal/bimestral).
  * - Médio/Alto/Crítico: puxa todas as ações da biblioteca (níveis 1, 2 e 3).
  * - Baixo: gera um item único de monitoramento/confirmação.
- * A cadência de acompanhamento é definida pela gravidade.
+ * As ações são espaçadas conforme o ritmo escolhido (1, 4 ou 8 semanas entre cada uma).
  */
-export function buildPlan(factors: { topicNum: number; riskLevel: RiskLevel }[]): PlanItem[] {
+export function buildPlan(
+  factors: { topicNum: number; riskLevel: RiskLevel }[],
+  intervention: InterventionCadence = 'mensal',
+): PlanItem[] {
   const items: PlanItem[] = []
+  const step = INTERVAL_WEEKS[intervention]
 
   for (const f of factors) {
     const lib = ACTION_LIBRARY.find((l) => l.topicNum === f.topicNum)
@@ -69,7 +71,7 @@ export function buildPlan(factors: { topicNum: number; riskLevel: RiskLevel }[])
         who: 'Gestor + RH',
         startWeek: 1,
         dueWeek: 52,
-        cadence: 'trimestral',
+        cadence: intervention,
         evidenceHint: 'Registro de reavaliação do fator.',
         status: 'pendente',
         evidences: [],
@@ -77,9 +79,13 @@ export function buildPlan(factors: { topicNum: number; riskLevel: RiskLevel }[])
       continue
     }
 
-    const cad = cadenceFor(f.riskLevel)
+    // Espaça as ações do fator no ritmo escolhido
+    let slot = 0
     for (const a of lib.actions) {
       const continuo = a.dueWeek === 0
+      const startWeek = continuo ? 1 : Math.min(52, 1 + slot * step)
+      const dueWeek = continuo ? 0 : Math.min(52, startWeek + Math.max(step, 2))
+      if (!continuo) slot++
       items.push({
         id: `${f.topicNum}-${a.key}`,
         topicNum: f.topicNum,
@@ -89,10 +95,9 @@ export function buildPlan(factors: { topicNum: number; riskLevel: RiskLevel }[])
         title: a.title,
         how: a.how,
         who: a.who,
-        startWeek: a.startWeek,
-        dueWeek: a.dueWeek,
-        // ações de origem (nível 1) seguem a cadência da gravidade; demais, mensal; contínuas marcadas como tal
-        cadence: continuo ? 'continuo' : a.level === 1 ? cad : 'mensal',
+        startWeek,
+        dueWeek,
+        cadence: continuo ? 'continuo' : intervention,
         howMuch: a.howMuch,
         evidenceHint: a.evidence,
         status: 'pendente',

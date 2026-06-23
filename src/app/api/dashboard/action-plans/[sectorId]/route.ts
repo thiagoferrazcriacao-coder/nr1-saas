@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { buildPlan, PlanItem } from '@/lib/action-plan-engine'
+import { buildPlan, PlanItem, InterventionCadence } from '@/lib/action-plan-engine'
 import { computeSectorFactors } from '@/lib/sector-factors'
+
+const CADENCES: InterventionCadence[] = ['semanal', 'mensal', 'bimestral']
 
 export const dynamic = 'force-dynamic'
 
@@ -25,16 +27,19 @@ const itemSchema = z.object({
   who:          z.string(),
   startWeek:    z.number().int(),
   dueWeek:      z.number().int(),
-  cadence:      z.enum(['semanal', 'quinzenal', 'mensal', 'trimestral', 'continuo']),
+  cadence:      z.enum(['semanal', 'quinzenal', 'mensal', 'bimestral', 'trimestral', 'continuo']),
   howMuch:      z.string().optional(),
   evidenceHint: z.string(),
   status:       z.enum(['pendente', 'em_andamento', 'concluida']),
   evidences:    z.array(evidenceSchema),
 })
 
-const schema = z.object({ items: z.array(itemSchema) })
+const schema = z.object({
+  items: z.array(itemSchema),
+  interventionCadence: z.enum(['semanal', 'mensal', 'bimestral']).optional(),
+})
 
-// GET — plano de ação do setor (salvo) ou sugestão gerada automaticamente
+// GET — plano salvo, ou (se a empresa já escolheu a cadência) a sugestão gerada nesse ritmo
 export async function GET(req: NextRequest, { params }: { params: { sectorId: string } }) {
   try {
     const { companyId } = requireAuth(req)
@@ -43,17 +48,33 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
     const plan = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId } })
-    const factors = await computeSectorFactors(params.sectorId)
-    const suggested = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })))
 
+    // Já existe plano salvo → devolve direto
     if (plan && Array.isArray(plan.items) && (plan.items as unknown[]).length > 0) {
       return NextResponse.json({
-        plan: { items: plan.items as unknown as PlanItem[], updatedAt: plan.updatedAt, startDate: plan.createdAt },
-        suggested,
+        plan: {
+          items: plan.items as unknown as PlanItem[],
+          updatedAt: plan.updatedAt,
+          startDate: plan.createdAt,
+          interventionCadence: plan.interventionCadence,
+        },
         sectorName: sector.name,
       })
     }
-    return NextResponse.json({ plan: null, suggested, sectorName: sector.name })
+
+    // Sem plano: precisa de respostas e da escolha da cadência
+    const factors = await computeSectorFactors(params.sectorId)
+    if (factors.length === 0) {
+      return NextResponse.json({ plan: null, suggested: null, noData: true, sectorName: sector.name })
+    }
+
+    const cadParam = new URL(req.url).searchParams.get('cadence') as InterventionCadence | null
+    if (!cadParam || !CADENCES.includes(cadParam)) {
+      return NextResponse.json({ plan: null, suggested: null, needsCadence: true, sectorName: sector.name })
+    }
+
+    const suggested = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })), cadParam)
+    return NextResponse.json({ plan: null, suggested, chosenCadence: cadParam, sectorName: sector.name })
   } catch (err) {
     console.error('[ACTION-PLAN GET]', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
@@ -77,7 +98,7 @@ export async function POST(req: NextRequest, { params }: { params: { sectorId: s
 
     const plan = await prisma.actionPlan.upsert({
       where:  { sectorId: params.sectorId },
-      create: { sectorId: params.sectorId, companyId, items: parsed.data.items, baseline },
+      create: { sectorId: params.sectorId, companyId, items: parsed.data.items, baseline, interventionCadence: parsed.data.interventionCadence },
       update: { items: parsed.data.items },
     })
     return NextResponse.json({ ok: true, updatedAt: plan.updatedAt })
