@@ -45,6 +45,23 @@ const statusCfg: Record<ItemStatus, { label: string; icon: string; bg: string; t
 const cadLabel: Record<Cadence, string> = { semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal', trimestral: 'Trimestral', continuo: 'Contínuo' }
 const whenLabel = (i: PlanItem) => (i.dueWeek === 0 ? 'Contínuo' : `Semana ${i.startWeek}–${i.dueWeek}`)
 
+type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
+type Comparison = { topicNum: number; factor: string; baseline: RiskLevel; current: RiskLevel | null; trend: Trend }
+type Milestone = { month: number; date: string; status: 'futura' | 'pendente' | 'feita' }
+type Reaval = { hasPlan: boolean; startDate?: string; reavaliada?: boolean; milestones?: Milestone[]; comparison?: Comparison[]; linkToken?: string }
+
+const trendCfg: Record<Trend, { label: string; icon: string; cls: string }> = {
+  melhorou:  { label: 'Melhorou',  icon: '↓', cls: 'text-green-600' },
+  estavel:   { label: 'Estável',   icon: '=', cls: 'text-gray-500' },
+  piorou:    { label: 'Piorou',    icon: '↑', cls: 'text-red-600' },
+  sem_dados: { label: 'Aguardando', icon: '•', cls: 'text-gray-400' },
+}
+const msStatusCfg: Record<Milestone['status'], { label: string; cls: string }> = {
+  futura:   { label: 'A vencer',  cls: 'bg-gray-100 text-gray-500' },
+  pendente: { label: 'Pendente',  cls: 'bg-yellow-50 text-yellow-700 border border-yellow-200' },
+  feita:    { label: 'Reavaliada', cls: 'bg-green-50 text-green-700 border border-green-200' },
+}
+
 export default function PlanoDeAcaoPage() {
   const params = useParams()
   const router = useRouter()
@@ -57,6 +74,15 @@ export default function PlanoDeAcaoPage() {
   const [saved, setSaved] = useState(false)
   const [hasPlan, setHasPlan] = useState(false)
   const [openFactors, setOpenFactors] = useState<Set<number>>(new Set())
+  const [reaval, setReaval] = useState<Reaval | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const loadReaval = useCallback(() => {
+    fetch(`/api/dashboard/action-plans/${sectorId}/reavaliacao`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setReaval(d))
+      .catch(() => {})
+  }, [sectorId])
 
   useEffect(() => {
     fetch(`/api/dashboard/action-plans/${sectorId}`)
@@ -66,12 +92,17 @@ export default function PlanoDeAcaoPage() {
         setSectorName(d.sectorName ?? '')
         if (d.plan?.items?.length) { setItems(d.plan.items); setHasPlan(true) }
         else if (d.suggested?.length) { setItems(d.suggested); setHasPlan(false) }
-        // abre o primeiro fator
         const first = (d.plan?.items ?? d.suggested ?? [])[0]
         if (first) setOpenFactors(new Set([first.topicNum]))
       })
       .finally(() => setLoading(false))
-  }, [sectorId])
+    loadReaval()
+  }, [sectorId, loadReaval])
+
+  const copyLink = async () => {
+    const url = `${window.location.origin}/r/${reaval?.linkToken ?? ''}`
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
+  }
 
   const patch = useCallback((id: string, fields: Partial<PlanItem>) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...fields } : it)))
@@ -139,6 +170,52 @@ export default function PlanoDeAcaoPage() {
           <div className="h-2.5 bg-white/15 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] transition-all duration-700" style={{ width: `${progresso}%` }} />
           </div>
+        </div>
+      )}
+
+      {/* Reavaliação (meses 3/6/12) */}
+      {hasPlan && reaval?.hasPlan && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+            <div>
+              <h2 className="font-bold text-gray-900">🔄 Reavaliação do plano</h2>
+              <p className="text-gray-500 text-sm mt-0.5">Reaplique o questionário nos meses 3, 6 e 12 para comprovar que o risco caiu.</p>
+            </div>
+            <button onClick={copyLink} className="flex-shrink-0 text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-4 py-2 rounded-xl hover:bg-[#E0F5F6]">
+              {copied ? '✅ Link copiado' : '📋 Reenviar questionário'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {reaval.milestones?.map((m) => (
+              <div key={m.month} className="border border-gray-100 rounded-xl px-3 py-2 text-center">
+                <p className="text-xs text-gray-400">Mês {m.month}</p>
+                <p className="text-xs text-gray-600">{new Date(m.date).toLocaleDateString('pt-BR')}</p>
+                <span className={`inline-block mt-1 text-[11px] font-semibold px-2 py-0.5 rounded ${msStatusCfg[m.status].cls}`}>{msStatusCfg[m.status].label}</span>
+              </div>
+            ))}
+          </div>
+
+          {reaval.reavaliada ? (
+            <div className="space-y-1.5">
+              <p className="text-xs text-gray-400 mb-1">Evolução por fator (início → agora):</p>
+              {reaval.comparison?.filter((c) => c.baseline !== 'baixo').map((c) => (
+                <div key={c.topicNum} className="flex items-center justify-between gap-2 text-sm border-t border-gray-50 pt-1.5 first:border-0">
+                  <span className="text-gray-700 truncate min-w-0">{c.factor}</span>
+                  <span className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`text-xs font-semibold ${riskCfg[c.baseline].text}`}>{riskCfg[c.baseline].label}</span>
+                    <span className="text-gray-300">→</span>
+                    <span className={`text-xs font-semibold ${c.current ? riskCfg[c.current].text : 'text-gray-400'}`}>{c.current ? riskCfg[c.current].label : '—'}</span>
+                    <span className={`text-xs font-bold w-24 text-right ${trendCfg[c.trend].cls}`}>{trendCfg[c.trend].icon} {trendCfg[c.trend].label}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-xl px-4 py-3 text-sm text-[#0E2A47]">
+              Ainda não houve reavaliação. Quando chegar o mês 3, use o botão <strong>Reenviar questionário</strong> para a equipe responder de novo — aí o sistema compara o risco e mostra a evolução aqui. 📈
+            </div>
+          )}
         </div>
       )}
 

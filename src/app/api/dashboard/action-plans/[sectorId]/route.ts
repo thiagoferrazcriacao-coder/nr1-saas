@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { calcScore } from '@/lib/scoring'
-import { buildPlan, PlanItem, RiskLevel } from '@/lib/action-plan-engine'
+import { buildPlan, PlanItem } from '@/lib/action-plan-engine'
+import { computeSectorFactors } from '@/lib/sector-factors'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,30 +34,6 @@ const itemSchema = z.object({
 
 const schema = z.object({ items: z.array(itemSchema) })
 
-// Recalcula o risco por fator do setor a partir das respostas
-async function computeFactors(sectorId: string): Promise<{ topicNum: number; riskLevel: RiskLevel }[]> {
-  const responses = await prisma.response.findMany({ where: { sectorId }, select: { answers: true } })
-  if (responses.length === 0) return []
-
-  const questions = await prisma.question.findMany({ select: { code: true, topic: true, topicNum: true, reverse: true } })
-
-  const byCode = new Map<string, number[]>()
-  for (const r of responses) {
-    const answers = r.answers as { questionCode: string; value: number }[]
-    for (const a of answers) {
-      if (!byCode.has(a.questionCode)) byCode.set(a.questionCode, [])
-      byCode.get(a.questionCode)!.push(a.value)
-    }
-  }
-  const avgAnswers = Array.from(byCode.entries()).map(([code, values]) => ({
-    questionCode: code,
-    value: values.reduce((s, v) => s + v, 0) / values.length,
-  }))
-
-  const { byTopic } = calcScore(avgAnswers, questions)
-  return byTopic.map((t) => ({ topicNum: t.topicNum, riskLevel: t.riskLevel as RiskLevel }))
-}
-
 // GET — plano de ação do setor (salvo) ou sugestão gerada automaticamente
 export async function GET(req: NextRequest, { params }: { params: { sectorId: string } }) {
   try {
@@ -67,8 +43,8 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
     const plan = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId } })
-    const factors = await computeFactors(params.sectorId)
-    const suggested = buildPlan(factors)
+    const factors = await computeSectorFactors(params.sectorId)
+    const suggested = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })))
 
     if (plan && Array.isArray(plan.items) && (plan.items as unknown[]).length > 0) {
       return NextResponse.json({
@@ -95,9 +71,13 @@ export async function POST(req: NextRequest, { params }: { params: { sectorId: s
     const parsed = schema.safeParse(await req.json())
     if (!parsed.success) return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
 
+    // Na criação, grava o "baseline": foto do risco por fator no início (para comparar na reavaliação)
+    const existing = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId }, select: { id: true } })
+    const baseline = existing ? undefined : await computeSectorFactors(params.sectorId)
+
     const plan = await prisma.actionPlan.upsert({
       where:  { sectorId: params.sectorId },
-      create: { sectorId: params.sectorId, companyId, items: parsed.data.items },
+      create: { sectorId: params.sectorId, companyId, items: parsed.data.items, baseline },
       update: { items: parsed.data.items },
     })
     return NextResponse.json({ ok: true, updatedAt: plan.updatedAt })
