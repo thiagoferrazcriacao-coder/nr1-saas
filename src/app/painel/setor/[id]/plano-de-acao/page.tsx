@@ -98,7 +98,8 @@ export default function PlanoDeAcaoPage() {
     setSectorName(d.sectorName ?? '')
     setNoData(!!d.noData)
     setNeedsCadence(!!d.needsCadence)
-    if (d.plan?.items?.length) {
+    const planOk = !!d.plan?.items?.length && d.plan.items[0]?.topicNum != null && (d.plan.items[0] as PlanItem)?.level != null
+    if (planOk && d.plan) {
       setItems(d.plan.items); setHasPlan(true); setCadence(d.plan.interventionCadence ?? null)
     } else if (d.suggested?.length) {
       setItems(d.suggested); setHasPlan(false); if (d.chosenCadence) setCadence(d.chosenCadence)

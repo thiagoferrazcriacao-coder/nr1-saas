@@ -192,7 +192,11 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     let comparison: Comparison[] = []
     let reavaliada = false
 
-    if (plan && Array.isArray(plan.items) && (plan.items as unknown[]).length) {
+    const arr = (plan?.items as unknown[]) ?? []
+    const f0 = arr[0] as { topicNum?: number; level?: number } | undefined
+    const isNewShape = arr.length > 0 && f0?.topicNum != null && f0?.level != null
+
+    if (plan && isNewShape) {
       items = plan.items as unknown as PlanItem[]
       cadence = (plan.interventionCadence as Cadence) ?? null
       const baseline: FactorRisk[] = Array.isArray(plan.baseline) ? (plan.baseline as unknown as FactorRisk[]) : []

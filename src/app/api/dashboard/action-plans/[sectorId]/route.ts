@@ -49,8 +49,13 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
 
     const plan = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId } })
 
-    // Já existe plano salvo → devolve direto
-    if (plan && Array.isArray(plan.items) && (plan.items as unknown[]).length > 0) {
+    // Só considera planos no formato NOVO (itens com topicNum e level). Planos antigos são ignorados → regera.
+    const itemsArr = (plan?.items as unknown[]) ?? []
+    const firstItem = itemsArr[0] as { topicNum?: number; level?: number } | undefined
+    const isNewShape = itemsArr.length > 0 && firstItem?.topicNum != null && firstItem?.level != null
+
+    // Já existe plano salvo (formato novo) → devolve direto
+    if (plan && isNewShape) {
       return NextResponse.json({
         plan: {
           items: plan.items as unknown as PlanItem[],
