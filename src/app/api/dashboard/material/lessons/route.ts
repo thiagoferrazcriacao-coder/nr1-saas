@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 const createSchema = z.object({
-  programNum:  z.number().int().min(1).max(10),
+  programNum:  z.number().int().min(1).max(13),
   title:       z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
   videoUrl:    z.string().url(),

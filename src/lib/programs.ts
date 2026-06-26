@@ -1,5 +1,4 @@
-// Os 10 programas do protocolo NR-1. Arquivo sem dependências de servidor,
-// para poder ser usado tanto no backend quanto em componentes do navegador.
+// Os 13 fatores de risco psicossocial do protocolo NR-1.
 export const PROGRAMS: { num: number; name: string }[] = [
   { num: 1,  name: 'Gestão do Estresse e Carga de Trabalho' },
   { num: 2,  name: 'Comunicação Não-Violenta e Relacionamentos' },
@@ -11,4 +10,7 @@ export const PROGRAMS: { num: number; name: string }[] = [
   { num: 8,  name: 'Gestão de Mudanças e Segurança no Emprego' },
   { num: 9,  name: 'Justiça Organizacional e Transparência' },
   { num: 10, name: 'Saúde Mental, Acolhimento e Trabalho Remoto' },
+  { num: 11, name: 'Maus Relacionamentos no Local de Trabalho' },
+  { num: 12, name: 'Trabalho em Condições de Difícil Comunicação' },
+  { num: 13, name: 'Trabalho Remoto e Isolado' },
 ]
