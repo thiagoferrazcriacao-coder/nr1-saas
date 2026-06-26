@@ -105,10 +105,17 @@ export default function AprenderPage() {
   const onBarMove = (e: React.PointerEvent) => { if (draggingBar.current) seekFromX(e.clientX) }
   const onBarUp = () => { draggingBar.current = false }
 
+  // Trava a velocidade em 1x (bloqueia "acelerar" — inclusive no player nativo do iOS)
+  const lockRate = useCallback(() => {
+    const v = videoRef.current
+    if (v && v.playbackRate !== 1) v.playbackRate = 1
+  }, [])
+
   // Ao abrir o vídeo: retoma de onde parou e impede avançar além do já assistido
   const onLoadedMetadata = useCallback(() => {
     const v = videoRef.current
     if (!v || !current || !v.duration) return
+    v.playbackRate = 1
     setDur(v.duration)
     setMuted(v.muted)
     if (current.completed) { maxWatched.current = v.duration; setMaxSec(v.duration); return } // já concluiu: pode rever à vontade
@@ -144,6 +151,7 @@ export default function AprenderPage() {
   const onTimeUpdate = useCallback(() => {
     const v = videoRef.current
     if (!v || !current || !v.duration) return
+    if (v.playbackRate !== 1) v.playbackRate = 1 // garante 1x continuamente (iOS)
     if (v.currentTime > maxWatched.current) { maxWatched.current = v.currentTime; setMaxSec(v.currentTime) } // avança o ponto assistido
     setCurTime(v.currentTime)
     const pct = Math.min(100, Math.round((v.currentTime / v.duration) * 100))
@@ -224,7 +232,8 @@ export default function AprenderPage() {
             <video ref={videoRef} src={current.videoUrl} playsInline
               onClick={togglePlay} onContextMenu={(e) => e.preventDefault()}
               onLoadedMetadata={onLoadedMetadata} onSeeking={onSeeking} onTimeUpdate={onTimeUpdate} onEnded={onEnded}
-              onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+              onRateChange={lockRate}
+              onPlay={() => { setPlaying(true); lockRate() }} onPause={() => setPlaying(false)}
               style={{ width: '100%', display: 'block', maxHeight: '70vh', background: '#000', cursor: 'pointer' }} />
 
             {/* Controles próprios — SEM barra de arrastar (não dá pra pular pra frente) */}
