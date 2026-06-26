@@ -112,3 +112,18 @@ export async function POST(req: NextRequest, { params }: { params: { sectorId: s
     return NextResponse.json({ error: 'Não foi possível salvar.' }, { status: 500 })
   }
 }
+
+// DELETE — apaga o plano do setor para recomeçar do zero
+export async function DELETE(req: NextRequest, { params }: { params: { sectorId: string } }) {
+  try {
+    const { companyId } = requireAuth(req)
+    const sector = await prisma.sector.findFirst({ where: { id: params.sectorId, companyId }, select: { id: true } })
+    if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
+
+    await prisma.actionPlan.deleteMany({ where: { sectorId: params.sectorId, companyId } })
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[ACTION-PLAN DELETE]', err instanceof Error ? err.message : String(err))
+    return NextResponse.json({ error: 'Não foi possível excluir.' }, { status: 500 })
+  }
+}

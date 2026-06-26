@@ -126,6 +126,12 @@ export default function PlanoDeAcaoPage() {
     } finally { setGenerating(false) }
   }
 
+  const restartPlan = async () => {
+    if (!confirm('Recomeçar o plano? O plano atual e suas evidências serão apagados, e você escolhe o ritmo de novo.')) return
+    await fetch(`/api/dashboard/action-plans/${sectorId}`, { method: 'DELETE' })
+    setItems([]); setHasPlan(false); setCadence(null); setNeedsCadence(true); setReaval(null); setSaved(false)
+  }
+
   const copyLink = async () => {
     const url = `${window.location.origin}/r/${reaval?.linkToken ?? ''}`
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
@@ -179,6 +185,9 @@ export default function PlanoDeAcaoPage() {
         </div>
         <div className="flex items-center gap-3">
           {saved && <span className="text-green-600 text-sm font-medium">✅ Salvo</span>}
+          {hasPlan && (
+            <button onClick={restartPlan} className="text-xs text-red-500 hover:text-red-600 border border-red-200 hover:bg-red-50 px-3 py-2 rounded-xl font-medium">↻ Recomeçar plano</button>
+          )}
           {!hasPlan && total > 0 && (
             <>
               <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-xl font-medium">Gerado automaticamente — revise e salve</span>
