@@ -156,15 +156,30 @@ export default function AprenderPage() {
     setCurTime(v.currentTime)
     const pct = Math.min(100, Math.round((v.currentTime / v.duration) * 100))
     const now = Date.now()
-    if (pct >= lastSent.current.pct + 3 && now - lastSent.current.at > 4000) {
+    if (pct >= lastSent.current.pct + 2 && now - lastSent.current.at > 2500) {
       lastSent.current = { pct, at: now }
       void sendProgress(current.id, pct)
     }
   }, [current, sendProgress])
 
+  // Grava o progresso atual imediatamente (ao pausar / sair / fechar) — não perde o que foi assistido
+  const flushProgress = useCallback(() => {
+    const v = videoRef.current
+    if (!v || !current || !v.duration) return
+    const pct = Math.min(100, Math.round((v.currentTime / v.duration) * 100))
+    if (pct > lastSent.current.pct) { lastSent.current = { pct, at: Date.now() }; void sendProgress(current.id, pct) }
+  }, [current, sendProgress])
+
   const onEnded = useCallback(() => {
     if (current) { lastSent.current = { pct: 100, at: Date.now() }; void sendProgress(current.id, 100) }
   }, [current, sendProgress])
+
+  // Salva ao trocar de aba/minimizar (mobile fecha o vídeo nessas horas)
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') flushProgress() }
+    document.addEventListener('visibilitychange', onHide)
+    return () => document.removeEventListener('visibilitychange', onHide)
+  }, [flushProgress])
 
   const openLesson = (l: Lesson) => { lastSent.current = { pct: l.percent, at: 0 }; maxWatched.current = 0; setMaxSec(0); setPlaying(false); setCurTime(0); setDur(0); setCurrent(l) }
 
@@ -227,13 +242,13 @@ export default function AprenderPage() {
     return (
       <div style={{ minHeight: '100vh', background: '#0f1e2e', color: '#fff' }}>
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '16px 16px 40px' }}>
-          <button onClick={() => setCurrent(null)} style={{ background: 'none', border: 'none', color: '#7dd3fc', fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>← Voltar aos vídeos</button>
+          <button onClick={() => { flushProgress(); setCurrent(null) }} style={{ background: 'none', border: 'none', color: '#7dd3fc', fontSize: 14, cursor: 'pointer', padding: '8px 0' }}>← Voltar aos vídeos</button>
           <div ref={wrapRef} style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden' }}>
             <video ref={videoRef} src={current.videoUrl} playsInline
               onClick={togglePlay} onContextMenu={(e) => e.preventDefault()}
               onLoadedMetadata={onLoadedMetadata} onSeeking={onSeeking} onTimeUpdate={onTimeUpdate} onEnded={onEnded}
               onRateChange={lockRate}
-              onPlay={() => { setPlaying(true); lockRate() }} onPause={() => setPlaying(false)}
+              onPlay={() => { setPlaying(true); lockRate() }} onPause={() => { setPlaying(false); flushProgress() }}
               style={{ width: '100%', display: 'block', maxHeight: '70vh', background: '#000', cursor: 'pointer' }} />
 
             {/* Controles próprios — SEM barra de arrastar (não dá pra pular pra frente) */}
