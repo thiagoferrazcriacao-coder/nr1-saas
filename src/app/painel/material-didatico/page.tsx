@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { PROGRAMS } from '@/lib/programs'
 
 type Lesson = { id: string; programNum: number; program: string; title: string; description: string | null; videoUrl: string }
@@ -180,10 +180,7 @@ export default function MaterialDidaticoPage() {
               </div>
               <button onClick={() => setVideo(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none flex-shrink-0">×</button>
             </div>
-            <div className="bg-black">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video key={video.id} src={video.videoUrl} controls autoPlay className="w-full max-h-[70vh]" />
-            </div>
+            <LockedPlayer key={video.id} src={video.videoUrl} />
             {video.description && <p className="px-5 py-4 text-sm text-gray-600">{video.description}</p>}
             <div className="px-5 py-3 bg-[#F0FBFC] border-t border-[#CCEFF1]">
               <p className="text-xs text-[#0E2A47]">👀 Você está assistindo como gestor — esta visualização <strong>não</strong> entra na contagem de presença. A barra de acompanhamento é registrada apenas para os colaboradores.</p>
@@ -191,6 +188,68 @@ export default function MaterialDidaticoPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Player com trava: sem adiantar (só rever) e sem acelerar. Não registra presença (uso do gestor).
+function LockedPlayer({ src }: { src: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const barRef = useRef<HTMLDivElement>(null)
+  const maxWatched = useRef(0)
+  const dragging = useRef(false)
+  const [playing, setPlaying] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const [cur, setCur] = useState(0)
+  const [dur, setDur] = useState(0)
+  const [maxSec, setMaxSec] = useState(0)
+
+  const fmt = (s: number) => { if (!isFinite(s) || s < 0) return '0:00'; const m = Math.floor(s / 60); const ss = Math.floor(s % 60); return `${m}:${ss < 10 ? '0' : ''}${ss}` }
+  const lockRate = () => { const v = videoRef.current; if (v && v.playbackRate !== 1) v.playbackRate = 1 }
+  const togglePlay = () => { const v = videoRef.current; if (!v) return; if (v.paused) void v.play(); else v.pause() }
+  const toggleMute = () => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted) }
+  const toggleFs = () => { const el = wrapRef.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.() }
+  const onLoaded = () => { const v = videoRef.current; if (!v || !v.duration) return; v.playbackRate = 1; setDur(v.duration); setMuted(v.muted) }
+  const onSeeking = () => { const v = videoRef.current; if (!v) return; if (v.currentTime > maxWatched.current + 1.5) { try { v.currentTime = maxWatched.current } catch {} } }
+  const onTime = () => {
+    const v = videoRef.current; if (!v) return
+    if (v.playbackRate !== 1) v.playbackRate = 1
+    if (v.currentTime > maxWatched.current) { maxWatched.current = v.currentTime; setMaxSec(v.currentTime) }
+    setCur(v.currentTime)
+  }
+  const seekFromX = (clientX: number) => {
+    const el = barRef.current, v = videoRef.current
+    if (!el || !v || !v.duration) return
+    const rect = el.getBoundingClientRect()
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const target = Math.min(frac * v.duration, maxWatched.current)
+    try { v.currentTime = target } catch {}
+    setCur(target)
+  }
+  const onDown = (e: React.PointerEvent) => { dragging.current = true; try { (e.currentTarget as Element).setPointerCapture(e.pointerId) } catch {}; seekFromX(e.clientX) }
+  const onMove = (e: React.PointerEvent) => { if (dragging.current) seekFromX(e.clientX) }
+  const onUp = () => { dragging.current = false }
+
+  return (
+    <div ref={wrapRef} className="relative bg-black">
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video ref={videoRef} src={src} playsInline autoPlay onClick={togglePlay} onContextMenu={(e) => e.preventDefault()}
+        onLoadedMetadata={onLoaded} onSeeking={onSeeking} onTimeUpdate={onTime} onRateChange={lockRate}
+        onPlay={() => { setPlaying(true); lockRate() }} onPause={() => setPlaying(false)}
+        className="w-full max-h-[70vh] block cursor-pointer" />
+      <div className="absolute left-0 right-0 bottom-0 px-3 pt-5 pb-2 flex items-center gap-3" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.75))' }}>
+        <button onClick={togglePlay} className="text-white text-lg w-7 flex-shrink-0">{playing ? '⏸' : '▶'}</button>
+        <span className="text-white text-xs flex-shrink-0" style={{ minWidth: 78, fontVariantNumeric: 'tabular-nums' }}>{fmt(cur)} / {fmt(dur)}</span>
+        <div ref={barRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} className="flex-1 flex items-center cursor-pointer" style={{ height: 16, touchAction: 'none' }}>
+          <div className="relative w-full rounded" style={{ height: 5, background: 'rgba(255,255,255,.22)' }}>
+            <div className="absolute left-0 top-0 h-full rounded" style={{ width: dur ? `${Math.min(100, (maxSec / dur) * 100)}%` : '0%', background: 'rgba(255,255,255,.4)' }} />
+            <div className="absolute left-0 top-0 h-full rounded" style={{ width: dur ? `${Math.min(100, (cur / dur) * 100)}%` : '0%', background: '#17C3C9' }} />
+          </div>
+        </div>
+        <button onClick={toggleMute} className="text-white text-base flex-shrink-0">{muted ? '🔇' : '🔊'}</button>
+        <button onClick={toggleFs} className="text-white text-base flex-shrink-0">⛶</button>
+      </div>
     </div>
   )
 }
