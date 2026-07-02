@@ -38,3 +38,36 @@ export async function sendVerificationCode(email: string, code: string): Promise
     throw new Error(`Resend: ${msg}`)
   }
 }
+
+// Envia o código de 6 dígitos para redefinir a senha de um gestor já cadastrado.
+export async function sendPasswordResetCode(email: string, code: string): Promise<void> {
+  if (!resend) throw new Error('Serviço de e-mail não configurado.')
+
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:24px;font-weight:900;color:#0E2A47;">Zelo</span>
+      <span style="font-size:13px;color:#17C3C9;margin-left:6px;">Plataforma de NR-1</span>
+    </div>
+    <div style="background:#F6F9FC;border:1px solid #e2e8f0;border-radius:16px;padding:28px;text-align:center;">
+      <p style="font-size:15px;color:#334155;margin:0 0 8px;">Recebemos um pedido para redefinir sua senha.</p>
+      <p style="font-size:15px;color:#334155;margin:0 0 8px;">Use o código abaixo para criar uma nova senha:</p>
+      <p style="font-size:38px;font-weight:900;letter-spacing:8px;color:#0E2A47;margin:8px 0;">${code}</p>
+      <p style="font-size:13px;color:#64748b;margin:8px 0 0;">Válido por 10 minutos. Não compartilhe com ninguém.</p>
+    </div>
+    <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:20px;">
+      Se você não solicitou a redefinição, ignore este e-mail — sua senha continua a mesma.
+    </p>
+  </div>`
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: email,
+    subject: `${code} é o seu código para redefinir a senha — Zelo`,
+    html,
+  })
+  if (error) {
+    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error))
+    throw new Error(`Resend: ${msg}`)
+  }
+}

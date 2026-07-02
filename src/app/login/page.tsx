@@ -83,6 +83,12 @@ export default function LoginPage() {
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
+
+          <div className="text-center">
+            <Link href="/recuperar" className="text-sm text-gray-500 hover:text-[#109CA1] hover:underline">
+              Esqueci minha senha
+            </Link>
+          </div>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
