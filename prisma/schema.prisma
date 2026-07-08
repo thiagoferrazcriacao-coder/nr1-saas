@@ -50,6 +50,7 @@ model User {
   role         String   @default("ADMIN")
   createdAt    DateTime @default(now())
   company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  gestorProgresses GestorProgress[]
 
   @@index([companyId])
 }
@@ -153,8 +154,9 @@ model CompanyAssessment {
 model Lesson {
   id          String           @id @default(uuid())
   companyId   String?          // dono do material (null = legado, ignorado nas queries)
-  programNum  Int              // 1–10 (categoria, usada na sugestão automática)
-  program     String           // nome do programa/categoria
+  programNum  Int              // 1–13 (fator de risco, usado na sugestão automática)
+  program     String           // nome do programa/fator
+  trilha      String           @default("colaborador") // "gestor" | "colaborador"
   title       String
   description String?
   videoUrl    String
@@ -164,10 +166,28 @@ model Lesson {
   createdAt   DateTime         @default(now())
   company     Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   progresses  LessonProgress[]
+  gestorProgresses GestorProgress[]
 
   @@index([companyId])
   @@index([programNum])
   @@index([order])
+}
+
+// Quanto o próprio gestor (dono da conta) já assistiu de cada vídeo, dentro do painel.
+// Comprovação de que a liderança fez o treinamento — separado do progresso dos colaboradores.
+model GestorProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  lessonId  String
+  percent   Int      @default(0)     // 0–100 (máximo já assistido)
+  completed Boolean  @default(false) // true quando percent >= 90
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
 }
 
 // Colaborador de uma empresa. Cria a própria conta (e-mail + senha) e acessa

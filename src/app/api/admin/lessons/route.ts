@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
 
 const createSchema = z.object({
   programNum:  z.number().int().min(1).max(13),
+  trilha:      z.enum(['gestor', 'colaborador']).default('colaborador'),
   title:       z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
   videoUrl:    z.string().url(),
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
     const lesson = await prisma.lesson.create({
       data: {
         companyId: null, programNum: parsed.data.programNum, program: program.name,
+        trilha: parsed.data.trilha,
         title: parsed.data.title, description: parsed.data.description ?? null,
         videoUrl: parsed.data.videoUrl, durationSec: parsed.data.durationSec ?? 0,
         order: (last?.order ?? -1) + 1,

@@ -6,15 +6,19 @@ import { requireAuth, requireOwner } from '@/lib/auth'
 import { r2Configured } from '@/lib/r2'
 import { PROGRAMS } from '@/lib/programs'
 
-// GET — lista a biblioteca global de vídeos (qualquer usuário logado pode ver)
+// GET — lista a biblioteca global de vídeos (qualquer usuário logado pode ver),
+// junto com o progresso do PRÓPRIO gestor nos vídeos da Trilha do Gestor.
 export async function GET(req: NextRequest) {
   try {
-    requireAuth(req)
+    const { userId } = requireAuth(req)
     const lessons = await prisma.lesson.findMany({
       where: { companyId: null, active: true },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
     })
-    return NextResponse.json({ lessons, r2Configured: r2Configured() })
+    const gp = await prisma.gestorProgress.findMany({ where: { userId } })
+    const gestorProgress: Record<string, { percent: number; completed: boolean }> = {}
+    for (const p of gp) gestorProgress[p.lessonId] = { percent: p.percent, completed: p.completed }
+    return NextResponse.json({ lessons, gestorProgress, r2Configured: r2Configured() })
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
@@ -22,6 +26,7 @@ export async function GET(req: NextRequest) {
 
 const createSchema = z.object({
   programNum:  z.number().int().min(1).max(13),
+  trilha:      z.enum(['gestor', 'colaborador']).default('colaborador'),
   title:       z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
   videoUrl:    z.string().url(),
@@ -55,6 +60,7 @@ export async function POST(req: NextRequest) {
         companyId:   null,
         programNum:  parsed.data.programNum,
         program:     program.name,
+        trilha:      parsed.data.trilha,
         title:       parsed.data.title,
         description: parsed.data.description ?? null,
         videoUrl:    parsed.data.videoUrl,

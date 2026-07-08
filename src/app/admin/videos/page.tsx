@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PROGRAMS } from '@/lib/programs'
 
-type Lesson = { id: string; programNum: number; program: string; title: string; description: string | null; videoUrl: string; active: boolean }
+type Trilha = 'gestor' | 'colaborador'
+type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; title: string; description: string | null; videoUrl: string; active: boolean }
 
 export default function AdminVideosPage() {
   const router = useRouter()
@@ -13,6 +14,7 @@ export default function AdminVideosPage() {
   const [loading, setLoading] = useState(true)
 
   const [uploadProgram, setUploadProgram] = useState<number | null>(null)
+  const [uploadTrilha, setUploadTrilha] = useState<Trilha>('colaborador')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -34,8 +36,8 @@ export default function AdminVideosPage() {
 
   useEffect(() => { fetchLessons() }, [fetchLessons])
 
-  const openUpload = (p: number) => { setEditId(null); setUploadProgram(p); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
-  const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openUpload = (p: number) => { setEditId(null); setUploadProgram(p); setUploadTrilha('colaborador'); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
   // Testa se o navegador consegue MOSTRAR a imagem do vídeo (pega .MOV/HEVC do iPhone, que só tem áudio)
@@ -95,7 +97,7 @@ export default function AdminVideosPage() {
         if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Falha ao substituir.'); setUploading(false); return }
       } else {
         // Criar nova aula
-        const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, title: title.trim(), description: description.trim() || undefined, videoUrl: publicUrl, durationSec }) })
+        const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, trilha: uploadTrilha, title: title.trim(), description: description.trim() || undefined, videoUrl: publicUrl, durationSec }) })
         if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Falha ao salvar.'); setUploading(false); return }
       }
       setUploadProgram(null); setEditId(null); fetchLessons()
@@ -151,6 +153,7 @@ export default function AdminVideosPage() {
                         <div key={l.id} className="flex items-center justify-between gap-3 py-2.5">
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="w-7 h-7 rounded-lg bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                            <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${l.trilha === 'gestor' ? 'bg-indigo-50 text-indigo-600' : 'bg-teal-50 text-teal-700'}`}>{l.trilha === 'gestor' ? '👔 Gestor' : '👥 Colab.'}</span>
                             <p className={`text-sm font-medium truncate ${l.active ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{l.title}</p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
@@ -209,6 +212,11 @@ export default function AdminVideosPage() {
                 <p className="text-amber-800 text-xs leading-relaxed">Trocando o vídeo da aula <strong>&quot;{editTitle}&quot;</strong>. O título e a posição continuam os mesmos — só o arquivo do vídeo muda.</p>
               </div>
             ) : (<>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Trilha</label>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" onClick={() => setUploadTrilha('colaborador')} className={`text-sm font-semibold py-2.5 rounded-xl border transition-colors ${uploadTrilha === 'colaborador' ? 'bg-teal-50 border-teal-300 text-teal-700' : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200'}`}>👥 Colaborador</button>
+                <button type="button" onClick={() => setUploadTrilha('gestor')} className={`text-sm font-semibold py-2.5 rounded-xl border transition-colors ${uploadTrilha === 'gestor' ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:border-indigo-200'}`}>👔 Gestor</button>
+              </div>
               <label className="block text-xs font-semibold text-gray-500 mb-1">Título da aula</label>
               <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 1 — Introdução" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4" />
               <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>

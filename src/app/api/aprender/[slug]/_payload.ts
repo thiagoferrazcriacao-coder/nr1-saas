@@ -6,10 +6,11 @@ export async function buildMemberPayload(
   companyName: string,
   employee: { id: string; name: string | null }
 ) {
-  // Biblioteca global (mesma para todas as empresas) — companyId não é usado aqui
+  // Biblioteca global (mesma para todas as empresas) — companyId não é usado aqui.
+  // O colaborador vê APENAS a Trilha do Colaborador.
   void companyId
   const lessons = await prisma.lesson.findMany({
-    where:   { companyId: null, active: true },
+    where:   { companyId: null, active: true, trilha: 'colaborador' },
     orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
   })
   const progresses = await prisma.lessonProgress.findMany({ where: { employeeId: employee.id } })
