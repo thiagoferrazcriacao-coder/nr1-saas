@@ -16,6 +16,22 @@ export async function buildMemberPayload(
   const progresses = await prisma.lessonProgress.findMany({ where: { employeeId: employee.id } })
   const progMap = new Map(progresses.map((p) => [p.lessonId, p]))
 
+  // Materiais complementares: extras da empresa + ebooks oficiais (trilha do colaborador)
+  const materials = await prisma.material.findMany({
+    where: {
+      active: true,
+      OR: [
+        { companyId },                                          // extras da empresa
+        { companyId: null, kind: 'ebook', trilha: 'colaborador' }, // ebooks oficiais do colaborador
+      ],
+    },
+    orderBy: [{ createdAt: 'desc' }],
+  })
+  const opens = await prisma.materialOpen.findMany({
+    where: { viewerType: 'emp', viewerId: employee.id, materialId: { in: materials.map((m) => m.id) } },
+  })
+  const openMap = new Map(opens.map((o) => [o.materialId, o.percent]))
+
   return {
     companyName,
     employeeId:   employee.id,
@@ -29,6 +45,14 @@ export async function buildMemberPayload(
       videoUrl:    l.videoUrl,
       percent:     progMap.get(l.id)?.percent ?? 0,
       completed:   progMap.get(l.id)?.completed ?? false,
+    })),
+    materials: materials.map((m) => ({
+      id:          m.id,
+      kind:        m.kind,
+      title:       m.title,
+      description: m.description,
+      url:         m.url,
+      opened:      (openMap.get(m.id) ?? 0) > 0,
     })),
   }
 }

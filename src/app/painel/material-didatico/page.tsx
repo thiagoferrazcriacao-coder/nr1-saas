@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { PROGRAMS } from '@/lib/programs'
+import MateriaisExtras from './MateriaisExtras'
 
 type Trilha = 'gestor' | 'colaborador'
 type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; title: string; description: string | null; videoUrl: string }
@@ -204,6 +205,9 @@ export default function MaterialDidaticoPage() {
         <p className="text-gray-500 text-sm mb-4">Os vídeos que o seu time assiste pelo link. Você pode conferir aqui — mas <strong>esta visualização não conta</strong> como presença. A presença dos colaboradores aparece no relatório abaixo.</p>
         {renderTrilha('colaborador', colabLessons)}
       </div>
+
+      {/* Materiais complementares (ebooks oficiais + extras do gestor) */}
+      <MateriaisExtras />
 
       {/* Relatório de presença dos colaboradores */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">

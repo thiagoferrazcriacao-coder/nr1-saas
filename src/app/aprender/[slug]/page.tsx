@@ -14,6 +14,10 @@ type Lesson = {
   completed: boolean
 }
 
+type MaterialKind = 'video' | 'youtube' | 'ebook' | 'image' | 'file' | 'link'
+type Material = { id: string; kind: MaterialKind; title: string; description: string | null; url: string; opened: boolean }
+const materialIcon: Record<MaterialKind, string> = { video: '🎬', youtube: '▶️', ebook: '📕', image: '🖼️', file: '📎', link: '🔗' }
+
 export default function AprenderPage() {
   const params = useParams()
   const slug = params.slug as string
@@ -28,12 +32,23 @@ export default function AprenderPage() {
 
   const [companyName, setCompanyName] = useState('')
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
   const [current, setCurrent] = useState<Lesson | null>(null)
 
-  const applyPayload = (data: { companyName: string; lessons: Lesson[] }) => {
+  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[] }) => {
     setCompanyName(data.companyName)
     setLessons(data.lessons)
+    setMaterials(data.materials ?? [])
     setStep('curso')
+  }
+
+  const openMaterial = (m: Material) => {
+    window.open(m.url, '_blank', 'noopener,noreferrer')
+    fetch('/api/aprender/material-open', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ materialId: m.id }),
+    }).catch(() => {})
+    setMaterials((prev) => prev.map((x) => (x.id === m.id ? { ...x, opened: true } : x)))
   }
 
   // Sessão já existente?
@@ -370,6 +385,26 @@ export default function AprenderPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Materiais complementares (ebooks e extras enviados pela empresa) */}
+        {materials.length > 0 && (
+          <div style={{ marginTop: 28 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>📎 Materiais complementares</h2>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>Conteúdos extras enviados pela empresa. Abrir registra a sua leitura.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {materials.map((m) => (
+                <button key={m.id} onClick={() => openMaterial(m)} style={{ textAlign: 'left', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', gap: 13, alignItems: 'center' }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>{materialIcon[m.kind]}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{m.title}</p>
+                    {m.description && <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{m.description}</p>}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: m.opened ? '#16a34a' : '#94a3b8', flexShrink: 0 }}>{m.opened ? '✅ aberto' : 'abrir →'}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

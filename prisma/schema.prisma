@@ -38,6 +38,7 @@ model Company {
   actionPlans      ActionPlan[]
   employees        Employee[]
   lessons          Lesson[]
+  materials        Material[]
 
   @@index([slug])
 }
@@ -171,6 +172,42 @@ model Lesson {
   @@index([companyId])
   @@index([programNum])
   @@index([order])
+}
+
+// Materiais complementares: ebooks oficiais (companyId null) e extras que o gestor sobe
+// (companyId da empresa) — vídeos, links do YouTube, ebooks, fotos, arquivos, links.
+model Material {
+  id            String         @id @default(uuid())
+  companyId     String?        // null = oficial/global (admin); preenchido = extra da empresa (gestor)
+  createdByUser String?        // id do gestor que subiu (quando for extra)
+  kind          String         // video | youtube | ebook | image | file | link
+  trilha        String         @default("colaborador") // gestor | colaborador
+  programNum    Int?           // fator (1–13), opcional
+  title         String
+  description   String?
+  url           String         // URL no R2 ou link externo (YouTube/site)
+  active        Boolean        @default(true)
+  order         Int            @default(0)
+  createdAt     DateTime       @default(now())
+  company       Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  opens         MaterialOpen[]
+
+  @@index([companyId])
+  @@index([programNum])
+}
+
+// Comprovação de que a pessoa abriu/leu um material. viewerType: 'emp' (colaborador) ou 'gestor'.
+model MaterialOpen {
+  id         String   @id @default(uuid())
+  materialId String
+  viewerType String   // 'emp' | 'gestor'
+  viewerId   String   // employee.id ou user.id
+  percent    Int      @default(100) // ebooks podem evoluir por página; demais = 100 ao abrir
+  updatedAt  DateTime @updatedAt
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, viewerType, viewerId])
+  @@index([materialId])
 }
 
 // Quanto o próprio gestor (dono da conta) já assistiu de cada vídeo, dentro do painel.

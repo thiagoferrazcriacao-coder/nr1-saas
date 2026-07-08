@@ -8,6 +8,7 @@ const navItems = [
   { href: '/admin',        label: 'Empresas',         icon: '🏢' },
   { href: '/admin/vendas', label: 'Vendas',           icon: '💰' },
   { href: '/admin/videos', label: 'Gerenciar Vídeos', icon: '🎬' },
+  { href: '/admin/ebooks', label: 'Ebooks',           icon: '📚' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
