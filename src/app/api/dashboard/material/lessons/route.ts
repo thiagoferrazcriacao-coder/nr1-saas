@@ -5,12 +5,13 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, requireOwner } from '@/lib/auth'
 import { r2Configured } from '@/lib/r2'
 import { PROGRAMS } from '@/lib/programs'
+import { ensureLearnCode } from '@/lib/learn-code'
 
 // GET — lista a biblioteca global de vídeos (qualquer usuário logado pode ver),
 // junto com o progresso do PRÓPRIO gestor nos vídeos da Trilha do Gestor.
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = requireAuth(req)
+    const { userId, companyId } = requireAuth(req)
     const lessons = await prisma.lesson.findMany({
       where: { companyId: null, active: true },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
@@ -18,7 +19,8 @@ export async function GET(req: NextRequest) {
     const gp = await prisma.gestorProgress.findMany({ where: { userId } })
     const gestorProgress: Record<string, { percent: number; completed: boolean }> = {}
     for (const p of gp) gestorProgress[p.lessonId] = { percent: p.percent, completed: p.completed }
-    return NextResponse.json({ lessons, gestorProgress, r2Configured: r2Configured() })
+    const learnCode = await ensureLearnCode(companyId)
+    return NextResponse.json({ lessons, gestorProgress, learnCode, r2Configured: r2Configured() })
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }

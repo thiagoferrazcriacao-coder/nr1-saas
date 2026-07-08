@@ -51,6 +51,10 @@ const interventionOptions: { key: Intervention; emoji: string; title: string; de
 ]
 const whenLabel = (i: PlanItem) => (i.dueWeek === 0 ? 'Contínuo' : `Semana ${i.startWeek}–${i.dueWeek}`)
 
+type Trilha = 'gestor' | 'colaborador'
+type LessonLite = { id: string; programNum: number; trilha: Trilha; title: string; description: string | null; videoUrl: string }
+type GestorProgress = Record<string, { percent: number; completed: boolean }>
+
 type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
 type Comparison = { topicNum: number; factor: string; baseline: RiskLevel; current: RiskLevel | null; trend: Trend }
 type Milestone = { month: number; date: string; status: 'futura' | 'pendente' | 'feita' }
@@ -86,6 +90,9 @@ export default function PlanoDeAcaoPage() {
   const [noData, setNoData] = useState(false)
   const [cadence, setCadence] = useState<Intervention | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [lessons, setLessons] = useState<LessonLite[]>([])
+  const [gestorProg, setGestorProg] = useState<GestorProgress>({})
+  const [learnCode, setLearnCode] = useState<string>('')
 
   const loadReaval = useCallback(() => {
     fetch(`/api/dashboard/action-plans/${sectorId}/reavaliacao`)
@@ -114,6 +121,11 @@ export default function PlanoDeAcaoPage() {
       .then((d) => d && applyData(d))
       .finally(() => setLoading(false))
     loadReaval()
+    // Vídeos da biblioteca (para sugerir por fator no plano)
+    fetch('/api/dashboard/material/lessons')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) { setLessons(d.lessons ?? []); setGestorProg(d.gestorProgress ?? {}); setLearnCode(d.learnCode ?? '') } })
+      .catch(() => {})
   }, [sectorId, loadReaval])
 
   // Empresa escolheu o ritmo → gera o plano nesse compasso
@@ -321,10 +333,20 @@ export default function PlanoDeAcaoPage() {
             </button>
 
             {isOpen && (
-              <div className="border-t border-gray-100 divide-y divide-gray-50">
-                {g.items.map((it) => (
-                  <ActionCard key={it.id} item={it} sectorId={sectorId} onPatch={patch} />
-                ))}
+              <div className="border-t border-gray-100">
+                <FactorTraining
+                  factorNum={g.topicNum}
+                  startWeek={g.items[0]?.startWeek ?? 1}
+                  gestorVideos={lessons.filter((l) => l.programNum === g.topicNum && l.trilha === 'gestor')}
+                  colabVideos={lessons.filter((l) => l.programNum === g.topicNum && l.trilha === 'colaborador')}
+                  gestorProg={gestorProg}
+                  learnCode={learnCode}
+                />
+                <div className="divide-y divide-gray-50">
+                  {g.items.map((it) => (
+                    <ActionCard key={it.id} item={it} sectorId={sectorId} onPatch={patch} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -335,6 +357,82 @@ export default function PlanoDeAcaoPage() {
         <p className="text-xs text-gray-400 text-center">
           🔒 Anexe as evidências de cada ação ao longo do ano. Esse registro é a prova de que o plano está sendo praticado — exatamente o que a fiscalização do MTE exige.
         </p>
+      )}
+    </div>
+  )
+}
+
+// Painel de treinamento recomendado para o fator: liga o plano aos vídeos das duas trilhas.
+// É o elo para a fiscalização — "na semana X, assista/encaminhe estes vídeos deste fator".
+function FactorTraining({ factorNum, startWeek, gestorVideos, colabVideos, gestorProg, learnCode }: {
+  factorNum: number
+  startWeek: number
+  gestorVideos: LessonLite[]
+  colabVideos: LessonLite[]
+  gestorProg: GestorProgress
+  learnCode: string
+}) {
+  const [copied, setCopied] = useState(false)
+  const total = gestorVideos.length + colabVideos.length
+  const learnLink = typeof window !== 'undefined' && learnCode ? `${window.location.origin}/aprender/${learnCode}` : ''
+  const copyLearn = async () => { try { await navigator.clipboard.writeText(learnLink); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
+
+  return (
+    <div className="bg-[#F0FBFC] border-b border-[#CCEFF1] px-5 py-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base">🎓</span>
+        <p className="text-sm font-bold text-[#0E2A47]">Treinamento recomendado para este fator</p>
+        <span className="text-[11px] text-[#109CA1] font-semibold">Semana {startWeek}</span>
+      </div>
+
+      {total === 0 ? (
+        <p className="text-xs text-gray-500 leading-relaxed">
+          Os vídeos deste fator estão em produção. Assim que forem publicados, aparecem aqui para você assistir e encaminhar ao time — com a presença registrada para a fiscalização.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {/* Trilha do Gestor */}
+          {gestorVideos.length > 0 && (
+            <div>
+              <p className="text-[11px] font-bold text-indigo-600 mb-1">👔 Você (gestor) assiste:</p>
+              <div className="space-y-1">
+                {gestorVideos.map((v) => {
+                  const gp = gestorProg[v.id]
+                  return (
+                    <div key={v.id} className="flex items-center justify-between gap-2 bg-white border border-gray-100 rounded-lg px-3 py-2">
+                      <p className="text-xs text-gray-700 truncate min-w-0">{v.title}</p>
+                      <span className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[11px] font-semibold ${gp?.completed ? 'text-green-600' : gp?.percent ? 'text-yellow-600' : 'text-gray-400'}`}>{gp?.completed ? '✅ feito' : gp?.percent ? `${gp.percent}%` : 'não assistido'}</span>
+                        <a href="/painel/material-didatico" className="text-[11px] font-semibold text-white bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] px-2.5 py-1 rounded-md hover:opacity-90">▶ Assistir</a>
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Trilha do Colaborador */}
+          {colabVideos.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                <p className="text-[11px] font-bold text-teal-700">👥 Encaminhe ao time (trilha do colaborador):</p>
+                {learnLink && (
+                  <button onClick={copyLearn} className="text-[11px] font-semibold text-[#109CA1] border border-[#CCEFF1] bg-white px-2.5 py-1 rounded-md hover:bg-[#E0F5F6]">{copied ? '✅ link copiado' : '📋 copiar link do time'}</button>
+                )}
+              </div>
+              <div className="space-y-1">
+                {colabVideos.map((v) => (
+                  <div key={v.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-lg px-3 py-2">
+                    <span className="text-teal-500 text-xs flex-shrink-0">🎬</span>
+                    <p className="text-xs text-gray-700 truncate min-w-0">{v.title}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">A presença de cada colaborador fica registrada no Material Didático → Relatório de presença.</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
