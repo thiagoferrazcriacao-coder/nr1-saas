@@ -174,6 +174,15 @@ export default function MaterialDidaticoPage() {
         </button>
       </div>
 
+      {/* Aviso: conteúdo em produção */}
+      <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4 flex items-start gap-3">
+        <span className="text-xl flex-shrink-0">🎬</span>
+        <div>
+          <p className="font-bold text-[#0E2A47] text-sm">Em breve o conteúdo estará no ar</p>
+          <p className="text-gray-500 text-sm mt-0.5">Estamos preparando as vídeo-aulas e os materiais da NR-1. Em breve tudo aparece aqui pra você.</p>
+        </div>
+      </div>
+
       {linkOpen && (
         <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4">
           <p className="text-sm text-[#0E2A47] font-medium mb-2">Link da <strong>Trilha do Colaborador</strong> — cada colaborador cria a própria conta e assiste (a barra registra a presença):</p>

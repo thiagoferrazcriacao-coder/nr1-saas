@@ -327,6 +327,15 @@ export default function AprenderPage() {
           <button onClick={logout} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 10, padding: '7px 14px', fontSize: 13, color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>Sair</button>
         </div>
 
+        {/* Aviso: conteúdo em produção */}
+        <div style={{ background: '#F0FBFC', border: '1px solid #CCEFF1', borderRadius: 14, padding: 16, marginBottom: 22, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 20, flexShrink: 0 }}>🎬</span>
+          <div>
+            <p style={{ fontWeight: 700, color: '#0E2A47', fontSize: 14 }}>Em breve o conteúdo estará no ar</p>
+            <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>Estamos preparando as vídeo-aulas e os materiais da NR-1. Em breve tudo aparece aqui pra você.</p>
+          </div>
+        </div>
+
         {/* Progresso geral do curso */}
         <div style={{ background: 'linear-gradient(120deg,#0E2A47,#143A5E)', borderRadius: 18, padding: 22, color: '#fff', marginBottom: 22 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
