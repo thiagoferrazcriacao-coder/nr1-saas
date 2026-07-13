@@ -9,13 +9,6 @@ type SectorOverview = {
   riskLevel: string | null
 }
 
-const riskBadge: Record<string, { label: string; cls: string }> = {
-  baixo:    { label: 'Baixo',    cls: 'bg-green-50 text-green-700 border-green-200' },
-  moderado: { label: 'Moderado', cls: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-  alto:     { label: 'Alto',     cls: 'bg-orange-50 text-orange-700 border-orange-200' },
-  critico:  { label: 'Crítico',  cls: 'bg-red-50 text-red-700 border-red-200' },
-}
-
 export default function DocumentosPage() {
   const [sectors, setSectors] = useState<SectorOverview[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,9 +21,9 @@ export default function DocumentosPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Abre o DRPS do setor em nova aba (documento HTML com botão Imprimir/Salvar PDF)
-  const gerarDrps = (sectorId: string) => {
-    window.open(`/api/dashboard/reports/${sectorId}/pdf`, '_blank')
+  // Abre o DRPS ÚNICO da empresa (documento HTML com botão Imprimir/Salvar PDF)
+  const gerarDrps = () => {
+    window.open('/api/dashboard/drps', '_blank')
   }
 
   // Abre o PGR da empresa inteira em nova aba
@@ -57,61 +50,33 @@ export default function DocumentosPage() {
 
       {/* ── DRPS ─────────────────────────────────────────────── */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
-        <div className="flex items-start gap-4 mb-5">
+        <div className="flex items-start gap-4">
           <span className="text-3xl flex-shrink-0">📋</span>
           <div className="flex-1">
             <h2 className="font-bold text-gray-900">DRPS — Diagnóstico de Riscos Psicossociais</h2>
             <p className="text-gray-500 text-sm mt-1">
-              O laudo técnico com a matriz de risco e a análise dos 13 fatores, assinado eletronicamente
-              pela psicóloga responsável. Gerado por setor, a partir das respostas dos colaboradores.
+              O laudo técnico completo da <strong>empresa</strong>, assinado pela psicóloga responsável: introdução,
+              metodologia, matriz de risco e a análise dos 13 fatores — com uma seção e gráficos <strong>por setor</strong>
+              avaliado. Se houver um único setor, o resultado é apresentado como a empresa como um todo.
             </p>
+            {!loading && sectors.length > 0 && (
+              <p className="text-xs text-gray-400 mt-2">
+                {sectors.filter((s) => s.totalResponses > 0).length} setor(es) com respostas · {totalRespostas} resposta{totalRespostas !== 1 ? 's' : ''} no total
+              </p>
+            )}
           </div>
+          <button
+            onClick={gerarDrps}
+            disabled={loading || totalRespostas === 0}
+            title={totalRespostas === 0 ? 'É preciso ter respostas para gerar o DRPS' : 'Gerar o DRPS da empresa'}
+            className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed self-center"
+          >
+            📄 Gerar DRPS
+          </button>
         </div>
-
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="w-7 h-7 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : sectors.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-            <p className="text-gray-500 text-sm">
-              Nenhum setor criado ainda. Crie setores e colete respostas para gerar o DRPS.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {sectors.map((s) => {
-              const badge = s.riskLevel ? riskBadge[s.riskLevel] : null
-              const semRespostas = s.totalResponses === 0
-              return (
-                <div
-                  key={s.id}
-                  className="flex items-center justify-between gap-3 border border-gray-100 rounded-xl px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-800 truncate">{s.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">
-                        {s.totalResponses} resposta{s.totalResponses !== 1 ? 's' : ''}
-                      </span>
-                      {badge && (
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg border ${badge.cls}`}>
-                          {badge.label}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => gerarDrps(s.id)}
-                    disabled={semRespostas}
-                    title={semRespostas ? 'Este setor ainda não tem respostas' : 'Gerar o DRPS deste setor'}
-                    className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    📄 Gerar DRPS
-                  </button>
-                </div>
-              )
-            })}
+        {!loading && sectors.length === 0 && (
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center mt-4">
+            <p className="text-gray-500 text-sm">Nenhum setor criado ainda. Crie setores e colete respostas para gerar o DRPS.</p>
           </div>
         )}
       </div>
