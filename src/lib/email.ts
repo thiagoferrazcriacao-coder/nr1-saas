@@ -39,6 +39,48 @@ export async function sendVerificationCode(email: string, code: string): Promise
   }
 }
 
+// Envia o e-mail de boas-vindas/primeiro acesso logo após a compra aprovada.
+export async function sendWelcomeEmail(email: string, name?: string | null): Promise<void> {
+  if (!resend) throw new Error('Serviço de e-mail não configurado.')
+  const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://plataformazelo.com.br').replace(/\/+$/, '')
+  const first = (name || '').trim().split(' ')[0]
+  const hi = first ? `Olá, ${first}!` : 'Olá!'
+
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <span style="font-size:24px;font-weight:900;color:#0E2A47;">Zelo</span>
+      <span style="font-size:13px;color:#17C3C9;margin-left:6px;">Plataforma de NR-1</span>
+    </div>
+    <div style="background:#F6F9FC;border:1px solid #e2e8f0;border-radius:16px;padding:28px;">
+      <p style="font-size:18px;font-weight:800;color:#0E2A47;margin:0 0 8px;">${hi} Bem-vindo(a) ao Zelo 🎉</p>
+      <p style="font-size:15px;color:#334155;line-height:1.6;margin:0 0 16px;">
+        Sua contratação foi confirmada. Agora é só criar o seu acesso para começar a adequação da sua empresa à NR-1.
+      </p>
+      <p style="font-size:14px;color:#334155;line-height:1.6;margin:0 0 20px;">
+        Use <strong>este mesmo e-mail</strong> no cadastro. Você vai receber um código de verificação, define a sua senha e pronto.
+      </p>
+      <div style="text-align:center;margin:8px 0 6px;">
+        <a href="${base}/cadastro" style="display:inline-block;background:#17C3C9;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 28px;border-radius:12px;">Criar meu acesso →</a>
+      </div>
+      <p style="font-size:12px;color:#94a3b8;text-align:center;margin:14px 0 0;">
+        Ou acesse: <a href="${base}/cadastro" style="color:#109CA1;">${base}/cadastro</a>
+      </p>
+    </div>
+    <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:20px;">
+      Já criou seu acesso? <a href="${base}/login" style="color:#109CA1;">Entrar na plataforma</a>.
+    </p>
+  </div>`
+
+  const { error } = await resend.emails.send({
+    from: FROM, to: email, subject: 'Bem-vindo(a) ao Zelo — crie seu acesso', html,
+  })
+  if (error) {
+    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error))
+    throw new Error(`Resend: ${msg}`)
+  }
+}
+
 // Envia o código de 6 dígitos para redefinir a senha de um gestor já cadastrado.
 export async function sendPasswordResetCode(email: string, code: string): Promise<void> {
   if (!resend) throw new Error('Serviço de e-mail não configurado.')

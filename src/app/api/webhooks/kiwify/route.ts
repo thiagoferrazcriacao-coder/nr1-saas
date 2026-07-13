@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendWelcomeEmail, emailConfigured } from '@/lib/email'
 
 // Mapeia o valor (em reais) ao plano
 function inferPlan(amountReais: number): string | null {
@@ -68,14 +69,25 @@ export async function POST(req: NextRequest) {
       raw: body,
     }
 
+    let sale
     if (orderId) {
-      await prisma.sale.upsert({
+      sale = await prisma.sale.upsert({
         where:  { orderId },
         create: { orderId, ...data },
         update: data,
       })
     } else {
-      await prisma.sale.create({ data })
+      sale = await prisma.sale.create({ data })
+    }
+
+    // E-mail de boas-vindas/acesso — só quando aprovado e ainda não enviado (idempotente)
+    if (sale.status === 'paid' && sale.customerEmail && !sale.welcomeSentAt && emailConfigured()) {
+      try {
+        await sendWelcomeEmail(sale.customerEmail, sale.customerName)
+        await prisma.sale.update({ where: { id: sale.id }, data: { welcomeSentAt: new Date() } })
+      } catch (e) {
+        console.error('[KIWIFY-WELCOME-EMAIL]', e instanceof Error ? e.message : String(e))
+      }
     }
 
     return NextResponse.json({ ok: true })

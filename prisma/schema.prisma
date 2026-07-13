@@ -270,6 +270,7 @@ model Sale {
   amountCents   Int      @default(0)
   status        String   @default("paid") // paid | refunded | chargeback | waiting
   raw           Json?                      // payload bruto (auditoria)
+  welcomeSentAt DateTime?                  // quando o e-mail de boas-vindas/acesso foi enviado
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

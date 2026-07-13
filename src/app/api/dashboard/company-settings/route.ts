@@ -15,10 +15,11 @@ const schema = z.object({
   state:         z.string().max(2).optional(),
   employeeCount: z.number().int().min(1).max(99999).optional(),
   workModality:  z.enum(['presencial', 'remoto', 'hibrido']).optional(),
+  logoUrl:       z.string().url().max(500).nullable().optional(),
 })
 
 const SELECT = {
-  id: true, name: true, fantasyName: true, cnpj: true,
+  id: true, name: true, fantasyName: true, cnpj: true, logoUrl: true,
   responsible: true, phone: true, address: true, city: true, state: true,
   employeeCount: true, workModality: true,
   drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true,
@@ -26,9 +27,9 @@ const SELECT = {
 
 export async function GET(req: NextRequest) {
   try {
-    const { companyId } = requireAuth(req)
+    const { companyId, email } = requireAuth(req)
     const company = await prisma.company.findUnique({ where: { id: companyId }, select: SELECT })
-    return NextResponse.json({ company })
+    return NextResponse.json({ company, email })
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
