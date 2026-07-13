@@ -94,7 +94,7 @@ export default function LandingPage() {
             <a href="#precos" className="block text-center bg-[#0E2A47] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#0A1F36] transition-colors">
               Começar agora
             </a>
-            <p className="text-center text-xs text-gray-400 mt-3">Inclui DRPS assinado por psicóloga (CRP), PGR e Plano de Ação.</p>
+            <p className="text-center text-xs text-gray-400 mt-3">Inclui DRPS assinado por psicóloga (CRP), Anexo para o PGR e Plano de Ação.</p>
           </div>
         </div>
       </section>
@@ -210,7 +210,7 @@ export default function LandingPage() {
               { icon: '📋', item: 'DRPS assinado por psicóloga com CRP' },
               { icon: '📊', item: 'Inventário completo de Riscos Psicossociais por setor' },
               { icon: '🔢', item: 'Matriz de Risco compatível com a NR-1 (Gravidade × Probabilidade)' },
-              { icon: '📑', item: 'PGR — Programa de Gerenciamento de Riscos' },
+              { icon: '📑', item: 'Anexo para o PGR (documento pronto para anexar ao seu PGR)' },
               { icon: '🎯', item: 'Plano de Ação priorizado, com prazos e responsáveis' },
               { icon: '🎓', item: 'Treinamentos em vídeo com comprovação de quem assistiu' },
             ].map((item, i) => (
@@ -431,7 +431,7 @@ export default function LandingPage() {
                 {p.valor !== 'Sob consulta' && <p className="text-xs text-gray-400 mt-1">pagamento único</p>}
                 <div className="mt-3 inline-flex items-center gap-1 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-2.5 py-1 rounded-lg w-fit">💸 {p.economia}</div>
                 <ul className="mt-4 space-y-1.5 text-sm text-gray-600 flex-1">
-                  {['DRPS + PGR + Plano de Ação', 'Treinamentos em vídeo', 'Suporte incluso'].map((f) => (
+                  {['DRPS + Anexo p/ PGR + Plano de Ação', 'Treinamentos em vídeo', 'Suporte incluso'].map((f) => (
                     <li key={f} className="flex items-start gap-2"><span className="text-[#17C3C9] font-bold">✓</span> {f}</li>
                   ))}
                 </ul>

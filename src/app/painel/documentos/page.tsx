@@ -121,19 +121,20 @@ export default function DocumentosPage() {
         <div className="flex items-start gap-4">
           <span className="text-3xl flex-shrink-0">📑</span>
           <div className="flex-1">
-            <h2 className="font-bold text-gray-900">PGR — Programa de Gerenciamento de Riscos</h2>
+            <h2 className="font-bold text-gray-900">Anexo para o PGR</h2>
             <p className="text-gray-500 text-sm mt-1">
-              O programa-mãe da empresa: inventário de riscos consolidado, critérios, plano de ação,
-              plano anual e cronograma de monitoramento. Reúne todos os setores em um único documento.
+              O documento técnico consolidado (todos os setores) para você <strong>anexar ao PGR</strong> da sua
+              empresa: inventário de riscos psicossociais, critérios e integração ao plano de ação. O PGR em si é
+              elaborado pela sua empresa/SESMT — nós fornecemos o anexo de riscos psicossociais.
             </p>
           </div>
           <button
             onClick={gerarPgr}
             disabled={loading || totalRespostas === 0}
-            title={totalRespostas === 0 ? 'É preciso ter respostas para gerar o PGR' : 'Gerar o PGR da empresa'}
+            title={totalRespostas === 0 ? 'É preciso ter respostas para gerar o anexo' : 'Gerar o Anexo para o PGR'}
             className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed self-center"
           >
-            📑 Gerar PGR
+            📑 Gerar Anexo
           </button>
         </div>
       </div>
