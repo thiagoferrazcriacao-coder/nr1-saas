@@ -113,7 +113,8 @@ function buildHtml(opts: {
 }): string {
   const { origin, companyName, fantasyName, cnpj, city, state, responsible, logoUrl, sectors, single, drpsValidatedAt, drpsNotes } = opts
   const now = new Date()
-  const mesAno = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  const mesAnoRaw = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  const mesAno = mesAnoRaw.charAt(0).toUpperCase() + mesAnoRaw.slice(1)
   const date = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   const proxima = new Date(now.getFullYear() + 1, now.getMonth(), 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   const zelo = `${origin}/logo-zelo-3.png`
@@ -153,13 +154,18 @@ function buildHtml(opts: {
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;}
-  @page{ size:A4; margin:2.6cm 1.5cm 2cm; }
-  .print-header{position:fixed;top:-1.9cm;left:0;right:0;height:1.4cm;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid ${TEAL};padding-bottom:4px;}
-  .print-footer{position:fixed;bottom:-1.4cm;left:0;right:0;height:1cm;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;font-size:8.5px;color:#94a3b8;padding-top:4px;}
+  @page{ size:A4; margin:1.3cm 1.4cm; }
+  .report{width:100%;border-collapse:collapse;}
+  .report > thead{display:table-header-group;}
+  .report > tfoot{display:table-footer-group;}
+  .report > tbody > tr > td, .report > thead > tr > td, .report > tfoot > tr > td{padding:0;}
+  .run-head{height:1.25cm;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid ${TEAL};margin-bottom:14px;}
+  .run-foot{width:100%;border-collapse:collapse;border-top:1px solid #e2e8f0;font-size:8px;color:#94a3b8;margin-top:8px;}
+  .run-foot td{border:none!important;padding:5px 0 0;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .page-break{page-break-after:always;}
   .avoid-break{page-break-inside:avoid;}
   table{border-collapse:collapse;width:100%;}
-  @media screen{ body{background:#eef2f6;} .sheet{max-width:820px;margin:16px auto;background:#fff;padding:2.4cm 1.6cm;box-shadow:0 4px 20px rgba(0,0,0,.08);} .print-header,.print-footer{position:static;height:auto;margin-bottom:10px;} }
+  @media screen{ body{background:#eef2f6;} .sheet{max-width:820px;margin:16px auto;background:#fff;padding:1.4cm 1.6cm;box-shadow:0 4px 20px rgba(0,0,0,.08);} }
   @media print{ .no-print{display:none!important;} .sheet{padding:0;} }
 </style></head>
 <body>
@@ -167,16 +173,21 @@ function buildHtml(opts: {
   <button onclick="window.print()" style="background:${TEAL};color:#fff;border:none;padding:11px 26px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:bold;">🖨️ Imprimir / Salvar em PDF</button>
 </div>
 
-<div class="print-header">
-  <span style="font-size:9px;color:#94a3b8;letter-spacing:1px;">DRPS · DIAGNÓSTICO DE RISCOS PSICOSSOCIAIS</span>
-  <img src="${zelo}" alt="Zelo" style="height:0.95cm;width:auto;"/>
-</div>
-<div class="print-footer">
-  <span>© Plataforma Zelo NR-1 · Documento técnico em conformidade com a NR-1 (Portaria MTE 1.419/2024).</span>
-  <span>${companyName}</span>
-</div>
-
 <div class="sheet">
+<table class="report">
+<thead><tr><td>
+  <div class="run-head">
+    <span style="font-size:9px;color:#94a3b8;letter-spacing:1px;">DRPS · DIAGNÓSTICO DE RISCOS PSICOSSOCIAIS</span>
+    <img src="${zelo}" alt="Zelo" style="height:0.85cm;width:auto;"/>
+  </div>
+</td></tr></thead>
+<tfoot><tr><td>
+  <table class="run-foot"><tr>
+    <td style="text-align:left;max-width:60%;">© Plataforma Zelo NR-1 · Anexo técnico ao PGR (NR-1)</td>
+    <td style="text-align:right;font-weight:600;">${companyName}</td>
+  </tr></table>
+</td></tr></tfoot>
+<tbody><tr><td>
 
   <!-- CAPA -->
   <div style="min-height:22cm;display:flex;flex-direction:column;justify-content:center;text-align:center;">
@@ -189,7 +200,7 @@ function buildHtml(opts: {
       ${logoUrl ? `<img src="${logoUrl}" alt="${companyName}" style="max-height:2cm;max-width:6cm;margin:0 auto 14px;display:block;object-fit:contain;"/>` : ''}
       <p style="font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Empresa</p>
       <p style="font-size:20px;font-weight:800;color:${NAVY};margin-top:4px;">${fantasyName || companyName}</p>
-      <p style="font-size:13px;color:#64748b;margin-top:24px;text-transform:capitalize;">${mesAno}</p>
+      <p style="font-size:13px;color:#64748b;margin-top:24px;">${mesAno}</p>
     </div>
   </div>
   <div class="page-break"></div>
@@ -281,6 +292,8 @@ function buildHtml(opts: {
     <li>ISO 45003:2021 — Occupational health and safety management — Psychological health and safety at work.</li>
   </ol>
 
+</td></tr></tbody>
+</table>
 </div>
 </body></html>`
 }
