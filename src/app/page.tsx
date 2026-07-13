@@ -39,15 +39,16 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl font-black leading-[1.1] mb-5 text-[#0E2A47]">
-              Sua empresa em conformidade com a{' '}
-              <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">NR-1</span>,
-              em poucos dias.
+              Sua empresa adequada à{' '}
+              <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">NR-1</span>
+              {' '}— e o plano de ação{' '}
+              <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">comprovadamente em ação</span>.
             </h1>
 
             <p className="text-lg text-gray-600 mb-7 leading-relaxed max-w-xl">
-              Toda empresa com <strong className="text-[#0E2A47]">ao menos 1 funcionário CLT</strong> é obrigada a fazer
-              o diagnóstico de riscos psicossociais. O Zelo cuida de tudo: avaliação anônima, laudo assinado por psicóloga
-              e plano de ação — sem paralisar a operação.
+              A maioria dos sistemas só deixa o papel pronto. O Zelo entrega o diagnóstico{' '}
+              <strong className="text-[#0E2A47]">e as evidências auditáveis</strong> de que sua empresa está, de fato,
+              cuidando da saúde mental da equipe.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -60,7 +61,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-wrap gap-x-6 gap-y-2">
-              {['1+ CLT já obriga', 'Laudo com validade legal', '100% online'].map((t) => (
+              {['Evidências auditáveis', 'Vídeos e ebooks inclusos', 'Relatório de quem assistiu'].map((t) => (
                 <span key={t} className="flex items-center gap-2 text-sm text-gray-500">
                   <span className="text-[#17C3C9] font-bold">✓</span> {t}
                 </span>
@@ -71,28 +72,29 @@ export default function LandingPage() {
           {/* Card de destaque (lado direito) */}
           <div className="bg-white rounded-3xl shadow-xl shadow-[#0E2A47]/10 border border-gray-100 p-7">
             <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-5">
-              ✦ ADEQUAÇÃO COMPLETA
+              ✦ PROVA VIVA, NÃO SÓ PAPEL
             </div>
-            <h3 className="text-xl font-black text-[#0E2A47] mb-4">Tudo o que sua empresa recebe</h3>
-            <ul className="space-y-3 mb-6">
+            <h3 className="text-xl font-black text-[#0E2A47] mb-1">Seu plano, comprovadamente em ação</h3>
+            <p className="text-sm text-gray-500 mb-5">Como o Zelo transforma a obrigação em evidência:</p>
+            <ol className="space-y-4 mb-6">
               {[
-                'DRPS — laudo assinado por psicóloga (CRP)',
-                'Inventário de Riscos por setor',
-                'Matriz de Risco NR-1',
-                'PGR — Programa de Gerenciamento de Riscos',
-                'Plano de Ação com prazos e responsáveis',
-                'Treinamentos em vídeo com comprovação',
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-xs flex items-center justify-center mt-0.5">✓</span>
-                  <span className="text-sm text-gray-700">{item}</span>
+                { i: '📚', t: 'Biblioteca de vídeos e ebooks', d: 'Treinamentos sobre cada risco psicossocial, prontos para usar.' },
+                { i: '🎯', t: 'O plano sugere, o gestor encaminha', d: 'O próprio plano de ação indica o conteúdo certo para cada risco. O gestor envia ao time — e isso já conta como ação da empresa.' },
+                { i: '📊', t: 'Relatório de quem assistiu (ou não)', d: 'A prova auditável de que sua empresa está trabalhando pela saúde emocional da equipe.' },
+              ].map((s, idx) => (
+                <li key={s.t} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
+                  <span>
+                    <span className="block text-sm font-bold text-[#0E2A47]">{s.i} {s.t}</span>
+                    <span className="block text-sm text-gray-600 mt-0.5">{s.d}</span>
+                  </span>
                 </li>
               ))}
-            </ul>
+            </ol>
             <a href="#precos" className="block text-center bg-[#0E2A47] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#0A1F36] transition-colors">
               Começar agora
             </a>
-            <p className="text-center text-xs text-gray-400 mt-3">Sem contrato de longo prazo · Suporte incluso</p>
+            <p className="text-center text-xs text-gray-400 mt-3">Inclui DRPS assinado por psicóloga (CRP), PGR e Plano de Ação.</p>
           </div>
         </div>
       </section>
