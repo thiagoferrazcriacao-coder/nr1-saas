@@ -46,7 +46,40 @@ function donut(segments: { value: number; color: string; label: string }[], titl
     </div>`
 }
 
-// ─── Bloco do setor (tabela + página de gráficos) ─────────────────────────────
+// Lista natural em português: [a, b, c] → "a, b e c"
+function fmtList(names: string[]): string {
+  if (names.length === 0) return ''
+  if (names.length === 1) return names[0]
+  return names.slice(0, -1).join(', ') + ' e ' + names[names.length - 1]
+}
+
+// ─── Análise narrativa automática do setor (item 5 preenchido por nós) ────────
+function narrative(sd: SectorData): string {
+  const low = (m: MatrixResult) => m.topic.charAt(0).toLowerCase() + m.topic.slice(1)
+  const alta   = sd.matrix.filter((m) => m.gravidade === 'alta')
+  const media  = sd.matrix.filter((m) => m.gravidade === 'media')
+  const protet = sd.matrix.filter((m) => m.gravidade === 'baixa')
+  const criticos = sd.matrix.filter((m) => m.riskFinal === 'critico')
+  const altos    = sd.matrix.filter((m) => m.riskFinal === 'alto')
+  const parts: string[] = []
+
+  if (alta.length) {
+    const nivel = criticos.length ? 'Alto ou Crítico' : altos.length ? 'Alto' : 'Médio'
+    parts.push(`A análise das médias por eixo temático indicou que os fatores relacionados a <strong>${fmtList(alta.map(low))}</strong> apresentaram o maior nível de gravidade neste setor. No cruzamento com a probabilidade de ocorrência, tais fatores foram classificados como <strong>${nivel}</strong>, correlacionando-se com a análise técnica contextual e demandando priorização das medidas de controle.`)
+  } else {
+    parts.push('A análise das médias por eixo temático não identificou fatores em nível elevado de gravidade neste setor, indicando um ambiente organizacional com baixa exposição aos riscos psicossociais avaliados no momento da coleta.')
+  }
+  if (media.length) {
+    parts.push(`Os fatores relacionados a <strong>${fmtList(media.map(low))}</strong> apresentaram classificação intermediária, sugerindo a necessidade de monitoramento sistemático e de ajustes organizacionais preventivos, a fim de evitar a evolução para níveis mais elevados.`)
+  }
+  parts.push('No que se refere à probabilidade de ocorrência, a análise técnica considerou a frequência percebida dos relatos, a recorrência histórica de situações semelhantes e a existência (ou ausência) de medidas formais de controle. O resultado do cruzamento entre gravidade e probabilidade, conforme a Matriz de Risco NR-1, é apresentado na tabela e nos gráficos a seguir.')
+  if (protet.length) {
+    parts.push(`Observou-se, ainda, a presença de fatores protetivos relacionados a <strong>${fmtList(protet.map(low))}</strong>, que atuam como elementos moderadores do risco e devem ser mantidos e fortalecidos nas estratégias de intervenção deste setor.`)
+  }
+  return parts.map((t) => `<p style="font-size:11.5px;color:#374151;line-height:1.65;text-align:justify;margin-bottom:9px;">${t}</p>`).join('')
+}
+
+// ─── Bloco do setor (identificação + narrativa + tabela + página de gráficos) ──
 function sectorBlock(sd: SectorData, label: string): string {
   const rows = sd.matrix.map((m) => {
     const gC = gravColor[m.gravidade]
@@ -71,9 +104,11 @@ function sectorBlock(sd: SectorData, label: string): string {
   }))
 
   return `
-    <div class="avoid-break" style="margin-bottom:14px;">
-      <p style="font-size:13px;font-weight:800;color:${NAVY};margin:8px 0 4px;">${label}</p>
-      <p style="font-size:11px;color:#64748b;margin-bottom:8px;">${sd.totalResponses} respondente${sd.totalResponses !== 1 ? 's' : ''} · classificação dos 13 fatores conforme a Matriz de Risco NR-1.</p>
+    <p style="font-size:13px;font-weight:800;color:${NAVY};margin:10px 0 6px;">${label}</p>
+    <p style="font-size:11px;color:#64748b;margin-bottom:10px;"><strong>Número de respondentes:</strong> ${sd.totalResponses} · <strong>Fatores avaliados:</strong> 13, conforme os eixos temáticos do DRPS.</p>
+    ${narrative(sd)}
+    <div class="avoid-break" style="margin:12px 0 14px;">
+      <p style="font-size:11px;font-weight:700;color:${NAVY};margin-bottom:6px;">Classificação dos 13 fatores — Matriz de Risco NR-1</p>
       <table style="border-collapse:collapse;width:100%;">
         <thead><tr style="border-bottom:2px solid #e2e8f0;background:#f8fafc;">
           <th style="padding:7px 8px;font-size:10px;color:#6b7280;text-align:center;">Nº</th>
@@ -149,6 +184,18 @@ function buildHtml(opts: {
 
   const P = (t: string) => `<p style="font-size:11.5px;color:#374151;line-height:1.65;text-align:justify;margin-bottom:10px;">${t}</p>`
   const H = (n: string, t: string) => `<h2 style="font-size:15px;color:${NAVY};border-bottom:2px solid ${TEAL};padding-bottom:6px;margin:26px 0 12px;">${n}. ${t}</h2>`
+  const H3 = (t: string) => `<h3 style="font-size:12px;color:${TEALD};font-weight:700;margin:16px 0 6px;">${t}</h3>`
+
+  // Fluxograma simples (5 etapas) para o item 4
+  const flowStep = (n: string, t: string, d: string) => `<div style="flex:1;text-align:center;"><div style="width:34px;height:34px;border-radius:50%;background:${NAVY};color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;">${n}</div><p style="font-size:10px;font-weight:700;color:${NAVY};line-height:1.25;">${t}</p><p style="font-size:9px;color:#94a3b8;line-height:1.2;margin-top:2px;">${d}</p></div>`
+  const arrow = `<div style="align-self:flex-start;margin-top:8px;color:${TEAL};font-weight:800;font-size:16px;">›</div>`
+  const fluxograma = `<div class="avoid-break" style="display:flex;align-items:stretch;justify-content:space-between;gap:4px;background:#F6F9FC;border:1px solid #e2e8f0;border-radius:12px;padding:16px 12px;margin:10px 0 4px;">
+    ${flowStep('1', 'Alinhamento inicial', 'Reunião e definição dos setores')}${arrow}
+    ${flowStep('2', 'Coleta de dados', 'Questionário confidencial (digital)')}${arrow}
+    ${flowStep('3', 'Análise integrada', 'Dados + análise técnica')}${arrow}
+    ${flowStep('4', 'Classificação', 'Matriz de Risco NR-1')}${arrow}
+    ${flowStep('5', 'Relatório técnico', 'Síntese e recomendações')}
+  </div>`
 
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>
 <style>
@@ -228,8 +275,16 @@ function buildHtml(opts: {
   ${P('Este relatório tem por objetivo estruturar e sistematizar a análise dos fatores de riscos psicossociais identificados na organização avaliada, classificando-os conforme gravidade e probabilidade de ocorrência, de modo a subsidiar a tomada de decisão, a definição de prioridades de intervenção e a integração dos resultados ao Programa de Gerenciamento de Riscos (PGR), do qual este documento constitui anexo técnico.')}
 
   ${H('3', 'Metodologia')}
-  ${P('A metodologia fundamenta-se em referenciais consolidados da psicodinâmica do trabalho, estudos sobre estresse ocupacional e diretrizes normativas nacionais e internacionais. A coleta foi realizada por questionário estruturado, em formato digital, assegurando anonimato, confidencialidade e tratamento agregado das informações (LGPD). As respostas foram registradas em escala tipo Likert de 0 a 4 (0 = nunca, 4 = sempre); itens de natureza protetiva foram tratados por lógica invertida.')}
-  ${P('A <strong>gravidade</strong> foi determinada pelo cálculo das médias por item e por fator. A <strong>probabilidade</strong> de ocorrência foi definida por análise técnica do profissional responsável. A <strong>classificação final</strong> resulta do cruzamento entre gravidade e probabilidade na Matriz de Risco NR-1, nas categorias Baixo, Médio, Alto ou Crítico.')}
+  ${P('A metodologia empregada fundamenta-se em referenciais consolidados da psicodinâmica do trabalho, nos estudos sobre estresse ocupacional e nas diretrizes normativas nacionais e internacionais sobre riscos psicossociais relacionados ao trabalho. O DRPS constitui instrumento técnico de rastreamento organizacional, destinado à identificação de fatores de risco em nível coletivo, não se configurando como avaliação clínica individual.')}
+  ${P('<strong>Coleta de dados.</strong> A coleta foi realizada por meio de questionário estruturado, aplicado em formato digital, assegurando anonimato, confidencialidade e tratamento agregado das informações, em conformidade com a Lei Geral de Proteção de Dados (LGPD). O instrumento organiza-se em torno dos treze fatores de risco psicossocial, com respostas registradas em escala do tipo Likert de 0 a 4 (0 = nunca; 4 = sempre), conforme a frequência percebida.')}
+  ${H3('Cálculo da gravidade')}
+  ${P('Após a coleta, as respostas são convertidas em valores numéricos de 0 a 4. Os itens de natureza protetiva são corrigidos por <strong>lógica invertida</strong> (pontuação = 4 − valor), de modo que a pontuação final represente coerentemente o nível de exposição ao risco. Para cada questão calcula-se a média, e a gravidade é classificada, por intervalos predefinidos, em <strong>Baixa</strong>, <strong>Média</strong> ou <strong>Alta</strong>.')}
+  ${H3('Média por eixo temático')}
+  ${P('Cada um dos treze fatores (como assédio, sobrecarga de trabalho, autonomia, reconhecimento, entre outros) recebe uma média de gravidade calculada a partir das respostas de todas as questões daquele eixo. Essas médias são então consolidadas e classificadas em Baixa, Média ou Alta.')}
+  ${H3('Probabilidade de ocorrência')}
+  ${P('A probabilidade é definida a partir de avaliação qualitativa conduzida pelo profissional responsável, que correlaciona os achados com o inventário de riscos psicossociais. São considerados três critérios: a <strong>frequência</strong> percebida do risco no setor (baixa, média ou alta); o <strong>histórico</strong> de ocorrências semelhantes (sim, não ou frequente); e os <strong>recursos disponíveis</strong> para mitigação (adequados, insuficientes ou inexistentes).')}
+  ${H3('Matriz de Risco NR-1')}
+  ${P('A classificação final resulta do cruzamento entre a gravidade (obtida do questionário) e a probabilidade (obtida da análise técnica), utilizando a matriz compatível com os parâmetros da NR-1, que resulta nas categorias Baixo, Médio, Alto ou Crítico:')}
   <table style="margin:10px 0 4px;max-width:520px;">
     <thead><tr>
       <th style="padding:7px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:10.5px;text-align:left;color:#475569;">Probabilidade \\ Gravidade</th>
@@ -243,9 +298,15 @@ function buildHtml(opts: {
         ${(cells as string[]).map((c) => `<td style="padding:7px 10px;border:1px solid #e2e8f0;text-align:center;font-size:10px;color:${riskColors[c]};font-weight:700;">${riskLabel[c]}</td>`).join('')}</tr>`).join('')}
     </tbody>
   </table>
+  ${H3('Escalas e questionários utilizados')}
+  ${P('Foram utilizados questionários estruturados fundamentados em modelos reconhecidos — entre eles as referências da Organização Mundial da Saúde (OMS) e da Organização Internacional do Trabalho (OIT) — e nos modelos de estresse ocupacional Demanda-Controle (Karasek) e Esforço-Recompensa (Siegrist). As perguntas abordam os treze fatores de risco psicossocial, incluindo assédio, sobrecarga, metas, autonomia e reconhecimento, entre outros. Após a coleta, as médias de gravidade e probabilidade são calculadas e classificadas segundo a Matriz de Risco NR-1, permitindo mapear e priorizar os riscos que exigem ação imediata.')}
+  <div class="page-break"></div>
 
   ${H('4', 'Fluxo de Aplicação do DRPS')}
-  ${P('A aplicação seguiu fluxo técnico estruturado: (1) <strong>Alinhamento inicial</strong> — compreensão da estrutura organizacional e definição dos setores avaliados; (2) <strong>Coleta de dados</strong> — questionário confidencial em formato digital; (3) <strong>Análise integrada</strong> — consolidação quantitativa e qualificação técnica da probabilidade; (4) <strong>Classificação de risco</strong> — cruzamento na Matriz NR-1; (5) <strong>Relatório técnico</strong> — síntese, recomendações e integração ao PGR.')}
+  ${P('A aplicação do DRPS seguiu fluxo técnico estruturado, garantindo consistência metodológica, confidencialidade das informações e adequação às diretrizes do Gerenciamento de Riscos Ocupacionais.')}
+  ${fluxograma}
+  ${P('Inicialmente, realizou-se o <strong>alinhamento</strong> com a organização para compreender sua estrutura, número de colaboradores, setores existentes e contexto produtivo, definindo-se os setores a avaliar e o período de aplicação. Em seguida, procedeu-se à <strong>coleta</strong> por questionário digital, com anonimato e comunicação prévia aos colaboradores quanto ao objetivo e ao uso agregado dos dados.')}
+  ${P('Após a coleta, os dados quantitativos foram <strong>consolidados</strong> (médias por item e por eixo, correção da lógica invertida e classificação preliminar da gravidade). Paralelamente, a <strong>análise qualitativa</strong> — observações contextuais e informações organizacionais — qualificou a probabilidade de ocorrência. Procedeu-se, então, ao <strong>cruzamento</strong> na Matriz de Risco NR-1 e à organização dos achados neste <strong>relatório técnico</strong>, com recomendações proporcionais e orientações para integração ao PGR.')}
   <div class="page-break"></div>
 
   ${H('5', 'Análises e Resultados')}
@@ -254,7 +315,8 @@ function buildHtml(opts: {
 
   <div class="page-break"></div>
   ${H('6', 'Medidas de Prevenção e Recomendações Técnicas')}
-  ${P('Com base na classificação dos fatores identificados, especialmente os enquadrados como Alto ou Crítico, recomendam-se medidas preventivas proporcionais ao nível de exposição, priorizando intervenções organizacionais estruturais, com definição de responsáveis, prazos e monitoramento, integradas ao PGR.')}
+  ${P('Com base na classificação dos fatores identificados, especialmente aqueles enquadrados como Alto ou Crítico, torna-se necessária a implementação de medidas preventivas proporcionais ao nível de exposição. As recomendações consideram o princípio da <strong>hierarquia de controle de riscos</strong> aplicado ao contexto psicossocial, priorizando intervenções organizacionais estruturais antes de ações exclusivamente individuais.')}
+  ${P('As medidas propostas visam reduzir a exposição aos fatores de risco identificados; fortalecer os fatores protetivos existentes; estruturar mecanismos formais de prevenção; integrar as ações ao Programa de Gerenciamento de Riscos (PGR); e estabelecer monitoramento contínuo. Cada medida deve observar a proporcionalidade ao risco, a definição clara de responsáveis e prazos, e o acompanhamento por indicadores objetivos ou reavaliação periódica. Recomenda-se que os riscos classificados como <strong>Crítico</strong> sejam tratados com prioridade máxima.')}
   <table style="margin-top:6px;">
     <thead><tr style="background:${NAVY};">
       <th style="padding:8px 10px;border:1px solid ${NAVY};color:#fff;font-size:10.5px;text-align:left;">Fator de Risco</th>
