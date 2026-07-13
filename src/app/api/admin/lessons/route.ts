@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
 const createSchema = z.object({
   programNum:  z.number().int().min(1).max(13),
   trilha:      z.enum(['gestor', 'colaborador']).default('colaborador'),
+  videoRef:    z.string().trim().max(10).optional(),
   title:       z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
   videoUrl:    z.string().url(),
@@ -48,10 +49,15 @@ export async function POST(req: NextRequest) {
       where: { companyId: null, programNum: parsed.data.programNum },
       orderBy: { order: 'desc' }, select: { order: true },
     })
+    // Se veio um slot do índice, garante que não haja duplicado (substitui o anterior daquele slot)
+    if (parsed.data.videoRef) {
+      await prisma.lesson.deleteMany({ where: { companyId: null, videoRef: parsed.data.videoRef } })
+    }
+
     const lesson = await prisma.lesson.create({
       data: {
         companyId: null, programNum: parsed.data.programNum, program: program.name,
-        trilha: parsed.data.trilha,
+        trilha: parsed.data.trilha, videoRef: parsed.data.videoRef ?? null,
         title: parsed.data.title, description: parsed.data.description ?? null,
         videoUrl: parsed.data.videoUrl, durationSec: parsed.data.durationSec ?? 0,
         order: (last?.order ?? -1) + 1,

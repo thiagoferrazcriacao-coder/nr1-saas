@@ -158,6 +158,7 @@ model Lesson {
   programNum  Int              // 1–13 (fator de risco, usado na sugestão automática)
   program     String           // nome do programa/fator
   trilha      String           @default("colaborador") // "gestor" | "colaborador"
+  videoRef    String?          // chave do slot no Índice de Vídeos (ex: "01.5"), quando vinculado ao catálogo
   title       String
   description String?
   videoUrl    String

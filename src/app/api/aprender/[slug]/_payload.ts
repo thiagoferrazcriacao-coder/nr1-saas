@@ -40,6 +40,8 @@ export async function buildMemberPayload(
       id:          l.id,
       programNum:  l.programNum,
       program:     l.program,
+      trilha:      l.trilha,
+      videoRef:    l.videoRef,
       title:       l.title,
       description: l.description,
       videoUrl:    l.videoUrl,

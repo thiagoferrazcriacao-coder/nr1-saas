@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { PROGRAMS } from '@/lib/programs'
+import { FACTOR_NAMES, FACTOR_NUMS, FACTOR_WEIGHT, slotsFor, type Trilha as SlotTrilha } from '@/lib/video-index'
 import MateriaisExtras from './MateriaisExtras'
 
-type Trilha = 'gestor' | 'colaborador'
-type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; title: string; description: string | null; videoUrl: string }
+type Trilha = SlotTrilha
+type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; videoRef: string | null; title: string; description: string | null; videoUrl: string }
 type GestorProgress = Record<string, { percent: number; completed: boolean }>
 type PerLesson = { lessonId: string; title: string; program: string; programNum: number; percent: number; completed: boolean; updatedAt: string | null }
 type EmployeeRow = { email: string; name: string | null; avgPercent: number; completedCount: number; activeCount: number; perLesson: PerLesson[] }
@@ -93,58 +93,60 @@ export default function MaterialDidaticoPage() {
     return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" /></div>
   }
 
-  const gestorLessons = lessons.filter((l) => l.trilha === 'gestor')
-  const colabLessons  = lessons.filter((l) => l.trilha === 'colaborador')
+  // Cores por autor e peso do fator
+  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
+  const weightCls: Record<string, string> = { ALTO: 'bg-red-50 text-red-600 border-red-200', 'MÉDIO': 'bg-amber-50 text-amber-700 border-amber-200', BAIXO: 'bg-green-50 text-green-700 border-green-200' }
 
-  // Renderiza um accordion de vídeos por fator, para uma trilha
-  const renderTrilha = (trilha: Trilha, list: Lesson[]) => {
-    const progs = PROGRAMS.filter((p) => list.some((l) => l.programNum === p.num))
-    if (progs.length === 0) {
-      return (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 text-center">
-          <p className="text-gray-400 text-sm">Os vídeos desta trilha estão sendo preparados e aparecerão aqui em breve.</p>
-        </div>
-      )
-    }
+  // Renderiza o catálogo (13 fatores) de uma trilha, com as aulas planejadas do Índice de Vídeos.
+  // Cada aula toca se o vídeo já foi publicado (vinculado por videoRef); senão, mostra "em breve".
+  const renderTrilha = (trilha: Trilha) => {
+    const byRef = new Map(lessons.filter((l) => l.videoRef).map((l) => [l.videoRef as string, l]))
     return (
       <div className="space-y-2.5">
-        {progs.map((p) => {
-          const ls = list.filter((l) => l.programNum === p.num)
-          const key = `${trilha}-${p.num}`
+        {FACTOR_NUMS.map((num) => {
+          const slots = slotsFor(num, trilha)
+          const key = `${trilha}-${num}`
           const isExpanded = expanded === key
-          const doneCount = trilha === 'gestor' ? ls.filter((l) => (gestorProgress[l.id]?.completed)).length : 0
+          const filled = slots.filter((s) => byRef.has(s.key))
+          const doneCount = trilha === 'gestor' ? filled.filter((s) => gestorProgress[byRef.get(s.key)!.id]?.completed).length : 0
+          const w = FACTOR_WEIGHT[num]
           return (
             <div key={key} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
               <button onClick={() => setExpanded(isExpanded ? null : key)} className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-gray-50 transition-colors text-left">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-black flex items-center justify-center flex-shrink-0">{p.num}</span>
+                  <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-black flex items-center justify-center flex-shrink-0">{num}</span>
                   <div className="min-w-0">
-                    <p className="font-bold text-[#0E2A47] truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">🎬 {ls.length} aula{ls.length !== 1 ? 's' : ''}{trilha === 'gestor' && doneCount > 0 ? ` · ✅ ${doneCount} concluída${doneCount !== 1 ? 's' : ''}` : ''}</p>
+                    <p className="font-bold text-[#0E2A47] truncate">{FACTOR_NAMES[num]}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">🎬 {filled.length}/{slots.length} disponível{filled.length !== 1 ? 'is' : ''}{trilha === 'gestor' && doneCount > 0 ? ` · ✅ ${doneCount} concluída${doneCount !== 1 ? 's' : ''}` : ''}</p>
                   </div>
                 </div>
-                <span className={`text-gray-400 text-xs flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${weightCls[w]}`}>{w}</span>
+                  <span className={`text-gray-400 text-xs transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+                </div>
               </button>
               {isExpanded && (
                 <div className="border-t border-gray-100 divide-y divide-gray-50">
-                  {ls.map((l, i) => {
-                    const gp = gestorProgress[l.id]
+                  {slots.map((s, i) => {
+                    const lesson = byRef.get(s.key)
+                    const gp = lesson ? gestorProgress[lesson.id] : undefined
                     return (
-                      <div key={l.id} className="px-5 py-3.5">
+                      <div key={s.key} className="px-5 py-3.5">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="w-8 h-8 rounded-lg bg-[#F0FBFC] text-[#109CA1] text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-800 truncate">{l.title}</p>
-                              {l.description && <p className="text-xs text-gray-400 truncate">{l.description}</p>}
+                              <p className="text-sm font-semibold text-gray-800">{s.title}</p>
+                              <p className="text-[11px] mt-0.5"><span style={{ color: authorColor[s.author], fontWeight: 700 }}>{s.author}</span> <span className="text-gray-400">· {s.camada}</span></p>
                             </div>
                           </div>
-                          <button onClick={() => setVideo(l)} className="flex-shrink-0 flex items-center gap-1.5 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition-opacity">
-                            ▶ Assistir
-                          </button>
+                          {lesson ? (
+                            <button onClick={() => setVideo(lesson)} className="flex-shrink-0 flex items-center gap-1.5 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition-opacity">▶ Assistir</button>
+                          ) : (
+                            <span className="flex-shrink-0 text-[11px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-3 py-2 rounded-lg">em breve</span>
+                          )}
                         </div>
-                        {/* Barra de comprovação do gestor (só na trilha do gestor) */}
-                        {trilha === 'gestor' && (
+                        {trilha === 'gestor' && lesson && (
                           <div className="flex items-center gap-2 mt-2 pl-11">
                             <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${gp?.percent ?? 0}%`, background: barColor(gp?.percent ?? 0) }} /></div>
                             <span className={`text-[11px] font-semibold w-20 text-right ${gp?.completed ? 'text-green-600' : gp?.percent ? 'text-yellow-600' : 'text-gray-400'}`}>{gp?.completed ? '✅ Concluído' : gp?.percent ? `${gp.percent}%` : 'não assistido'}</span>
@@ -202,7 +204,7 @@ export default function MaterialDidaticoPage() {
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">você</span>
         </div>
         <p className="text-gray-500 text-sm mb-4">Os vídeos que <strong>você</strong> precisa assistir. A barra abaixo de cada aula <strong>comprova</strong> que você fez o treinamento.</p>
-        {renderTrilha('gestor', gestorLessons)}
+        {renderTrilha('gestor')}
       </div>
 
       {/* TRILHA DO COLABORADOR */}
@@ -212,7 +214,7 @@ export default function MaterialDidaticoPage() {
           <h2 className="font-bold text-gray-900">Trilha do Colaborador</h2>
         </div>
         <p className="text-gray-500 text-sm mb-4">Os vídeos que o seu time assiste pelo link. Você pode conferir aqui — mas <strong>esta visualização não conta</strong> como presença. A presença dos colaboradores aparece no relatório abaixo.</p>
-        {renderTrilha('colaborador', colabLessons)}
+        {renderTrilha('colaborador')}
       </div>
 
       {/* Materiais complementares (ebooks oficiais + extras do gestor) */}

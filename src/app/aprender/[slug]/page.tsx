@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
+import { FACTOR_NAMES, FACTOR_NUMS, slotsFor } from '@/lib/video-index'
 
 type Lesson = {
   id: string
   programNum: number
   program: string
+  trilha?: string
+  videoRef?: string | null
   title: string
   description: string | null
   videoUrl: string
@@ -308,13 +311,9 @@ export default function AprenderPage() {
   const concluidos = lessons.filter((l) => l.completed).length
   const overall = total ? Math.round(lessons.reduce((s, l) => s + l.percent, 0) / total) : 0
 
-  // Agrupa por tema (as aulas já vêm ordenadas por programa)
-  const modules: { programNum: number; program: string; items: Lesson[] }[] = []
-  for (const l of lessons) {
-    let m = modules.find((x) => x.programNum === l.programNum)
-    if (!m) { m = { programNum: l.programNum, program: l.program, items: [] }; modules.push(m) }
-    m.items.push(l)
-  }
+  // Mapa videoRef → aula publicada (para casar com o catálogo do Índice de Vídeos)
+  const byRef = new Map(lessons.filter((l) => l.videoRef).map((l) => [l.videoRef as string, l]))
+  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
@@ -350,52 +349,54 @@ export default function AprenderPage() {
           </div>
         </div>
 
-        {total === 0 ? (
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 32, textAlign: 'center', color: '#64748b', fontSize: 14 }}>
-            Ainda não há aulas disponíveis. Volte em breve!
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {modules.map((m, mi) => {
-              const mTotal = m.items.length
-              const mDone = m.items.filter((l) => l.completed).length
-              const mPct = mTotal ? Math.round(m.items.reduce((s, l) => s + l.percent, 0) / mTotal) : 0
-              return (
-                <div key={m.programNum}>
-                  {/* Cabeçalho do módulo */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px' }}>Módulo {mi + 1}</p>
-                      <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>{m.program}</h2>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <span style={{ fontSize: 12, color: '#64748b' }}>{mDone}/{mTotal} · {mPct}%</span>
-                      <div style={{ width: 110, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
-                        <div style={{ width: `${mPct}%`, height: '100%', background: mPct >= 90 ? '#22c55e' : '#17C3C9' }} />
-                      </div>
-                    </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {FACTOR_NUMS.map((num) => {
+            const slots = slotsFor(num, 'colaborador')
+            const items = slots.map((s) => ({ slot: s, lesson: byRef.get(s.key) }))
+            const avail = items.filter((x) => x.lesson)
+            const mPct = avail.length ? Math.round(avail.reduce((s, x) => s + (x.lesson?.percent ?? 0), 0) / avail.length) : 0
+            return (
+              <div key={num}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px' }}>Fator {num}</p>
+                    <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a' }}>{FACTOR_NAMES[num]}</h2>
                   </div>
-
-                  {/* Aulas do módulo */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {m.items.map((l, i) => (
-                      <button key={l.id} onClick={() => openLesson(l)} style={{ textAlign: 'left', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', gap: 13, alignItems: 'center' }}>
-                        <div style={{ width: 42, height: 42, borderRadius: 11, background: l.completed ? '#dcfce7' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>{l.completed ? '✅' : '▶️'}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}><span style={{ color: '#94a3b8' }}>Aula {i + 1} · </span>{l.title}</p>
-                          <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${l.percent}%`, height: '100%', background: l.completed ? '#22c55e' : '#17C3C9' }} /></div>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: l.completed ? '#16a34a' : '#64748b', minWidth: 38, textAlign: 'right' }}>{l.percent}%</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>{avail.length}/{slots.length} disponível{avail.length !== 1 ? 'is' : ''}</span>
+                    <div style={{ width: 110, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 4 }}>
+                      <div style={{ width: `${mPct}%`, height: '100%', background: mPct >= 90 ? '#22c55e' : '#17C3C9' }} />
+                    </div>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {items.map(({ slot, lesson }, i) => lesson ? (
+                    <button key={slot.key} onClick={() => openLesson(lesson)} style={{ textAlign: 'left', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 14, cursor: 'pointer', display: 'flex', gap: 13, alignItems: 'center' }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 11, background: lesson.completed ? '#dcfce7' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>{lesson.completed ? '✅' : '▶️'}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}><span style={{ color: '#94a3b8' }}>Aula {i + 1} · </span>{slot.title}</p>
+                        <p style={{ fontSize: 12, marginTop: 2 }}><span style={{ color: authorColor[slot.author], fontWeight: 700 }}>{slot.author}</span></p>
+                        <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${lesson.percent}%`, height: '100%', background: lesson.completed ? '#22c55e' : '#17C3C9' }} /></div>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: lesson.completed ? '#16a34a' : '#64748b', minWidth: 38, textAlign: 'right' }}>{lesson.percent}%</span>
+                        </div>
+                      </div>
+                    </button>
+                  ) : (
+                    <div key={slot.key} style={{ background: '#fff', border: '1px dashed #e2e8f0', borderRadius: 14, padding: 14, display: 'flex', gap: 13, alignItems: 'center', opacity: .7 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 11, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18 }}>⏳</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: '#475569' }}><span style={{ color: '#94a3b8' }}>Aula {i + 1} · </span>{slot.title}</p>
+                        <p style={{ fontSize: 12, marginTop: 2, color: '#94a3b8' }}><span style={{ color: authorColor[slot.author], fontWeight: 700 }}>{slot.author}</span> · em breve</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
         {/* Materiais complementares (ebooks e extras enviados pela empresa) */}
         {materials.length > 0 && (
