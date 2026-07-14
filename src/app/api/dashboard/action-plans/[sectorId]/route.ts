@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { buildPlan, PlanItem, InterventionCadence } from '@/lib/action-plan-engine'
-import { computeSectorFactors } from '@/lib/sector-factors'
+import { computeSectorFactors, FactorRisk } from '@/lib/sector-factors'
+import { buildTrainingSchedule, weeksSince, IntervCadence } from '@/lib/training-schedule'
 
 const CADENCES: InterventionCadence[] = ['semanal', 'mensal', 'bimestral']
 
@@ -56,6 +57,11 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
 
     // Já existe plano salvo (formato novo) → devolve direto
     if (plan && isNewShape) {
+      const cad = (plan.interventionCadence as IntervCadence) ?? 'mensal'
+      const baseline: FactorRisk[] = Array.isArray(plan.baseline) ? (plan.baseline as unknown as FactorRisk[]) : []
+      const training = baseline.length
+        ? buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), cad)
+        : []
       return NextResponse.json({
         plan: {
           items: plan.items as unknown as PlanItem[],
@@ -63,6 +69,9 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
           startDate: plan.createdAt,
           interventionCadence: plan.interventionCadence,
         },
+        training,
+        weeksElapsed: weeksSince(plan.createdAt),
+        planStarted: true,
         sectorName: sector.name,
       })
     }
@@ -79,7 +88,8 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     }
 
     const suggested = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })), cadParam)
-    return NextResponse.json({ plan: null, suggested, chosenCadence: cadParam, sectorName: sector.name })
+    const training = buildTrainingSchedule(factors.map((f) => ({ topicNum: f.topicNum, factor: f.factor, riskLevel: f.riskLevel })), cadParam as IntervCadence)
+    return NextResponse.json({ plan: null, suggested, training, weeksElapsed: 0, planStarted: false, chosenCadence: cadParam, sectorName: sector.name })
   } catch (err) {
     console.error('[ACTION-PLAN GET]', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })

@@ -54,6 +54,8 @@ const whenLabel = (i: PlanItem) => (i.dueWeek === 0 ? 'Contínuo' : `Semana ${i.
 type Trilha = 'gestor' | 'colaborador'
 type LessonLite = { id: string; programNum: number; trilha: Trilha; title: string; description: string | null; videoUrl: string }
 type GestorProgress = Record<string, { percent: number; completed: boolean }>
+type SchedVideo = { key: string; title: string; author: string }
+type TrainingFactor = { factorNum: number; factor: string; riskLevel: RiskLevel; releaseWeek: number; gestor: SchedVideo[]; colaborador: SchedVideo[] }
 
 type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
 type Comparison = { topicNum: number; factor: string; baseline: RiskLevel; current: RiskLevel | null; trend: Trend }
@@ -93,6 +95,9 @@ export default function PlanoDeAcaoPage() {
   const [lessons, setLessons] = useState<LessonLite[]>([])
   const [gestorProg, setGestorProg] = useState<GestorProgress>({})
   const [learnCode, setLearnCode] = useState<string>('')
+  const [training, setTraining] = useState<TrainingFactor[]>([])
+  const [weeksElapsed, setWeeksElapsed] = useState(0)
+  const [planStarted, setPlanStarted] = useState(false)
 
   const loadReaval = useCallback(() => {
     fetch(`/api/dashboard/action-plans/${sectorId}/reavaliacao`)
@@ -101,10 +106,13 @@ export default function PlanoDeAcaoPage() {
       .catch(() => {})
   }, [sectorId])
 
-  const applyData = (d: { plan?: { items: PlanItem[]; interventionCadence?: Intervention | null }; suggested?: PlanItem[]; needsCadence?: boolean; noData?: boolean; chosenCadence?: Intervention; sectorName?: string }) => {
+  const applyData = (d: { plan?: { items: PlanItem[]; interventionCadence?: Intervention | null }; suggested?: PlanItem[]; needsCadence?: boolean; noData?: boolean; chosenCadence?: Intervention; sectorName?: string; training?: TrainingFactor[]; weeksElapsed?: number; planStarted?: boolean }) => {
     setSectorName(d.sectorName ?? '')
     setNoData(!!d.noData)
     setNeedsCadence(!!d.needsCadence)
+    setTraining(d.training ?? [])
+    setWeeksElapsed(d.weeksElapsed ?? 0)
+    setPlanStarted(!!d.planStarted)
     const planOk = !!d.plan?.items?.length && d.plan.items[0]?.topicNum != null && (d.plan.items[0] as PlanItem)?.level != null
     if (planOk && d.plan) {
       setItems(d.plan.items); setHasPlan(true); setCadence(d.plan.interventionCadence ?? null)
@@ -235,6 +243,11 @@ export default function PlanoDeAcaoPage() {
         </div>
       )}
 
+      {/* Cronograma de treinamentos (vídeos como ações nas 52 semanas) */}
+      {training.length > 0 && (
+        <TrainingScheduleCard training={training} weeksElapsed={weeksElapsed} planStarted={planStarted} learnCode={learnCode} lessons={lessons} gestorProg={gestorProg} />
+      )}
+
       {/* Reavaliação (meses 3/6/12) */}
       {hasPlan && reaval?.hasPlan && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -358,6 +371,109 @@ export default function PlanoDeAcaoPage() {
           🔒 Anexe as evidências de cada ação ao longo do ano. Esse registro é a prova de que o plano está sendo praticado — exatamente o que a fiscalização do MTE exige.
         </p>
       )}
+    </div>
+  )
+}
+
+// Cronograma de Treinamentos — os vídeos do Índice de Vídeos viram ações do plano,
+// distribuídos nas 52 semanas por prioridade (fator mais grave primeiro). Os vídeos do
+// colaborador são LIBERADOS gradualmente; os do gestor ele assiste desde já.
+function TrainingScheduleCard({ training, weeksElapsed, planStarted, learnCode, lessons, gestorProg }: {
+  training: TrainingFactor[]
+  weeksElapsed: number
+  planStarted: boolean
+  learnCode: string
+  lessons: LessonLite[]
+  gestorProg: GestorProgress
+}) {
+  const [copied, setCopied] = useState(false)
+  const learnLink = typeof window !== 'undefined' && learnCode ? `${window.location.origin}/aprender/${learnCode}` : ''
+  const copyLearn = async () => { try { await navigator.clipboard.writeText(learnLink); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
+
+  // aula publicada por título (a biblioteca do painel não traz videoRef, casamos por título)
+  const pubTitles = new Set(lessons.map((l) => l.title))
+  const gestorLessonByTitle = new Map(lessons.filter((l) => l.trilha === 'gestor').map((l) => [l.title, l]))
+
+  const liberadosColab = training.filter((f) => planStarted && weeksElapsed >= f.releaseWeek).length
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+        <div>
+          <h2 className="font-bold text-gray-900">🎓 Cronograma de treinamentos (52 semanas)</h2>
+          <p className="text-gray-500 text-sm mt-0.5">Os vídeos entram como ações do plano, na ordem de prioridade do diagnóstico. Para o time, cada leva é <strong>liberada automaticamente</strong> na semana indicada.</p>
+        </div>
+        {learnLink && (
+          <button onClick={copyLearn} className="flex-shrink-0 text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-4 py-2 rounded-xl hover:bg-[#E0F5F6]">
+            {copied ? '✅ Link copiado' : '📋 Link do time'}
+          </button>
+        )}
+      </div>
+
+      {planStarted ? (
+        <p className="text-xs text-gray-400 mb-4">Plano em andamento · semana {weeksElapsed} de 52 · {liberadosColab}/{training.length} levas já liberadas para o time.</p>
+      ) : (
+        <p className="text-xs text-gray-400 mb-4">Salve o plano para começar a contagem — a partir daí as levas são liberadas sozinhas para o time, semana a semana.</p>
+      )}
+
+      <div className="space-y-2.5">
+        {training.map((f) => {
+          const cfg = riskCfg[f.riskLevel]
+          const liberado = planStarted && weeksElapsed >= f.releaseWeek
+          const faltam = Math.max(0, f.releaseWeek - weeksElapsed)
+          return (
+            <div key={f.factorNum} className="border border-gray-100 rounded-xl overflow-hidden">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-50/60">
+                <span className="flex-shrink-0 w-14 text-center">
+                  <span className="block text-[10px] text-gray-400 leading-none">semana</span>
+                  <span className="block text-lg font-black text-[#0E2A47] leading-tight">{f.releaseWeek}</span>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-[#0E2A47] text-sm truncate">{f.factor}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${cfg.bg} ${cfg.text} ${cfg.border}`}>{cfg.label}</span>
+                    {liberado ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">✅ liberado para o time</span>
+                    ) : planStarted ? (
+                      <span className="text-[10px] font-semibold text-gray-500">🔒 libera em {faltam} semana{faltam !== 1 ? 's' : ''}</span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-gray-400">agendado</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 py-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-600 mb-1.5">👔 Você (gestor/líder) assiste</p>
+                  <div className="space-y-1">
+                    {f.gestor.map((v) => {
+                      const les = gestorLessonByTitle.get(v.title)
+                      const gp = les ? gestorProg[les.id] : undefined
+                      return (
+                        <div key={v.key} className="flex items-center justify-between gap-2 bg-white border border-gray-100 rounded-lg px-2.5 py-1.5">
+                          <p className="text-[11px] text-gray-700 truncate min-w-0" title={v.title}><span className="text-gray-400">{v.key}</span> {v.title}</p>
+                          <span className={`flex-shrink-0 text-[10px] font-bold ${gp?.completed ? 'text-green-600' : les ? 'text-gray-400' : 'text-gray-300'}`}>{gp?.completed ? '✅' : les ? 'no ar' : 'em breve'}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-teal-700 mb-1.5">👥 Liberado para o time {liberado ? '' : `(na semana ${f.releaseWeek})`}</p>
+                  <div className="space-y-1">
+                    {f.colaborador.map((v) => (
+                      <div key={v.key} className={`flex items-center justify-between gap-2 border rounded-lg px-2.5 py-1.5 ${liberado ? 'bg-white border-gray-100' : 'bg-gray-50/70 border-gray-100'}`}>
+                        <p className={`text-[11px] truncate min-w-0 ${liberado ? 'text-gray-700' : 'text-gray-400'}`} title={v.title}><span className="text-gray-400">{v.key}</span> {v.title}</p>
+                        <span className={`flex-shrink-0 text-[10px] font-bold ${!pubTitles.has(v.title) ? 'text-gray-300' : liberado ? 'text-teal-600' : 'text-gray-400'}`}>{!pubTitles.has(v.title) ? 'em breve' : liberado ? '🔓' : '🔒'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { FactorRisk } from '@/lib/sector-factors'
+import { buildTrainingSchedule, releasedColabRefs, weeksSince, IntervCadence } from '@/lib/training-schedule'
 
 // Monta os dados da área de membros do colaborador: aulas da empresa + progresso dele.
 export async function buildMemberPayload(
@@ -6,13 +8,32 @@ export async function buildMemberPayload(
   companyName: string,
   employee: { id: string; name: string | null }
 ) {
-  // Biblioteca global (mesma para todas as empresas) — companyId não é usado aqui.
   // O colaborador vê APENAS a Trilha do Colaborador.
-  void companyId
   const lessons = await prisma.lesson.findMany({
     where:   { companyId: null, active: true, trilha: 'colaborador' },
     orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
   })
+
+  // Liberação gradual: se a empresa já tem plano(s) de ação, os vídeos vinculados ao
+  // Índice de Vídeos só aparecem quando o cronograma libera aquela leva. Vídeos avulsos
+  // (sem videoRef) e empresas sem plano continuam com tudo liberado.
+  const plans = await prisma.actionPlan.findMany({ where: { companyId } })
+  let releasedRefs: Set<string> | null = null
+  if (plans.length > 0) {
+    releasedRefs = new Set<string>()
+    for (const p of plans) {
+      const baseline: FactorRisk[] = Array.isArray(p.baseline) ? (p.baseline as unknown as FactorRisk[]) : []
+      if (baseline.length === 0) continue
+      const cad = (p.interventionCadence as IntervCadence) ?? 'mensal'
+      const schedule = buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), cad)
+      for (const key of releasedColabRefs(schedule, weeksSince(p.createdAt))) releasedRefs.add(key)
+    }
+  }
+  const rr = releasedRefs
+  const visibleLessons = rr
+    ? lessons.filter((l) => !l.videoRef || rr.has(l.videoRef))
+    : lessons
+
   const progresses = await prisma.lessonProgress.findMany({ where: { employeeId: employee.id } })
   const progMap = new Map(progresses.map((p) => [p.lessonId, p]))
 
@@ -36,7 +57,7 @@ export async function buildMemberPayload(
     companyName,
     employeeId:   employee.id,
     employeeName: employee.name,
-    lessons: lessons.map((l) => ({
+    lessons: visibleLessons.map((l) => ({
       id:          l.id,
       programNum:  l.programNum,
       program:     l.program,

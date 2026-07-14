@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { buildPlan, PlanItem, RiskLevel, cadenceLabel, Cadence } from '@/lib/action-plan-engine'
 import { computeSectorFactors, FactorRisk } from '@/lib/sector-factors'
+import { buildTrainingSchedule, weeksSince, TrainingFactor, IntervCadence } from '@/lib/training-schedule'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,8 +24,9 @@ type Comparison = { factor: string; baseline: RiskLevel; current: RiskLevel | nu
 function buildHtml(o: {
   companyName: string; sectorName: string; cnpj: string | null; city: string | null; state: string | null
   responsible: string | null; items: PlanItem[]; cadence: Cadence | null; comparison: Comparison[]; reavaliada: boolean
+  training: TrainingFactor[]; weeksElapsed: number; planStarted: boolean
 }): string {
-  const { companyName, sectorName, cnpj, city, state, responsible, items, cadence, comparison, reavaliada } = o
+  const { companyName, sectorName, cnpj, city, state, responsible, items, cadence, comparison, reavaliada, training, weeksElapsed, planStarted } = o
   const date = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const done = items.filter((i) => i.status === 'concluida').length
@@ -78,6 +80,38 @@ function buildHtml(o: {
         </table>
       </div>`
   }).join('')
+
+  // Cronograma de treinamentos (vídeos como ações nas 52 semanas, por prioridade)
+  const trainingBlock = training.length ? `
+    <div style="margin-top:8px;margin-bottom:24px;page-break-inside:avoid;">
+      <h2 style="font-size:15px;color:#0E2A47;font-weight:800;margin-bottom:4px;">Cronograma de Treinamentos (52 semanas)</h2>
+      <p style="font-size:10.5px;color:#64748b;line-height:1.5;margin-bottom:8px;">
+        As vídeo-aulas da NR-1 entram como ações do plano, na ordem de prioridade do diagnóstico. O gestor/líder assiste à
+        trilha de gestão; para os colaboradores, cada leva é <strong>liberada automaticamente</strong> na semana indicada${planStarted ? ` (plano na semana ${weeksElapsed} de 52)` : ''}.
+      </p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
+        <thead><tr style="background:#f8fafc;">
+          <th style="padding:7px 10px;text-align:center;font-size:9px;color:#6b7280;white-space:nowrap;">Semana</th>
+          <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;">Fator</th>
+          <th style="padding:7px 10px;text-align:center;font-size:9px;color:#6b7280;">Risco</th>
+          <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;">Vídeos do gestor/líder</th>
+          <th style="padding:7px 10px;text-align:left;font-size:9px;color:#6b7280;">Liberado ao time</th>
+        </tr></thead>
+        <tbody>
+          ${training.map((f) => {
+            const liberado = planStarted && weeksElapsed >= f.releaseWeek
+            const status = liberado ? '<span style="color:#16a34a;font-weight:bold;">✓ liberado</span>' : 'agendado'
+            return `<tr style="border-bottom:1px solid #f1f5f9;vertical-align:top;">
+              <td style="padding:7px 10px;text-align:center;font-size:12px;font-weight:800;color:#0E2A47;">${f.releaseWeek}</td>
+              <td style="padding:7px 10px;font-size:10.5px;color:#374151;font-weight:600;">${esc(f.factor)}</td>
+              <td style="padding:7px 10px;text-align:center;font-size:10px;font-weight:bold;color:${riskColor[f.riskLevel]};">${riskLabel[f.riskLevel]}</td>
+              <td style="padding:7px 10px;font-size:9.5px;color:#475569;">${f.gestor.map((v) => `<div>${esc(v.key)} · ${esc(v.title)}</div>`).join('')}</td>
+              <td style="padding:7px 10px;font-size:9.5px;color:#475569;">${f.colaborador.map((v) => `<div>${esc(v.key)} · ${esc(v.title)}</div>`).join('')}<div style="font-size:9px;color:#94a3b8;margin-top:2px;">${status}</div></td>
+            </tr>`
+          }).join('')}
+        </tbody>
+      </table>
+    </div>` : ''
 
   const trendCfg: Record<string, { t: string; c: string }> = {
     melhorou: { t: '↓ Melhorou', c: '#16a34a' }, piorou: { t: '↑ Piorou', c: '#dc2626' },
@@ -147,6 +181,8 @@ function buildHtml(o: {
 
   ${factorBlocks || '<p style="font-size:12px;color:#64748b;">Nenhuma ação no plano. Os fatores avaliados estão sob controle — manter monitoramento.</p>'}
 
+  ${trainingBlock}
+
   ${reavalBlock}
 
   <div style="margin-top:32px;padding-top:18px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;page-break-inside:avoid;">
@@ -191,6 +227,9 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     let cadence: Cadence | null = null
     let comparison: Comparison[] = []
     let reavaliada = false
+    let training: TrainingFactor[] = []
+    let weeksElapsed = 0
+    let planStarted = false
 
     const arr = (plan?.items as unknown[]) ?? []
     const f0 = arr[0] as { topicNum?: number; level?: number } | undefined
@@ -200,6 +239,9 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
       items = plan.items as unknown as PlanItem[]
       cadence = (plan.interventionCadence as Cadence) ?? null
       const baseline: FactorRisk[] = Array.isArray(plan.baseline) ? (plan.baseline as unknown as FactorRisk[]) : []
+      training = baseline.length ? buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), (cadence as IntervCadence) ?? 'mensal') : []
+      weeksElapsed = weeksSince(plan.createdAt)
+      planStarted = true
       const reEval = await computeSectorFactors(params.sectorId, new Date(plan.createdAt))
       reavaliada = reEval.length > 0
       if (reavaliada && baseline.length) {
@@ -217,12 +259,16 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
       const factors = await computeSectorFactors(params.sectorId)
       items = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })), 'mensal')
       cadence = 'mensal'
+      training = buildTrainingSchedule(factors.map((f) => ({ topicNum: f.topicNum, factor: f.factor, riskLevel: f.riskLevel })), 'mensal')
+      weeksElapsed = 0
+      planStarted = false
     }
 
     const html = buildHtml({
       companyName: sector.company.name, sectorName: sector.name,
       cnpj: sector.company.cnpj ?? null, city: sector.company.city ?? null, state: sector.company.state ?? null,
       responsible: sector.company.responsible ?? null, items, cadence, comparison, reavaliada,
+      training, weeksElapsed, planStarted,
     })
 
     const date = new Date().toISOString().split('T')[0]

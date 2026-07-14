@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type SectorOverview = {
   id: string
@@ -10,6 +11,7 @@ type SectorOverview = {
 }
 
 export default function DocumentosPage() {
+  const router = useRouter()
   const [sectors, setSectors] = useState<SectorOverview[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -31,9 +33,9 @@ export default function DocumentosPage() {
     window.open('/api/dashboard/pgr', '_blank')
   }
 
-  // Abre o Plano de Ação do setor em nova aba
-  const gerarPlano = (sectorId: string) => {
-    window.open(`/api/dashboard/action-plans/${sectorId}/pdf`, '_blank')
+  // Abre o Plano de Ação Vivo do setor (esquema interativo — de lá gera o PDF)
+  const abrirPlano = (sectorId: string) => {
+    router.push(`/painel/setor/${sectorId}/plano-de-acao`)
   }
 
   // O PGR consolida a empresa toda: habilita se houver qualquer resposta
@@ -109,10 +111,11 @@ export default function DocumentosPage() {
         <div className="flex items-start gap-4 mb-5">
           <span className="text-3xl flex-shrink-0">🎯</span>
           <div className="flex-1">
-            <h2 className="font-bold text-gray-900">Plano de Ação</h2>
+            <h2 className="font-bold text-gray-900">Plano de Ação Vivo</h2>
             <p className="text-gray-500 text-sm mt-1">
-              Documento com as medidas concretas para tratar cada fator de risco, com responsável,
-              prazo e status. Gerado por setor a partir do plano cadastrado (ou da sugestão automática).
+              Abra o plano do setor para <strong>montar e acompanhar</strong> as medidas de cada fator, o
+              cronograma de treinamentos (vídeos liberados ao time nas 52 semanas) e anexar as evidências.
+              Lá dentro você também <strong>gera o documento em PDF</strong> quando quiser.
             </p>
           </div>
         </div>
@@ -143,12 +146,12 @@ export default function DocumentosPage() {
                     </span>
                   </div>
                   <button
-                    onClick={() => gerarPlano(s.id)}
+                    onClick={() => abrirPlano(s.id)}
                     disabled={semRespostas}
-                    title={semRespostas ? 'Este setor ainda não tem respostas' : 'Gerar o Plano de Ação deste setor'}
+                    title={semRespostas ? 'Este setor ainda não tem respostas' : 'Abrir o Plano de Ação deste setor'}
                     className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    🎯 Gerar Plano de Ação
+                    🎯 Abrir Plano de Ação
                   </button>
                 </div>
               )
