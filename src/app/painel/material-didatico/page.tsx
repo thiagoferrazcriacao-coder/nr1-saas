@@ -35,6 +35,7 @@ export default function MaterialDidaticoPage() {
   const [copied, setCopied] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null) // `${trilha}-${num}`
+  const [activeTrilha, setActiveTrilha] = useState<Trilha>('gestor')
   const [video, setVideo] = useState<Lesson | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState(1)
 
@@ -96,6 +97,14 @@ export default function MaterialDidaticoPage() {
   // Cores por autor e peso do fator
   const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
   const weightCls: Record<string, string> = { ALTO: 'bg-red-50 text-red-600 border-red-200', 'MÉDIO': 'bg-amber-50 text-amber-700 border-amber-200', BAIXO: 'bg-green-50 text-green-700 border-green-200' }
+
+  // Quantos vídeos da trilha já estão no ar (vinculados por videoRef) x total planejado.
+  const trilhaCount = (trilha: Trilha) => {
+    const refs = new Set(lessons.filter((l) => l.videoRef).map((l) => l.videoRef as string))
+    let filled = 0, total = 0
+    FACTOR_NUMS.forEach((num) => slotsFor(num, trilha).forEach((s) => { total++; if (refs.has(s.key)) filled++ }))
+    return { filled, total }
+  }
 
   // Renderiza o catálogo (13 fatores) de uma trilha, com as aulas planejadas do Índice de Vídeos.
   // Cada aula toca se o vídeo já foi publicado (vinculado por videoRef); senão, mostra "em breve".
@@ -196,25 +205,50 @@ export default function MaterialDidaticoPage() {
         </div>
       )}
 
-      {/* TRILHA DO GESTOR */}
+      {/* SELETOR DE TRILHA — escolhe uma trilha por vez pra não poluir a tela */}
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">👔</span>
-          <h2 className="font-bold text-gray-900">Trilha do Gestor</h2>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">você</span>
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          {([
+            { t: 'gestor' as Trilha, icon: '👔', title: 'Trilha do Gestor', sub: 'Para você', active: 'border-indigo-300 bg-indigo-50', dot: 'bg-indigo-500' },
+            { t: 'colaborador' as Trilha, icon: '👥', title: 'Trilha do Colaborador', sub: 'Para o seu time', active: 'border-teal-300 bg-teal-50', dot: 'bg-teal-500' },
+          ]).map((tab) => {
+            const done = trilhaCount(tab.t)
+            const isActive = activeTrilha === tab.t
+            return (
+              <button key={tab.t} onClick={() => { setActiveTrilha(tab.t); setExpanded(null) }}
+                className={`text-left rounded-2xl border-2 px-5 py-4 transition-all ${isActive ? `${tab.active} shadow-sm` : 'border-gray-100 bg-white hover:border-gray-200'}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl">{tab.icon}</span>
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#0E2A47] leading-tight">{tab.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{tab.sub}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 mt-3">
+                  <span className={`w-1.5 h-1.5 rounded-full ${done.filled > 0 ? tab.dot : 'bg-gray-300'}`} />
+                  <span className="text-xs font-semibold text-gray-600">{done.filled}/{done.total} vídeos no ar</span>
+                </div>
+              </button>
+            )
+          })}
         </div>
-        <p className="text-gray-500 text-sm mb-4">Os vídeos que <strong>você</strong> precisa assistir. A barra abaixo de cada aula <strong>comprova</strong> que você fez o treinamento.</p>
-        {renderTrilha('gestor')}
-      </div>
 
-      {/* TRILHA DO COLABORADOR */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">👥</span>
-          <h2 className="font-bold text-gray-900">Trilha do Colaborador</h2>
-        </div>
-        <p className="text-gray-500 text-sm mb-4">Os vídeos que o seu time assiste pelo link. Você pode conferir aqui — mas <strong>esta visualização não conta</strong> como presença. A presença dos colaboradores aparece no relatório abaixo.</p>
-        {renderTrilha('colaborador')}
+        {/* Descrição da trilha ativa */}
+        {activeTrilha === 'gestor' ? (
+          <div className="flex items-start gap-2.5 mb-4 bg-indigo-50/60 border border-indigo-100 rounded-xl px-4 py-3">
+            <span className="text-base flex-shrink-0">👔</span>
+            <p className="text-sm text-[#0E2A47]">Os vídeos que <strong>você</strong> precisa assistir. A barra abaixo de cada aula <strong>comprova</strong> que a liderança fez o treinamento.</p>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2.5 mb-4 bg-teal-50/60 border border-teal-100 rounded-xl px-4 py-3">
+            <span className="text-base flex-shrink-0">👥</span>
+            <p className="text-sm text-[#0E2A47]">Os vídeos que o seu time assiste pelo link. Você pode conferir aqui — mas <strong>esta visualização não conta</strong> como presença. A presença dos colaboradores aparece no relatório abaixo.</p>
+          </div>
+        )}
+
+        {/* Abra cada fator pra ver as aulas */}
+        <p className="text-xs text-gray-400 mb-2.5 pl-1">Toque num fator de risco para abrir as aulas 👇</p>
+        {renderTrilha(activeTrilha)}
       </div>
 
       {/* Materiais complementares (ebooks oficiais + extras do gestor) */}
