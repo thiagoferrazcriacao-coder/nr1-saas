@@ -25,7 +25,7 @@ export async function buildMemberPayload(
       const baseline: FactorRisk[] = Array.isArray(p.baseline) ? (p.baseline as unknown as FactorRisk[]) : []
       if (baseline.length === 0) continue
       const cad = (p.interventionCadence as IntervCadence) ?? 'mensal'
-      const schedule = buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), cad)
+      const schedule = buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), cad, p.horizonWeeks ?? 52)
       for (const key of releasedColabRefs(schedule, weeksSince(p.createdAt))) releasedRefs.add(key)
     }
   }

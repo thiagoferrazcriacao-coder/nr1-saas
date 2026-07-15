@@ -36,6 +36,7 @@ model Company {
   subscriptions    Subscription[]
   assessment       CompanyAssessment?
   actionPlans      ActionPlan[]
+  actionPlanArchives ActionPlanArchive[]
   employees        Employee[]
   lessons          Lesson[]
   materials        Material[]
@@ -301,6 +302,8 @@ model ActionPlan {
   baseline  Json?
   // ritmo de intervenção escolhido pela empresa: semanal | mensal | bimestral
   interventionCadence String?
+  // horizonte do plano em semanas (até o vencimento do acesso de 1 ano)
+  horizonWeeks Int?
   status    String   @default("ativo") // ativo | concluido | arquivado
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -308,4 +311,27 @@ model ActionPlan {
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
+}
+
+// Ciclo anterior arquivado — guarda o DRPS (foto do risco) e o plano de ação executado
+// (com as evidências) de cada ciclo já encerrado, para comprovação na fiscalização.
+model ActionPlanArchive {
+  id            String   @id @default(uuid())
+  companyId     String
+  sectorId      String
+  sectorName    String
+  // JSON: ActionItem[] — o plano executado, com as evidências anexadas
+  items         Json
+  // JSON: FactorRisk[] — risco por fator no início daquele ciclo (o DRPS do ciclo)
+  baseline      Json?
+  // JSON: FactorRisk[] — risco por fator na reavaliação/encerramento do ciclo
+  finalSnapshot Json?
+  interventionCadence String?
+  horizonWeeks  Int?
+  startedAt     DateTime // quando o ciclo começou (criação do plano anterior)
+  archivedAt    DateTime @default(now())
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([sectorId])
 }

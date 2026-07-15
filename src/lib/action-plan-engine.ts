@@ -51,9 +51,12 @@ export function riskLabel(r: RiskLevel): string {
 export function buildPlan(
   factors: { topicNum: number; riskLevel: RiskLevel }[],
   intervention: InterventionCadence = 'mensal',
+  horizonWeeks = 52,
 ): PlanItem[] {
   const items: PlanItem[] = []
-  const step = INTERVAL_WEEKS[intervention]
+  const H = Math.max(2, Math.min(52, Math.round(horizonWeeks)))
+  // ritmo escolhido, comprimido se o horizonte for menor que um ano (replanejamento no meio do acesso)
+  const step = Math.max(1, Math.min(INTERVAL_WEEKS[intervention], Math.floor(H / 4) || 1))
 
   for (const f of factors) {
     const lib = ACTION_LIBRARY.find((l) => l.topicNum === f.topicNum)
@@ -70,7 +73,7 @@ export function buildPlan(
         how: 'Manter as boas práticas atuais e reavaliar o fator no próximo ciclo para confirmar que o risco segue baixo.',
         who: 'Gestor + RH',
         startWeek: 1,
-        dueWeek: 52,
+        dueWeek: H,
         cadence: intervention,
         evidenceHint: 'Registro de reavaliação do fator.',
         status: 'pendente',
@@ -79,12 +82,12 @@ export function buildPlan(
       continue
     }
 
-    // Espaça as ações do fator no ritmo escolhido
+    // Espaça as ações do fator no ritmo escolhido, dentro do horizonte
     let slot = 0
     for (const a of lib.actions) {
       const continuo = a.dueWeek === 0
-      const startWeek = continuo ? 1 : Math.min(52, 1 + slot * step)
-      const dueWeek = continuo ? 0 : Math.min(52, startWeek + Math.max(step, 2))
+      const startWeek = continuo ? 1 : Math.min(H, 1 + slot * step)
+      const dueWeek = continuo ? 0 : Math.min(H, startWeek + Math.max(step, 2))
       if (!continuo) slot++
       items.push({
         id: `${f.topicNum}-${a.key}`,

@@ -28,19 +28,21 @@ export type TrainingFactor = {
 export function buildTrainingSchedule(
   factors: { topicNum: number; factor?: string; riskLevel: RiskLevel }[],
   intervention: IntervCadence = 'mensal',
+  horizonWeeks = 52,
 ): TrainingFactor[] {
+  const H = Math.max(2, Math.min(52, Math.round(horizonWeeks)))
   const ordered = [...factors].sort((a, b) => SEV[a.riskLevel] - SEV[b.riskLevel])
   const n = ordered.length
   const chosen = STEP[intervention]
-  // garante que o último fator caiba dentro das 52 semanas
-  const maxStep = n > 1 ? Math.floor(51 / (n - 1)) : chosen
+  // garante que o último fator caiba dentro do horizonte (52 sem., ou menos se replanejou no meio)
+  const maxStep = n > 1 ? Math.floor((H - 1) / (n - 1)) : chosen
   const step = Math.max(1, Math.min(chosen, maxStep))
 
   return ordered.map((f, i) => ({
     factorNum: f.topicNum,
     factor: f.factor ?? FACTOR_NAMES[f.topicNum] ?? `Fator ${f.topicNum}`,
     riskLevel: f.riskLevel,
-    releaseWeek: Math.min(52, 1 + i * step),
+    releaseWeek: Math.min(H, 1 + i * step),
     gestor: slotsFor(f.topicNum, 'gestor').map((s) => ({ key: s.key, title: s.title, author: s.author })),
     colaborador: slotsFor(f.topicNum, 'colaborador').map((s) => ({ key: s.key, title: s.title, author: s.author })),
   }))

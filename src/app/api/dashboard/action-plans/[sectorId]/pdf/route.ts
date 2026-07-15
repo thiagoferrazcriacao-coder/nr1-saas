@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { buildPlan, PlanItem, RiskLevel, cadenceLabel, Cadence } from '@/lib/action-plan-engine'
 import { computeSectorFactors, FactorRisk } from '@/lib/sector-factors'
 import { buildTrainingSchedule, weeksSince, TrainingFactor, IntervCadence } from '@/lib/training-schedule'
+import { accessEndDate, horizonWeeksUntil } from '@/lib/access-window'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,10 +25,11 @@ type Comparison = { factor: string; baseline: RiskLevel; current: RiskLevel | nu
 function buildHtml(o: {
   companyName: string; sectorName: string; cnpj: string | null; city: string | null; state: string | null
   responsible: string | null; items: PlanItem[]; cadence: Cadence | null; comparison: Comparison[]; reavaliada: boolean
-  training: TrainingFactor[]; weeksElapsed: number; planStarted: boolean
+  training: TrainingFactor[]; weeksElapsed: number; planStarted: boolean; horizonWeeks: number; accessEnd: Date
 }): string {
-  const { companyName, sectorName, cnpj, city, state, responsible, items, cadence, comparison, reavaliada, training, weeksElapsed, planStarted } = o
+  const { companyName, sectorName, cnpj, city, state, responsible, items, cadence, comparison, reavaliada, training, weeksElapsed, planStarted, horizonWeeks, accessEnd } = o
   const date = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+  const venc = accessEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const done = items.filter((i) => i.status === 'concluida').length
   const progresso = items.length ? Math.round((done / items.length) * 100) : 0
@@ -154,7 +156,7 @@ function buildHtml(o: {
   </div>
 
   <div style="border-bottom:3px solid #17C3C9;padding-bottom:18px;margin-bottom:22px;">
-    <p style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Plano de Ação Vivo — Riscos Psicossociais (NR-1 · 52 semanas)</p>
+    <p style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Plano de Ação Vivo — Riscos Psicossociais (NR-1 · ${horizonWeeks} semanas)</p>
     <h1 style="font-size:22px;color:#0E2A47;font-weight:900;">${esc(companyName)}</h1>
     <h2 style="font-size:15px;color:#374151;font-weight:600;margin-top:2px;">Setor: ${esc(sectorName)}</h2>
     <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:16px;font-size:11px;color:#64748b;">
@@ -163,6 +165,7 @@ function buildHtml(o: {
       ${responsible ? `<span>Responsável: <strong>${esc(responsible)}</strong></span>` : ''}
       ${cadence ? `<span>Ritmo: <strong>Intervenções ${cadenceLabel(cadence).toLowerCase()}</strong></span>` : ''}
       <span>Emitido em ${date}</span>
+      <span>Vigência do plano: <strong>${horizonWeeks} semanas</strong> (até ${venc})</span>
     </div>
   </div>
 
@@ -176,7 +179,8 @@ function buildHtml(o: {
   <p style="font-size:11.5px;color:#374151;line-height:1.6;margin-bottom:20px;">
     Este Plano de Ação Vivo define, para cada fator de risco psicossocial identificado, medidas de controle organizadas pela
     hierarquia de controle (origem → pessoas → acolhimento, conforme ISO 45003), com responsável, prazo e cadência de
-    acompanhamento ao longo de 52 semanas. As evidências anexadas e a reavaliação periódica comprovam a gestão contínua exigida pela NR-1.
+    acompanhamento ao longo de ${horizonWeeks} semanas — encerrando junto com a vigência do acesso (${venc}). As evidências
+    anexadas e a reavaliação periódica comprovam a gestão contínua exigida pela NR-1.
   </p>
 
   ${factorBlocks || '<p style="font-size:12px;color:#64748b;">Nenhuma ação no plano. Os fatores avaliados estão sob controle — manter monitoramento.</p>'}
@@ -217,9 +221,11 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
 
     const sector = await prisma.sector.findFirst({
       where: { id: params.sectorId, companyId },
-      include: { company: { select: { name: true, cnpj: true, city: true, state: true, responsible: true } } },
+      include: { company: { select: { name: true, cnpj: true, city: true, state: true, responsible: true, createdAt: true } } },
     })
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
+
+    const accessEnd = accessEndDate(sector.company.createdAt)
 
     const plan = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId } })
 
@@ -230,6 +236,7 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     let training: TrainingFactor[] = []
     let weeksElapsed = 0
     let planStarted = false
+    let horizonWeeks = 52
 
     const arr = (plan?.items as unknown[]) ?? []
     const f0 = arr[0] as { topicNum?: number; level?: number } | undefined
@@ -238,8 +245,9 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     if (plan && isNewShape) {
       items = plan.items as unknown as PlanItem[]
       cadence = (plan.interventionCadence as Cadence) ?? null
+      horizonWeeks = plan.horizonWeeks ?? 52
       const baseline: FactorRisk[] = Array.isArray(plan.baseline) ? (plan.baseline as unknown as FactorRisk[]) : []
-      training = baseline.length ? buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), (cadence as IntervCadence) ?? 'mensal') : []
+      training = baseline.length ? buildTrainingSchedule(baseline.map((b) => ({ topicNum: b.topicNum, factor: b.factor, riskLevel: b.riskLevel })), (cadence as IntervCadence) ?? 'mensal', horizonWeeks) : []
       weeksElapsed = weeksSince(plan.createdAt)
       planStarted = true
       const reEval = await computeSectorFactors(params.sectorId, new Date(plan.createdAt))
@@ -255,11 +263,12 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
         })
       }
     } else {
-      // Sem plano salvo: gera uma prévia no ritmo mensal
+      // Sem plano salvo: gera uma prévia no ritmo mensal, no horizonte até o vencimento
+      horizonWeeks = horizonWeeksUntil(accessEnd)
       const factors = await computeSectorFactors(params.sectorId)
-      items = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })), 'mensal')
+      items = buildPlan(factors.map((f) => ({ topicNum: f.topicNum, riskLevel: f.riskLevel })), 'mensal', horizonWeeks)
       cadence = 'mensal'
-      training = buildTrainingSchedule(factors.map((f) => ({ topicNum: f.topicNum, factor: f.factor, riskLevel: f.riskLevel })), 'mensal')
+      training = buildTrainingSchedule(factors.map((f) => ({ topicNum: f.topicNum, factor: f.factor, riskLevel: f.riskLevel })), 'mensal', horizonWeeks)
       weeksElapsed = 0
       planStarted = false
     }
@@ -268,7 +277,7 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
       companyName: sector.company.name, sectorName: sector.name,
       cnpj: sector.company.cnpj ?? null, city: sector.company.city ?? null, state: sector.company.state ?? null,
       responsible: sector.company.responsible ?? null, items, cadence, comparison, reavaliada,
-      training, weeksElapsed, planStarted,
+      training, weeksElapsed, planStarted, horizonWeeks, accessEnd,
     })
 
     const date = new Date().toISOString().split('T')[0]

@@ -98,6 +98,8 @@ export default function PlanoDeAcaoPage() {
   const [training, setTraining] = useState<TrainingFactor[]>([])
   const [weeksElapsed, setWeeksElapsed] = useState(0)
   const [planStarted, setPlanStarted] = useState(false)
+  const [horizonWeeks, setHorizonWeeks] = useState(52)
+  const [accessEnd, setAccessEnd] = useState<string | null>(null)
 
   const loadReaval = useCallback(() => {
     fetch(`/api/dashboard/action-plans/${sectorId}/reavaliacao`)
@@ -106,13 +108,15 @@ export default function PlanoDeAcaoPage() {
       .catch(() => {})
   }, [sectorId])
 
-  const applyData = (d: { plan?: { items: PlanItem[]; interventionCadence?: Intervention | null }; suggested?: PlanItem[]; needsCadence?: boolean; noData?: boolean; chosenCadence?: Intervention; sectorName?: string; training?: TrainingFactor[]; weeksElapsed?: number; planStarted?: boolean }) => {
+  const applyData = (d: { plan?: { items: PlanItem[]; interventionCadence?: Intervention | null }; suggested?: PlanItem[]; needsCadence?: boolean; noData?: boolean; chosenCadence?: Intervention; sectorName?: string; training?: TrainingFactor[]; weeksElapsed?: number; planStarted?: boolean; horizonWeeks?: number; accessEnd?: string }) => {
     setSectorName(d.sectorName ?? '')
     setNoData(!!d.noData)
     setNeedsCadence(!!d.needsCadence)
     setTraining(d.training ?? [])
     setWeeksElapsed(d.weeksElapsed ?? 0)
     setPlanStarted(!!d.planStarted)
+    if (d.horizonWeeks) setHorizonWeeks(d.horizonWeeks)
+    if (d.accessEnd) setAccessEnd(d.accessEnd)
     const planOk = !!d.plan?.items?.length && d.plan.items[0]?.topicNum != null && (d.plan.items[0] as PlanItem)?.level != null
     if (planOk && d.plan) {
       setItems(d.plan.items); setHasPlan(true); setCadence(d.plan.interventionCadence ?? null)
@@ -147,7 +151,7 @@ export default function PlanoDeAcaoPage() {
   }
 
   const restartPlan = async () => {
-    if (!confirm('Recomeçar o plano? O plano atual e suas evidências serão apagados, e você escolhe o ritmo de novo.')) return
+    if (!confirm('Encerrar este ciclo e refazer o plano?\n\nO plano atual (com as evidências que você anexou) será ARQUIVADO no Histórico para a fiscalização. Depois você escolhe o ritmo e monta o novo plano — que vai até o vencimento do seu acesso (por isso, no meio do ano, ele fica mais curto).')) return
     await fetch(`/api/dashboard/action-plans/${sectorId}`, { method: 'DELETE' })
     setItems([]); setHasPlan(false); setCadence(null); setNeedsCadence(true); setReaval(null); setSaved(false)
   }
@@ -198,7 +202,8 @@ export default function PlanoDeAcaoPage() {
           <button onClick={() => router.back()} className="text-gray-400 text-sm hover:text-gray-600 mb-2">← Voltar ao relatório</button>
           <h1 className="text-2xl font-black text-gray-900">Plano de Ação Vivo</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {sectorName} · plano de 52 semanas
+            {sectorName} · plano de {horizonWeeks} semanas
+            {accessEnd ? ` (vence em ${new Date(accessEnd).toLocaleDateString('pt-BR')})` : ''}
             {cadence ? ` · intervenções ${cadLabel[cadence].toLowerCase()}` : ''}
             {total > 0 ? ` · ${groups.length} fatores · ${total} ações` : ''}
           </p>
@@ -206,7 +211,7 @@ export default function PlanoDeAcaoPage() {
         <div className="flex items-center gap-3">
           {saved && <span className="text-green-600 text-sm font-medium">✅ Salvo</span>}
           {hasPlan && (
-            <button onClick={restartPlan} className="text-xs text-red-500 hover:text-red-600 border border-red-200 hover:bg-red-50 px-3 py-2 rounded-xl font-medium">↻ Recomeçar plano</button>
+            <button onClick={restartPlan} className="text-xs text-red-500 hover:text-red-600 border border-red-200 hover:bg-red-50 px-3 py-2 rounded-xl font-medium">📦 Encerrar ciclo e refazer</button>
           )}
           {!hasPlan && total > 0 && (
             <>
@@ -232,7 +237,7 @@ export default function PlanoDeAcaoPage() {
         <div className="bg-gradient-to-br from-[#0E2A47] to-[#143A5E] rounded-2xl p-5 text-white">
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <div>
-              <p className="text-xs uppercase tracking-wide text-[#9FC2D6]">Execução do plano (52 semanas)</p>
+              <p className="text-xs uppercase tracking-wide text-[#9FC2D6]">Execução do plano ({horizonWeeks} semanas)</p>
               <p className="text-sm text-[#cfe2f0] mt-1">{done} de {total} ações concluídas · gestão viva para a fiscalização</p>
             </div>
             <span className="text-3xl font-black">{progresso}%</span>
@@ -243,9 +248,9 @@ export default function PlanoDeAcaoPage() {
         </div>
       )}
 
-      {/* Cronograma de treinamentos (vídeos como ações nas 52 semanas) */}
+      {/* Cronograma de treinamentos (vídeos como ações nas semanas do plano) */}
       {training.length > 0 && (
-        <TrainingScheduleCard training={training} weeksElapsed={weeksElapsed} planStarted={planStarted} learnCode={learnCode} lessons={lessons} gestorProg={gestorProg} />
+        <TrainingScheduleCard training={training} weeksElapsed={weeksElapsed} planStarted={planStarted} horizonWeeks={horizonWeeks} learnCode={learnCode} lessons={lessons} gestorProg={gestorProg} />
       )}
 
       {/* Reavaliação (meses 3/6/12) */}
@@ -308,7 +313,7 @@ export default function PlanoDeAcaoPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="text-center mb-5">
             <h2 className="text-lg font-black text-gray-900">Como você pretende fazer suas intervenções?</h2>
-            <p className="text-gray-500 text-sm mt-1">Escolha o ritmo. O plano de 52 semanas é montado exatamente nesse compasso.</p>
+            <p className="text-gray-500 text-sm mt-1">Escolha o ritmo. O plano de {horizonWeeks} semanas (até o vencimento do seu acesso{accessEnd ? `, em ${new Date(accessEnd).toLocaleDateString('pt-BR')}` : ''}) é montado nesse compasso.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {interventionOptions.map((o) => (
@@ -378,10 +383,11 @@ export default function PlanoDeAcaoPage() {
 // Cronograma de Treinamentos — os vídeos do Índice de Vídeos viram ações do plano,
 // distribuídos nas 52 semanas por prioridade (fator mais grave primeiro). Os vídeos do
 // colaborador são LIBERADOS gradualmente; os do gestor ele assiste desde já.
-function TrainingScheduleCard({ training, weeksElapsed, planStarted, learnCode, lessons, gestorProg }: {
+function TrainingScheduleCard({ training, weeksElapsed, planStarted, horizonWeeks, learnCode, lessons, gestorProg }: {
   training: TrainingFactor[]
   weeksElapsed: number
   planStarted: boolean
+  horizonWeeks: number
   learnCode: string
   lessons: LessonLite[]
   gestorProg: GestorProgress
@@ -400,7 +406,7 @@ function TrainingScheduleCard({ training, weeksElapsed, planStarted, learnCode, 
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
         <div>
-          <h2 className="font-bold text-gray-900">🎓 Cronograma de treinamentos (52 semanas)</h2>
+          <h2 className="font-bold text-gray-900">🎓 Cronograma de treinamentos ({horizonWeeks} semanas)</h2>
           <p className="text-gray-500 text-sm mt-0.5">Os vídeos entram como ações do plano, na ordem de prioridade do diagnóstico. Para o time, cada leva é <strong>liberada automaticamente</strong> na semana indicada.</p>
         </div>
         {learnLink && (
@@ -411,7 +417,7 @@ function TrainingScheduleCard({ training, weeksElapsed, planStarted, learnCode, 
       </div>
 
       {planStarted ? (
-        <p className="text-xs text-gray-400 mb-4">Plano em andamento · semana {weeksElapsed} de 52 · {liberadosColab}/{training.length} levas já liberadas para o time.</p>
+        <p className="text-xs text-gray-400 mb-4">Plano em andamento · semana {weeksElapsed} de {horizonWeeks} · {liberadosColab}/{training.length} levas já liberadas para o time.</p>
       ) : (
         <p className="text-xs text-gray-400 mb-4">Salve o plano para começar a contagem — a partir daí as levas são liberadas sozinhas para o time, semana a semana.</p>
       )}

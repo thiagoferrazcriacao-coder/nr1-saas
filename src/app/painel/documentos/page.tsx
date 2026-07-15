@@ -114,8 +114,10 @@ export default function DocumentosPage() {
             <h2 className="font-bold text-gray-900">Plano de Ação Vivo</h2>
             <p className="text-gray-500 text-sm mt-1">
               Abra o plano do setor para <strong>montar e acompanhar</strong> as medidas de cada fator, o
-              cronograma de treinamentos (vídeos liberados ao time nas 52 semanas) e anexar as evidências.
-              Lá dentro você também <strong>gera o documento em PDF</strong> quando quiser.
+              cronograma de treinamentos (vídeos liberados ao time ao longo do plano) e anexar as evidências.
+              Lá dentro você também <strong>gera o documento em PDF</strong> quando quiser. O plano vai até o
+              vencimento do seu acesso — se refizer no meio, o novo é mais curto e o anterior fica no{' '}
+              <a href="/painel/historico" className="text-primary-800 font-semibold underline">Histórico</a>.
             </p>
           </div>
         </div>

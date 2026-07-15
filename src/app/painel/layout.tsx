@@ -48,6 +48,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     },
     { href: '/painel/relatorio-geral', label: 'Relatório Geral', icon: '📊' },
     { href: '/painel/documentos', label: 'Documentos', icon: '📄' },
+    { href: '/painel/historico', label: 'Histórico', icon: '📦' },
     { href: '/painel/material-didatico', label: 'Material Didático', icon: '🎓' },
     { href: '/painel/configuracoes', label: 'Configurações', icon: '⚙️' },
   ]
