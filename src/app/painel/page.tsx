@@ -19,11 +19,25 @@ type CompanySettings = {
   drpsStatus: string
 }
 
+type RiskLevel = 'baixo' | 'moderado' | 'alto' | 'critico'
+type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
+type AttentionItem = { sectorId: string; sectorName: string; topicNum: number; factor: string; riskLevel: RiskLevel; score: number }
+type FactorCmp = { topicNum: number; factor: string; baseline: RiskLevel; baselineScore: number; current: RiskLevel | null; currentScore: number | null; trend: Trend }
+type SectorEvolution = { sectorId: string; name: string; reavaliada: boolean; improved: number; worsened: number; stable: number; comparison: FactorCmp[] }
+type Overview = { attention: AttentionItem[]; evolution: SectorEvolution[]; hasAnyPlan: boolean; hasAnyReaval: boolean }
+
 const riskConfig = {
   baixo:    { label: 'Baixo',    bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-300'  },
   moderado: { label: 'Moderado', bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
   alto:     { label: 'Alto',     bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
   critico:  { label: 'Crítico',  bg: 'bg-red-100',    text: 'text-red-700',    border: 'border-red-300'    },
+}
+
+const trendCfg: Record<Trend, { label: string; icon: string; cls: string; bg: string }> = {
+  melhorou:  { label: 'Melhorou', icon: '↓', cls: 'text-green-700', bg: 'bg-green-50 border-green-200' },
+  estavel:   { label: 'Estável',  icon: '=', cls: 'text-gray-500',  bg: 'bg-gray-50 border-gray-200' },
+  piorou:    { label: 'Piorou',   icon: '↑', cls: 'text-red-600',   bg: 'bg-red-50 border-red-200' },
+  sem_dados: { label: '—',        icon: '•', cls: 'text-gray-300',  bg: 'bg-gray-50 border-gray-100' },
 }
 
 function QrModal({ url, sectorName, onClose }: { url: string; sectorName: string; onClose: () => void }) {
@@ -93,13 +107,15 @@ export default function PainelPage() {
   const [copiedId, setCopiedId]     = useState<string | null>(null)
   const [qrSector, setQrSector]     = useState<Sector | null>(null)
   const [assessmentDone, setAssessmentDone] = useState(true) // assume preenchida até confirmar
+  const [overview, setOverview]     = useState<Overview | null>(null)
 
   const fetchData = async () => {
     try {
-      const [sectorsRes, settingsRes, assessmentRes] = await Promise.all([
+      const [sectorsRes, settingsRes, assessmentRes, overviewRes] = await Promise.all([
         fetch('/api/dashboard/sectors'),
         fetch('/api/dashboard/company-settings'),
         fetch('/api/dashboard/company-assessment'),
+        fetch('/api/dashboard/overview'),
       ])
       if (sectorsRes.ok) setSectors(await sectorsRes.json())
       if (settingsRes.ok) {
@@ -112,6 +128,7 @@ export default function PainelPage() {
       } else {
         setAssessmentDone(false)
       }
+      if (overviewRes.ok) setOverview(await overviewRes.json())
     } finally {
       setLoading(false)
     }
@@ -267,6 +284,106 @@ export default function PainelPage() {
           <p className="text-blue-500 text-xs mt-1">Gere seus documentos da NR-1 →</p>
         </Link>
       </div>
+
+      {/* Precisa de atenção — fatores em risco alto/crítico em toda a empresa */}
+      {overview && sectorsWithData.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">🚨</span>
+            <h2 className="font-bold text-gray-900">Precisa de atenção agora</h2>
+            {overview.attention.length > 0 && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">{overview.attention.length}</span>
+            )}
+          </div>
+
+          {overview.attention.length === 0 ? (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex items-center gap-3">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="font-semibold text-green-800 text-sm">Nenhum fator em risco alto ou crítico</p>
+                <p className="text-green-700 text-sm mt-0.5">Os setores avaliados estão sob controle. Mantenha o monitoramento e reavalie no próximo ciclo.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {overview.attention.map((a) => {
+                const cfg = riskConfig[a.riskLevel]
+                const accent = a.riskLevel === 'critico' ? 'border-l-red-500' : 'border-l-orange-500'
+                return (
+                  <Link key={`${a.sectorId}-${a.topicNum}`} href={`/painel/setor/${a.sectorId}/plano-de-acao`}
+                    className={`group block bg-white rounded-2xl border border-gray-100 border-l-4 ${accent} shadow-sm p-4 hover:shadow-md transition-shadow`}>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-lg border ${cfg.bg} ${cfg.text} ${cfg.border}`}>{cfg.label}</span>
+                      <span className="text-[11px] text-gray-400 font-semibold">{a.score.toFixed(1)}/4.0</span>
+                    </div>
+                    <p className="font-bold text-[#0E2A47] text-sm leading-tight">{a.factor}</p>
+                    <p className="text-xs text-gray-500 mt-1">📍 {a.sectorName}</p>
+                    <p className="text-xs font-semibold text-primary-800 mt-2 group-hover:underline">Ver plano de ação →</p>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Evolução — antes × depois (aparece quando há reavaliação) */}
+      {overview && sectorsWithData.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">📈</span>
+            <h2 className="font-bold text-gray-900">Evolução do risco</h2>
+          </div>
+
+          {overview.hasAnyReaval ? (
+            <div className="space-y-3">
+              {overview.evolution.filter((e) => e.reavaliada).map((e) => {
+                const atRisk = e.comparison.filter((c) => c.baseline !== 'baixo')
+                return (
+                  <div key={e.sectorId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                      <h3 className="font-bold text-[#0E2A47]">{e.name}</h3>
+                      <div className="flex items-center gap-2">
+                        {e.improved > 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">↓ {e.improved} melhorou</span>}
+                        {e.stable > 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200">= {e.stable} estável</span>}
+                        {e.worsened > 0 && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">↑ {e.worsened} piorou</span>}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      {(atRisk.length ? atRisk : e.comparison).map((c) => {
+                        const t = trendCfg[c.trend]
+                        return (
+                          <div key={c.topicNum} className="flex items-center justify-between gap-2 text-sm border-t border-gray-50 pt-1.5 first:border-0 first:pt-0">
+                            <span className="text-gray-700 truncate min-w-0">{c.factor}</span>
+                            <span className="flex items-center gap-2 flex-shrink-0">
+                              <span className={`text-[11px] font-semibold ${riskConfig[c.baseline].text}`}>{riskConfig[c.baseline].label}</span>
+                              <span className="text-gray-300">→</span>
+                              <span className={`text-[11px] font-semibold ${c.current ? riskConfig[c.current].text : 'text-gray-300'}`}>{c.current ? riskConfig[c.current].label : '—'}</span>
+                              <span className={`text-[11px] font-bold w-20 text-right ${t.cls}`}>{t.icon} {t.label}</span>
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-[#F0FBFC] to-white border border-[#CCEFF1] rounded-2xl p-5 flex items-start gap-3">
+              <span className="text-2xl">🔄</span>
+              <div>
+                <p className="font-semibold text-[#0E2A47] text-sm">A comparação de melhoria aparece aqui</p>
+                <p className="text-gray-600 text-sm mt-0.5">
+                  {overview.hasAnyPlan
+                    ? 'Quando você reenviar o questionário (meses 3, 6 e 12 do plano), o sistema compara o risco de cada fator — início × agora — e mostra a evolução aqui, com setas de melhora ou piora.'
+                    : 'Crie o Plano de Ação de um setor e, ao reavaliar mais adiante, a evolução do risco (antes × depois) aparece aqui automaticamente.'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Trava: link do time só libera após a Avaliação do Gestor */}
       {!loading && !assessmentDone && sectors.length > 0 && (
