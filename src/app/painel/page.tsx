@@ -24,7 +24,10 @@ type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
 type AttentionItem = { sectorId: string; sectorName: string; topicNum: number; factor: string; riskLevel: RiskLevel; score: number }
 type FactorCmp = { topicNum: number; factor: string; baseline: RiskLevel; baselineScore: number; current: RiskLevel | null; currentScore: number | null; trend: Trend }
 type SectorEvolution = { sectorId: string; name: string; reavaliada: boolean; improved: number; worsened: number; stable: number; comparison: FactorCmp[] }
-type Overview = { attention: AttentionItem[]; evolution: SectorEvolution[]; hasAnyPlan: boolean; hasAnyReaval: boolean }
+type FactorAvg = { topicNum: number; factor: string; score: number; riskLevel: RiskLevel; sectors: number }
+type Overview = { attention: AttentionItem[]; evolution: SectorEvolution[]; factors: FactorAvg[]; hasAnyPlan: boolean; hasAnyReaval: boolean }
+
+const riskBar: Record<RiskLevel, string> = { baixo: '#16a34a', moderado: '#ca8a04', alto: '#ea580c', critico: '#dc2626' }
 
 const riskConfig = {
   baixo:    { label: 'Baixo',    bg: 'bg-green-100',  text: 'text-green-700',  border: 'border-green-300'  },
@@ -284,6 +287,48 @@ export default function PainelPage() {
           <p className="text-blue-500 text-xs mt-1">Gere seus documentos da NR-1 →</p>
         </Link>
       </div>
+
+      {/* Gráfico — os 13 riscos psicossociais (média da empresa) */}
+      {overview && overview.factors.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 mb-6">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+            <div>
+              <h2 className="font-bold text-gray-900">Os 13 riscos psicossociais</h2>
+              <p className="text-gray-500 text-sm mt-0.5">Nível médio de cada fator na empresa (0 = sem risco · 4 = crítico). Ordenado do maior para o menor.</p>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap text-[11px] text-gray-500">
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: riskBar.baixo }} /> Baixo</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: riskBar.moderado }} /> Moderado</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: riskBar.alto }} /> Alto</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: riskBar.critico }} /> Crítico</span>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {overview.factors.map((f) => (
+              <div key={f.topicNum} className="flex items-center gap-3">
+                <div className="w-40 sm:w-56 flex-shrink-0 flex items-center gap-2 min-w-0">
+                  <span className="text-[11px] font-bold text-gray-400 w-5 text-right flex-shrink-0">{f.topicNum}</span>
+                  <span className="text-xs text-gray-700 truncate" title={f.factor}>{f.factor}</span>
+                </div>
+                <div className="flex-1 h-5 bg-gray-100 rounded-md overflow-hidden relative min-w-0">
+                  {/* linhas divisórias das faixas 1/2/3 */}
+                  <div className="absolute inset-y-0 left-1/4 w-px bg-white/70" />
+                  <div className="absolute inset-y-0 left-2/4 w-px bg-white/70" />
+                  <div className="absolute inset-y-0 left-3/4 w-px bg-white/70" />
+                  <div className="h-full rounded-md transition-all duration-500 flex items-center justify-end pr-1.5" style={{ width: `${Math.max(4, (f.score / 4) * 100)}%`, background: riskBar[f.riskLevel] }}>
+                    <span className="text-[10px] font-bold text-white">{f.score.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between mt-2 pl-40 sm:pl-56 text-[10px] text-gray-300 font-medium">
+            <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span>
+          </div>
+        </div>
+      )}
 
       {/* Precisa de atenção — fatores em risco alto/crítico em toda a empresa */}
       {overview && sectorsWithData.length > 0 && (

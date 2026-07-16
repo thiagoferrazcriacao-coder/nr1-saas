@@ -8,6 +8,7 @@ import { RiskLevel } from '@/lib/action-plan-engine'
 const sev: Record<RiskLevel, number> = { baixo: 0, moderado: 1, alto: 2, critico: 3 }
 
 type AttentionItem = { sectorId: string; sectorName: string; topicNum: number; factor: string; riskLevel: RiskLevel; score: number }
+type FactorAvg = { topicNum: number; factor: string; score: number; riskLevel: RiskLevel; sectors: number }
 type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
 type FactorCmp = { topicNum: number; factor: string; baseline: RiskLevel; baselineScore: number; current: RiskLevel | null; currentScore: number | null; trend: Trend }
 type SectorEvolution = { sectorId: string; name: string; reavaliada: boolean; improved: number; worsened: number; stable: number; comparison: FactorCmp[] }
@@ -28,6 +29,10 @@ export async function GET(req: NextRequest) {
     let hasAnyPlan = false
     let hasAnyReaval = false
 
+    // acumula o score de cada fator (tópico) ao longo dos setores, para a média da empresa
+    const factorAcc = new Map<number, { factor: string; sum: number; count: number }>()
+    const levelFromScore = (s: number): RiskLevel => (s <= 1 ? 'baixo' : s <= 2 ? 'moderado' : s <= 3 ? 'alto' : 'critico')
+
     for (const s of sectors) {
       const current = await computeSectorFactors(s.id)
       if (current.length === 0) continue
@@ -37,6 +42,10 @@ export async function GET(req: NextRequest) {
         if (f.riskLevel === 'alto' || f.riskLevel === 'critico') {
           attention.push({ sectorId: s.id, sectorName: s.name, topicNum: f.topicNum, factor: f.factor, riskLevel: f.riskLevel, score: f.score })
         }
+        // média por fator (empresa toda)
+        const acc = factorAcc.get(f.topicNum) ?? { factor: f.factor, sum: 0, count: 0 }
+        acc.sum += f.score; acc.count += 1
+        factorAcc.set(f.topicNum, acc)
       }
 
       // evolução: só se houver plano (baseline gravado)
@@ -70,7 +79,15 @@ export async function GET(req: NextRequest) {
     // prioriza: crítico antes de alto; dentro do mesmo nível, maior score primeiro
     attention.sort((a, b) => sev[b.riskLevel] - sev[a.riskLevel] || b.score - a.score)
 
-    return NextResponse.json({ attention, evolution, hasAnyPlan, hasAnyReaval })
+    // média de cada um dos 13 fatores na empresa, do maior risco para o menor
+    const factors: FactorAvg[] = Array.from(factorAcc.entries())
+      .map(([topicNum, v]) => {
+        const score = v.count ? v.sum / v.count : 0
+        return { topicNum, factor: v.factor, score: parseFloat(score.toFixed(2)), riskLevel: levelFromScore(score), sectors: v.count }
+      })
+      .sort((a, b) => b.score - a.score || a.topicNum - b.topicNum)
+
+    return NextResponse.json({ attention, evolution, factors, hasAnyPlan, hasAnyReaval })
   } catch (err) {
     console.error('[DASHBOARD OVERVIEW]', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
