@@ -246,8 +246,8 @@ model Employee {
   progresses   LessonProgress[]
 
   @@unique([companyId, email])
-  @@unique([companyId, cpf])
   @@index([companyId])
+  @@index([companyId, cpf])
 }
 
 // Quanto cada colaborador assistiu de cada vídeo. percent = maior % alcançado (0–100).
