@@ -98,6 +98,10 @@ export default function MaterialDidaticoPage() {
   const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
   const weightCls: Record<string, string> = { ALTO: 'bg-red-50 text-red-600 border-red-200', 'MÉDIO': 'bg-amber-50 text-amber-700 border-amber-200', BAIXO: 'bg-green-50 text-green-700 border-green-200' }
 
+  // Material Didático liberado só a partir de 27/07/2026 — até lá, mostra apenas o aviso
+  const RELEASE_DATE = new Date('2026-07-27T00:00:00-03:00')
+  const locked = Date.now() < RELEASE_DATE.getTime()
+
   // Quantos vídeos da trilha já estão no ar (vinculados por videoRef) x total planejado.
   const trilhaCount = (trilha: Trilha) => {
     const refs = new Set(lessons.filter((l) => l.videoRef).map((l) => l.videoRef as string))
@@ -185,14 +189,15 @@ export default function MaterialDidaticoPage() {
         </button>
       </div>
 
-      {/* Aviso: conteúdo em produção */}
-      <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4 flex items-start gap-3">
-        <span className="text-xl flex-shrink-0">🎬</span>
-        <div>
-          <p className="font-bold text-[#0E2A47] text-sm">Em breve o conteúdo estará no ar</p>
-          <p className="text-gray-500 text-sm mt-0.5">Estamos preparando as vídeo-aulas e os materiais da NR-1. Em breve tudo aparece aqui pra você.</p>
+      {!locked && (
+        <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-xl flex-shrink-0">🎬</span>
+          <div>
+            <p className="font-bold text-[#0E2A47] text-sm">Conteúdo liberado</p>
+            <p className="text-gray-500 text-sm mt-0.5">As vídeo-aulas e os materiais da NR-1 já estão disponíveis nas trilhas abaixo.</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {linkOpen && (
         <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4">
@@ -205,7 +210,17 @@ export default function MaterialDidaticoPage() {
         </div>
       )}
 
+      {/* Trava até 27/07/2026 — mostra apenas o aviso, sem nenhuma trilha */}
+      {locked && (
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-10 text-center">
+          <div className="text-5xl mb-3">🔒</div>
+          <h2 className="text-xl font-black text-[#0E2A47]">Material Didático em breve</h2>
+          <p className="text-gray-600 mt-2 max-w-md mx-auto">A partir do dia <strong>27/07/2026</strong>, o material didático estará liberado.</p>
+        </div>
+      )}
+
       {/* SELETOR DE TRILHA — escolhe uma trilha por vez pra não poluir a tela */}
+      {!locked && (
       <div>
         <div className="grid grid-cols-2 gap-3 mb-5">
           {([
@@ -250,9 +265,10 @@ export default function MaterialDidaticoPage() {
         <p className="text-xs text-gray-400 mb-2.5 pl-1">Toque num fator de risco para abrir as aulas 👇</p>
         {renderTrilha(activeTrilha)}
       </div>
+      )}
 
       {/* Materiais complementares (ebooks oficiais + extras do gestor) */}
-      <MateriaisExtras />
+      {!locked && <MateriaisExtras />}
 
       {/* Relatório de presença dos colaboradores */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">

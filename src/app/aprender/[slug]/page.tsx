@@ -25,6 +25,9 @@ export default function AprenderPage() {
   const params = useParams()
   const slug = params.slug as string
 
+  // Material Didático liberado só a partir de 27/07/2026
+  const locked = Date.now() < new Date('2026-07-27T00:00:00-03:00').getTime()
+
   const [step, setStep] = useState<'carregando' | 'auth' | 'curso'>('carregando')
   const [mode, setMode] = useState<'login' | 'signup'>('signup')
   const [name, setName] = useState('')
@@ -326,15 +329,15 @@ export default function AprenderPage() {
           <button onClick={logout} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 10, padding: '7px 14px', fontSize: 13, color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>Sair</button>
         </div>
 
-        {/* Aviso: conteúdo em produção */}
-        <div style={{ background: '#F0FBFC', border: '1px solid #CCEFF1', borderRadius: 14, padding: 16, marginBottom: 22, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 20, flexShrink: 0 }}>🎬</span>
-          <div>
-            <p style={{ fontWeight: 700, color: '#0E2A47', fontSize: 14 }}>Em breve o conteúdo estará no ar</p>
-            <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>Estamos preparando as vídeo-aulas e os materiais da NR-1. Em breve tudo aparece aqui pra você.</p>
+        {locked && (
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 40, textAlign: 'center', marginBottom: 22 }}>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>🔒</div>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: '#0E2A47' }}>Material Didático em breve</h2>
+            <p style={{ color: '#475569', fontSize: 14, marginTop: 8 }}>A partir do dia <strong>27/07/2026</strong>, o material didático estará liberado.</p>
           </div>
-        </div>
+        )}
 
+        {!locked && (<>
         {/* Progresso geral do curso */}
         <div style={{ background: 'linear-gradient(120deg,#0E2A47,#143A5E)', borderRadius: 18, padding: 22, color: '#fff', marginBottom: 22 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
@@ -398,8 +401,10 @@ export default function AprenderPage() {
           })}
         </div>
 
+        </>)}
+
         {/* Materiais complementares (ebooks e extras enviados pela empresa) */}
-        {materials.length > 0 && (
+        {!locked && materials.length > 0 && (
           <div style={{ marginTop: 28 }}>
             <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>📎 Materiais complementares</h2>
             <p style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>Conteúdos extras enviados pela empresa. Abrir registra a sua leitura.</p>
