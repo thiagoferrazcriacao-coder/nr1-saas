@@ -2,22 +2,23 @@ import { prisma } from '@/lib/prisma'
 import { FactorRisk } from '@/lib/sector-factors'
 import { buildTrainingSchedule, releasedColabRefs, weeksSince, IntervCadence } from '@/lib/training-schedule'
 
-// Monta os dados da área de membros do colaborador: aulas da empresa + progresso dele.
+// Monta os dados da área de membros: aulas da trilha do papel (gestor/colaborador) + progresso.
 export async function buildMemberPayload(
   companyId: string,
   companyName: string,
-  employee: { id: string; name: string | null }
+  employee: { id: string; name: string | null },
+  role: 'gestor' | 'colaborador' = 'colaborador'
 ) {
-  // O colaborador vê APENAS a Trilha do Colaborador.
+  // Cada pessoa vê APENAS a trilha do seu papel.
   const lessons = await prisma.lesson.findMany({
-    where:   { companyId: null, active: true, trilha: 'colaborador' },
+    where:   { companyId: null, active: true, trilha: role },
     orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
   })
 
-  // Liberação gradual: se a empresa já tem plano(s) de ação, os vídeos vinculados ao
-  // Índice de Vídeos só aparecem quando o cronograma libera aquela leva. Vídeos avulsos
-  // (sem videoRef) e empresas sem plano continuam com tudo liberado.
-  const plans = await prisma.actionPlan.findMany({ where: { companyId } })
+  // Liberação gradual: vale só para o COLABORADOR. O gestor/líder vê a trilha dele inteira.
+  // Se a empresa já tem plano(s) de ação, os vídeos do colaborador vinculados ao Índice só
+  // aparecem quando o cronograma libera aquela leva. Vídeos avulsos e empresas sem plano ficam livres.
+  const plans = role === 'colaborador' ? await prisma.actionPlan.findMany({ where: { companyId } }) : []
   let releasedRefs: Set<string> | null = null
   if (plans.length > 0) {
     releasedRefs = new Set<string>()
@@ -37,13 +38,13 @@ export async function buildMemberPayload(
   const progresses = await prisma.lessonProgress.findMany({ where: { employeeId: employee.id } })
   const progMap = new Map(progresses.map((p) => [p.lessonId, p]))
 
-  // Materiais complementares: extras da empresa + ebooks oficiais (trilha do colaborador)
+  // Materiais complementares: extras da empresa + ebooks oficiais da trilha do papel
   const materials = await prisma.material.findMany({
     where: {
       active: true,
       OR: [
-        { companyId },                                          // extras da empresa
-        { companyId: null, kind: 'ebook', trilha: 'colaborador' }, // ebooks oficiais do colaborador
+        { companyId },                                    // extras da empresa
+        { companyId: null, kind: 'ebook', trilha: role }, // ebooks oficiais da trilha
       ],
     },
     orderBy: [{ createdAt: 'desc' }],
@@ -55,6 +56,7 @@ export async function buildMemberPayload(
 
   return {
     companyName,
+    role,
     employeeId:   employee.id,
     employeeName: employee.name,
     lessons: visibleLessons.map((l) => ({

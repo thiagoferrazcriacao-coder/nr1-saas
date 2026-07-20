@@ -8,8 +8,8 @@ type Trilha = SlotTrilha
 type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; videoRef: string | null; title: string; description: string | null; videoUrl: string }
 type GestorProgress = Record<string, { percent: number; completed: boolean }>
 type PerLesson = { lessonId: string; title: string; program: string; programNum: number; percent: number; completed: boolean; updatedAt: string | null }
-type EmployeeRow = { email: string; name: string | null; avgPercent: number; completedCount: number; activeCount: number; perLesson: PerLesson[] }
-type Report = { slug: string; totalLessons: number; lessons: { id: string; title: string; program: string; programNum: number }[]; employees: EmployeeRow[]; period: { from: string | null; to: string | null } }
+type EmployeeRow = { email: string; name: string | null; cpf: string | null; phone: string | null; role: 'gestor' | 'colaborador'; totalLessons: number; avgPercent: number; completedCount: number; activeCount: number; perLesson: PerLesson[] }
+type Report = { slug: string; gestorCode?: string; totalLessons: number; lessons: { id: string; title: string; program: string; programNum: number }[]; employees: EmployeeRow[]; period: { from: string | null; to: string | null } }
 
 const PERIODS = [
   { label: 'Últimos 7 dias',  days: 7 },
@@ -32,7 +32,6 @@ export default function MaterialDidaticoPage() {
   const [loading, setLoading] = useState(true)
   const [reportLoading, setReportLoading] = useState(false)
   const [linkOpen, setLinkOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null) // `${trilha}-${num}`
   const [activeTrilha, setActiveTrilha] = useState<Trilha>('gestor')
@@ -58,8 +57,11 @@ export default function MaterialDidaticoPage() {
 
   const handlePeriodChange = (idx: number) => { setSelectedPeriod(idx); fetchReport(idx) }
 
-  const link = report ? `${typeof window !== 'undefined' ? window.location.origin : ''}/aprender/${report.slug}` : ''
-  const copy = async () => { try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const link = report ? `${origin}/aprender/${report.slug}` : ''
+  const gestorLink = report?.gestorCode ? `${origin}/aprender/${report.gestorCode}` : ''
+  const [copiedWhich, setCopiedWhich] = useState<'colab' | 'gestor' | null>(null)
+  const copyLink = async (url: string, which: 'colab' | 'gestor') => { try { await navigator.clipboard.writeText(url); setCopiedWhich(which); setTimeout(() => setCopiedWhich(null), 2000) } catch {} }
   const barColor = (p: number) => (p >= 90 ? '#16a34a' : p >= 40 ? '#2563eb' : p > 0 ? '#ca8a04' : '#cbd5e1')
 
   // Salva a comprovação do gestor (trilha do gestor). Só sobe.
@@ -78,9 +80,9 @@ export default function MaterialDidaticoPage() {
   const exportCsv = () => {
     if (!report) return
     const periodLabel = PERIODS[selectedPeriod].label
-    const header = ['Colaborador', 'E-mail', 'Período', 'Aulas com atividade', 'Concluídas (90%+)', 'Média geral (%)', ...report.lessons.map((l) => `${l.program} — ${l.title} (%)`)]
+    const header = ['Nome', 'Papel', 'CPF', 'WhatsApp', 'E-mail', 'Período', 'Aulas com atividade', 'Concluídas (90%+)', 'Média geral (%)', ...report.lessons.map((l) => `${l.program} — ${l.title} (%)`)]
     const rows = report.employees.map((e) => [
-      e.name ?? '', e.email, periodLabel, String(e.activeCount), String(e.completedCount), String(e.avgPercent),
+      e.name ?? '', e.role === 'gestor' ? 'Gestor' : 'Colaborador', e.cpf ?? '', e.phone ?? '', e.email, periodLabel, String(e.activeCount), String(e.completedCount), String(e.avgPercent),
       ...report.lessons.map((l) => String(e.perLesson.find((p) => p.lessonId === l.id)?.percent ?? 0)),
     ])
     const csv = [header, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n')
@@ -185,7 +187,7 @@ export default function MaterialDidaticoPage() {
           <p className="text-gray-500 mt-1">Vídeo-aulas da NR-1 em duas trilhas: uma para você (gestor) e uma para o seu time.</p>
         </div>
         <button onClick={() => setLinkOpen((v) => !v)} className="flex-shrink-0 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity">
-          📤 Enviar para colaboradores
+          📤 Links de acesso
         </button>
       </div>
 
@@ -200,13 +202,30 @@ export default function MaterialDidaticoPage() {
       )}
 
       {linkOpen && (
-        <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4">
-          <p className="text-sm text-[#0E2A47] font-medium mb-2">Link da <strong>Trilha do Colaborador</strong> — cada colaborador cria a própria conta e assiste (a barra registra a presença):</p>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input readOnly value={link} onFocus={(e) => e.target.select()} className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 font-mono" />
-            <button onClick={copy} className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">{copied ? '✅ Copiado' : '📋 Copiar'}</button>
-            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-white text-primary-800 border border-primary-200 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Abrir</a>
+        <div className="bg-[#F0FBFC] border border-[#CCEFF1] rounded-2xl p-4 space-y-4">
+          <p className="text-xs text-[#0E2A47]">Cada pessoa cria a própria conta (nome, CPF, WhatsApp, e-mail e senha) e a presença fica registrada nas comprovações abaixo. São <strong>dois links</strong> — mande o certo para cada público:</p>
+
+          {/* Link do colaborador */}
+          <div>
+            <p className="text-sm text-[#0E2A47] font-medium mb-2">👥 <strong>Trilha do Colaborador</strong> — para o time:</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <input readOnly value={link} onFocus={(e) => e.target.select()} className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 font-mono" />
+              <button onClick={() => copyLink(link, 'colab')} className="flex-shrink-0 bg-primary-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors">{copiedWhich === 'colab' ? '✅ Copiado' : '📋 Copiar'}</button>
+              <a href={link} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-white text-primary-800 border border-primary-200 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Abrir</a>
+            </div>
           </div>
+
+          {/* Link do gestor/líder */}
+          {gestorLink && (
+            <div>
+              <p className="text-sm text-[#0E2A47] font-medium mb-2">👔 <strong>Trilha do Gestor</strong> — para líderes, gerentes e donos:</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input readOnly value={gestorLink} onFocus={(e) => e.target.select()} className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 font-mono" />
+                <button onClick={() => copyLink(gestorLink, 'gestor')} className="flex-shrink-0 bg-indigo-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-indigo-500 transition-colors">{copiedWhich === 'gestor' ? '✅ Copiado' : '📋 Copiar'}</button>
+                <a href={gestorLink} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-white text-indigo-600 border border-indigo-200 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors">Abrir</a>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -276,8 +295,8 @@ export default function MaterialDidaticoPage() {
           <div className="flex items-start gap-3">
             <span className="text-2xl">🧾</span>
             <div>
-              <h2 className="font-bold text-gray-900">Relatório de presença (colaboradores)</h2>
-              <p className="text-gray-500 text-sm mt-1">Clique num colaborador para ver aula por aula. Concluído = 90% ou mais.</p>
+              <h2 className="font-bold text-gray-900">Comprovações de treinamento (gestores e colaboradores)</h2>
+              <p className="text-gray-500 text-sm mt-1">Clique numa pessoa para ver aula por aula. Concluído = 90% ou mais. O CPF confirma quem assistiu.</p>
             </div>
           </div>
           {report && report.employees.length > 0 && (
@@ -298,7 +317,7 @@ export default function MaterialDidaticoPage() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-[#F0FBFC] rounded-xl p-3 text-center"><p className="text-2xl font-black text-[#109CA1]">{report.employees.length}</p><p className="text-xs text-gray-500 mt-0.5">colaboradores</p></div>
+              <div className="bg-[#F0FBFC] rounded-xl p-3 text-center"><p className="text-2xl font-black text-[#109CA1]">{report.employees.length}</p><p className="text-xs text-gray-500 mt-0.5">pessoas (gestores + time)</p></div>
               <div className="bg-[#F0FBFC] rounded-xl p-3 text-center"><p className="text-2xl font-black text-[#109CA1]">{report.employees.filter((e) => e.activeCount > 0).length}</p><p className="text-xs text-gray-500 mt-0.5">ativos no período</p></div>
               <div className="bg-[#F0FBFC] rounded-xl p-3 text-center"><p className="text-2xl font-black text-[#109CA1]">{report.employees.reduce((s, e) => s + e.completedCount, 0)}</p><p className="text-xs text-gray-500 mt-0.5">conclusões (90%+)</p></div>
             </div>
@@ -310,13 +329,16 @@ export default function MaterialDidaticoPage() {
                   <div key={e.email} className="border border-gray-100 rounded-xl overflow-hidden">
                     <button onClick={() => setOpen(isOpen ? null : e.email)} className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-800 truncate">{e.name || e.email}</p>
-                        <p className="text-xs text-gray-400 truncate">{e.email}</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${e.role === 'gestor' ? 'bg-indigo-50 text-indigo-600' : 'bg-teal-50 text-teal-700'}`}>{e.role === 'gestor' ? '👔 Gestor' : '👥 Colab.'}</span>
+                          <p className="font-semibold text-gray-800 truncate">{e.name || e.email}</p>
+                        </div>
+                        <p className="text-xs text-gray-400 truncate">{e.email}{e.cpf ? ` · CPF ${e.cpf}` : ''}</p>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         {e.activeCount === 0 && <span className="text-xs text-gray-400 italic">sem atividade</span>}
                         <div className="text-right">
-                          <span className="text-xs text-gray-400">{e.completedCount}/{report.totalLessons} concluídos</span>
+                          <span className="text-xs text-gray-400">{e.completedCount}/{e.totalLessons} concluídos</span>
                           <div className="flex items-center gap-2 mt-0.5">
                             <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${e.avgPercent}%`, background: barColor(e.avgPercent) }} /></div>
                             <span className="text-sm font-bold text-gray-700 w-10 text-right">{e.avgPercent}%</span>

@@ -31,18 +31,23 @@ export default function AprenderPage() {
   const [step, setStep] = useState<'carregando' | 'auth' | 'curso'>('carregando')
   const [mode, setMode] = useState<'login' | 'signup'>('signup')
   const [name, setName] = useState('')
+  const [cpf, setCpf] = useState('')
+  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('') // login: e-mail OU CPF
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   const [companyName, setCompanyName] = useState('')
+  const [role, setRole] = useState<'gestor' | 'colaborador'>('colaborador')
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
   const [current, setCurrent] = useState<Lesson | null>(null)
 
-  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[] }) => {
+  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[]; role?: string }) => {
     setCompanyName(data.companyName)
+    setRole(data.role === 'gestor' ? 'gestor' : 'colaborador')
     setLessons(data.lessons)
     setMaterials(data.materials ?? [])
     setStep('curso')
@@ -61,21 +66,31 @@ export default function AprenderPage() {
   useEffect(() => {
     fetch(`/api/aprender/${slug}/me`)
       .then((r) => r.json())
-      .then((d) => { if (d.loggedIn) applyPayload(d); else setStep('auth') })
+      .then((d) => {
+        if (d.role) setRole(d.role === 'gestor' ? 'gestor' : 'colaborador')
+        if (d.companyName) setCompanyName(d.companyName)
+        if (d.loggedIn) applyPayload(d); else setStep('auth')
+      })
       .catch(() => setStep('auth'))
   }, [slug])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!email.trim() || !password) { setError('Preencha e-mail e senha.'); return }
-    if (mode === 'signup' && !name.trim()) { setError('Digite seu nome.'); return }
+    if (mode === 'signup') {
+      if (!name.trim()) { setError('Digite seu nome completo.'); return }
+      if (!cpf.trim()) { setError('Informe o CPF.'); return }
+      if (!phone.trim()) { setError('Informe o WhatsApp.'); return }
+      if (!email.trim() || !password) { setError('Preencha e-mail e senha.'); return }
+    } else {
+      if (!identifier.trim() || !password) { setError('Informe e-mail ou CPF e a senha.'); return }
+    }
     setBusy(true)
     try {
       const endpoint = mode === 'signup' ? 'signup' : 'login'
       const body = mode === 'signup'
-        ? { name: name.trim(), email: email.trim(), password }
-        : { email: email.trim(), password }
+        ? { name: name.trim(), cpf: cpf.trim(), phone: phone.trim(), email: email.trim(), password }
+        : { identifier: identifier.trim(), password }
       const res = await fetch(`/api/aprender/${slug}/${endpoint}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
@@ -217,26 +232,47 @@ export default function AprenderPage() {
       <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <form onSubmit={submit} style={{ background: '#fff', borderRadius: 18, boxShadow: '0 10px 40px rgba(0,0,0,.06)', padding: 28, width: '100%', maxWidth: 390 }}>
           <div style={{ textAlign: 'center', marginBottom: 18 }}>
-            <div style={{ fontSize: 34 }}>🎓</div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#0E2A47', marginTop: 6 }}>Material Didático NR-1</h1>
+            <div style={{ fontSize: 34 }}>{role === 'gestor' ? '👔' : '🎓'}</div>
+            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#0E2A47', marginTop: 6 }}>
+              {role === 'gestor' ? 'Trilha do Gestor · NR-1' : 'Material Didático NR-1'}
+            </h1>
+            {companyName && <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{companyName}</p>}
             <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-              {mode === 'signup' ? 'Crie sua conta para assistir aos vídeos.' : 'Entre na sua conta.'}
+              {mode === 'signup'
+                ? (role === 'gestor' ? 'Crie sua conta de gestor/líder para assistir.' : 'Crie sua conta para assistir aos vídeos.')
+                : 'Entre na sua conta.'}
             </p>
           </div>
 
-          {mode === 'signup' && (<>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Seu nome</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo"
+          {mode === 'signup' ? (<>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Nome completo</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome completo"
               style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, marginBottom: 14, fontSize: 14 }} />
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>CPF</label>
+            <input value={cpf} onChange={(e) => setCpf(e.target.value)} inputMode="numeric" placeholder="000.000.000-00"
+              style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, marginBottom: 14, fontSize: 14 }} />
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>WhatsApp</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="(00) 00000-0000"
+              style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, marginBottom: 14, fontSize: 14 }} />
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>E-mail</label>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="voce@empresa.com"
+              style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, marginBottom: 14, fontSize: 14 }} />
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Senha</label>
+            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••"
+              style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, fontSize: 14 }} />
+          </>) : (<>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>E-mail ou CPF</label>
+            <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="voce@empresa.com ou seu CPF"
+              style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, marginBottom: 14, fontSize: 14 }} />
+
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Senha</label>
+            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••"
+              style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, fontSize: 14 }} />
           </>)}
-
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>E-mail</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="voce@empresa.com" required
-            style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, marginBottom: 14, fontSize: 14 }} />
-
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Senha</label>
-          <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••" required
-            style={{ width: '100%', padding: '11px 14px', border: '1px solid #e2e8f0', borderRadius: 10, marginTop: 5, fontSize: 14 }} />
 
           {error && <p style={{ color: '#dc2626', fontSize: 12, marginTop: 10 }}>{error}</p>}
 
@@ -323,7 +359,7 @@ export default function AprenderPage() {
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px 48px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12 }}>
           <div>
-            <p style={{ fontSize: 13, color: '#64748b' }}>{companyName} · Material Didático NR-1</p>
+            <p style={{ fontSize: 13, color: '#64748b' }}>{companyName} · {role === 'gestor' ? 'Trilha do Gestor' : 'Material Didático'} NR-1</p>
             <h1 style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', marginTop: 2 }}>Sua jornada de aprendizado</h1>
           </div>
           <button onClick={logout} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 10, padding: '7px 14px', fontSize: 13, color: '#64748b', cursor: 'pointer', flexShrink: 0 }}>Sair</button>
@@ -354,7 +390,7 @@ export default function AprenderPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {FACTOR_NUMS.map((num) => {
-            const slots = slotsFor(num, 'colaborador')
+            const slots = slotsFor(num, role)
             const items = slots.map((s) => ({ slot: s, lesson: byRef.get(s.key) }))
             const avail = items.filter((x) => x.lesson)
             const mPct = avail.length ? Math.round(avail.reduce((s, x) => s + (x.lesson?.percent ?? 0), 0) / avail.length) : 0

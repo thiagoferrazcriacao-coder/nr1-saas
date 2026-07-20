@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
-import { ensureLearnCode } from '@/lib/learn-code'
+import { ensureLearnCode, ensureGestorCode } from '@/lib/learn-code'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     if (!company) return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 })
 
     const learnCode = await ensureLearnCode(companyId)
+    const gestorCode = await ensureGestorCode(companyId)
 
     const { searchParams } = new URL(req.url)
     const fromParam = searchParams.get('from')
@@ -28,9 +29,13 @@ export async function GET(req: NextRequest) {
     const lessons = await prisma.lesson.findMany({
       where:   { companyId: null, active: true },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
-      select:  { id: true, title: true, program: true, programNum: true },
+      select:  { id: true, title: true, program: true, programNum: true, trilha: true },
     })
     const totalLessons = lessons.length
+    const lessonsByRole: Record<string, typeof lessons> = {
+      gestor:      lessons.filter((l) => l.trilha === 'gestor'),
+      colaborador: lessons.filter((l) => l.trilha !== 'gestor'),
+    }
 
     // Filtro de data no LessonProgress: usa updatedAt (quando o colaborador assistiu pela última vez)
     const progressWhere: Record<string, unknown> = {}
@@ -52,8 +57,10 @@ export async function GET(req: NextRequest) {
     })
 
     const rows = employees.map((e) => {
+      const role = e.role === 'gestor' ? 'gestor' : 'colaborador'
+      const roleLessons = lessonsByRole[role]
       const progMap = new Map(e.progresses.map((p) => [p.lessonId, p]))
-      const perLesson = lessons.map((l) => ({
+      const perLesson = roleLessons.map((l) => ({
         lessonId:   l.id,
         title:      l.title,
         program:    l.program,
@@ -65,12 +72,16 @@ export async function GET(req: NextRequest) {
       // Para cálculos de período: só contar aulas que tiveram atividade no período
       const activeInPeriod = perLesson.filter((p) => p.percent > 0)
       const somaPercent = perLesson.reduce((s, p) => s + p.percent, 0)
-      const avgPercent = totalLessons ? Math.round(somaPercent / totalLessons) : 0
+      const avgPercent = roleLessons.length ? Math.round(somaPercent / roleLessons.length) : 0
       const completedCount = perLesson.filter((p) => p.completed).length
       const activeCount = activeInPeriod.length
       return {
         email:          e.email,
         name:           e.name,
+        cpf:            e.cpf,
+        phone:          e.phone,
+        role,
+        totalLessons:   roleLessons.length,
         avgPercent,
         completedCount,
         activeCount,
@@ -80,6 +91,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       slug:         learnCode,
+      gestorCode,
       totalLessons,
       lessons:      lessons.map((l) => ({ id: l.id, title: l.title, program: l.program, programNum: l.programNum })),
       employees:    rows,

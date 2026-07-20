@@ -12,7 +12,8 @@ model Company {
   name             String
   fantasyName      String?
   slug             String             @unique
-  learnCode        String?            // código neutro e aleatório do link de treinamento (sem nome de pessoa)
+  learnCode        String?            // código neutro do link de treinamento do COLABORADOR
+  gestorCode       String?            // código neutro do link de treinamento do GESTOR/LÍDER
   cnpj             String?
   responsible      String?
   phone            String?
@@ -236,12 +237,16 @@ model Employee {
   companyId    String
   email        String
   name         String?
-  passwordHash String?          // definido quando o colaborador cria a conta
+  cpf          String?          // CPF (só dígitos) — comprovação de quem assistiu
+  phone        String?          // WhatsApp
+  role         String           @default("colaborador") // colaborador | gestor
+  passwordHash String?          // definido quando a pessoa cria a conta
   createdAt    DateTime         @default(now())
   company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   progresses   LessonProgress[]
 
   @@unique([companyId, email])
+  @@unique([companyId, cpf])
   @@index([companyId])
 }
 
