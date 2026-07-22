@@ -30,9 +30,10 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     if (factors.length === 0) return NextResponse.json({ error: 'Sem dados para a ata.' }, { status: 400 })
 
     const start = plan ? new Date(plan.createdAt) : new Date()
-    const months = buildMonthPlan(factors, start)
+    const layout = (plan?.layout as { order?: string[] } | null) ?? {}
+    const months = buildMonthPlan(factors, start, layout.order)
     const month = months.find((m) => m.monthNum === monthNum) ?? months[0]
-    const md = ((plan?.monthData as MonthData) ?? {})[month.monthNum] ?? { evidences: [] }
+    const md = ((plan?.monthData as MonthData) ?? {})[month.key] ?? { evidences: [] }
 
     const date = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
     const company = sector.company

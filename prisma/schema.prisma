@@ -311,8 +311,10 @@ model ActionPlan {
   interventionCadence String?
   // horizonte do plano em semanas (legado — o plano agora é sempre de 12 meses)
   horizonWeeks Int?
-  // JSON: { [monthNum]: { done: boolean, ataSummary?: string, evidences: {url,name,at}[] } }
+  // JSON: { [groupKey]: { done: boolean, ataSummary?: string, evidences: {url,name,at}[] } }
   monthData Json?
+  // JSON: { order: string[] (chaves na ordem manual), notes: { [groupKey]: { from, to, reason } } }
+  layout    Json?
   status    String   @default("ativo") // ativo | concluido | arquivado
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

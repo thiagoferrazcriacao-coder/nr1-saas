@@ -38,10 +38,11 @@ export default function MaterialDidaticoPage() {
   const [video, setVideo] = useState<Lesson | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState(1)
 
+  const [demoUnlocked, setDemoUnlocked] = useState(false)
   const fetchLessons = useCallback(() => {
     fetch('/api/dashboard/material/lessons')
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) { setLessons(d.lessons ?? []); setGestorProgress(d.gestorProgress ?? {}) } })
+      .then((d) => { if (d) { setLessons(d.lessons ?? []); setGestorProgress(d.gestorProgress ?? {}); setDemoUnlocked(!!d.demoUnlocked) } })
       .finally(() => setLoading(false))
   }, [])
 
@@ -100,9 +101,9 @@ export default function MaterialDidaticoPage() {
   const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
   const weightCls: Record<string, string> = { ALTO: 'bg-red-50 text-red-600 border-red-200', 'MÉDIO': 'bg-amber-50 text-amber-700 border-amber-200', BAIXO: 'bg-green-50 text-green-700 border-green-200' }
 
-  // Material Didático liberado só a partir de 27/07/2026 — até lá, mostra apenas o aviso
+  // Material Didático liberado só a partir de 27/07/2026 — o usuário de teste vê liberado antes
   const RELEASE_DATE = new Date('2026-07-27T00:00:00-03:00')
-  const locked = Date.now() < RELEASE_DATE.getTime()
+  const locked = Date.now() < RELEASE_DATE.getTime() && !demoUnlocked
 
   // Quantos vídeos da trilha já estão no ar (vinculados por videoRef) x total planejado.
   const trilhaCount = (trilha: Trilha) => {

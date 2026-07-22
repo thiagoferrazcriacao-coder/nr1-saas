@@ -25,8 +25,9 @@ export default function AprenderPage() {
   const params = useParams()
   const slug = params.slug as string
 
-  // Material Didático liberado só a partir de 27/07/2026
-  const locked = Date.now() < new Date('2026-07-27T00:00:00-03:00').getTime()
+  // Material Didático liberado só a partir de 27/07/2026 (o usuário de teste vê antes)
+  const [demoUnlocked, setDemoUnlocked] = useState(false)
+  const locked = Date.now() < new Date('2026-07-27T00:00:00-03:00').getTime() && !demoUnlocked
 
   const [step, setStep] = useState<'carregando' | 'auth' | 'curso'>('carregando')
   const [mode, setMode] = useState<'login' | 'signup'>('signup')
@@ -45,9 +46,10 @@ export default function AprenderPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [current, setCurrent] = useState<Lesson | null>(null)
 
-  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[]; role?: string }) => {
+  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[]; role?: string; demoUnlocked?: boolean }) => {
     setCompanyName(data.companyName)
     setRole(data.role === 'gestor' ? 'gestor' : 'colaborador')
+    if (typeof data.demoUnlocked === 'boolean') setDemoUnlocked(data.demoUnlocked)
     setLessons(data.lessons)
     setMaterials(data.materials ?? [])
     setStep('curso')
@@ -69,6 +71,7 @@ export default function AprenderPage() {
       .then((d) => {
         if (d.role) setRole(d.role === 'gestor' ? 'gestor' : 'colaborador')
         if (d.companyName) setCompanyName(d.companyName)
+        if (typeof d.demoUnlocked === 'boolean') setDemoUnlocked(d.demoUnlocked)
         if (d.loggedIn) applyPayload(d); else setStep('auth')
       })
       .catch(() => setStep('auth'))

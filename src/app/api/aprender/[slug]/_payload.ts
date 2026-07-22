@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { FactorRisk } from '@/lib/sector-factors'
 import { buildTrainingSchedule, releasedColabRefs, weeksSince, IntervCadence } from '@/lib/training-schedule'
+import { isDemoCompany } from '@/lib/demo'
 
 // Monta os dados da área de membros: aulas da trilha do papel (gestor/colaborador) + progresso.
 export async function buildMemberPayload(
@@ -54,9 +55,12 @@ export async function buildMemberPayload(
   })
   const openMap = new Map(opens.map((o) => [o.materialId, o.percent]))
 
+  const demoUnlocked = await isDemoCompany(companyId)
+
   return {
     companyName,
     role,
+    demoUnlocked,
     employeeId:   employee.id,
     employeeName: employee.name,
     lessons: visibleLessons.map((l) => ({

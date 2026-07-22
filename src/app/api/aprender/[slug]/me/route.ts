@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getEmployeeFromReq } from '@/lib/employee-auth'
 import { resolveLearnSlug } from '@/lib/learn-code'
+import { isDemoCompany } from '@/lib/demo'
 import { buildMemberPayload } from '../_payload'
 
 // GET — sessão atual (se logada) com aulas + progresso; devolve o papel do link mesmo deslogado
@@ -10,13 +11,14 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const company = await resolveLearnSlug(params.slug)
   const linkRole = company?.role ?? 'colaborador'
   const companyName = company?.name ?? ''
+  const demoUnlocked = company ? await isDemoCompany(company.id) : false
 
   const session = getEmployeeFromReq(req)
-  if (!session) return NextResponse.json({ loggedIn: false, role: linkRole, companyName })
+  if (!session) return NextResponse.json({ loggedIn: false, role: linkRole, companyName, demoUnlocked })
 
   try {
     if (!company || company.id !== session.companyId) {
-      return NextResponse.json({ loggedIn: false, role: linkRole, companyName })
+      return NextResponse.json({ loggedIn: false, role: linkRole, companyName, demoUnlocked })
     }
 
     const employee = await prisma.employee.findUnique({

@@ -8,8 +8,9 @@ import { buildMonthPlan, FactorInput } from '@/lib/month-plan'
 
 export const dynamic = 'force-dynamic'
 
-// Dados que a empresa preenche por mês: evidências anexadas + resumo da ata + status
+// Dados que a empresa preenche por mês (chave = groupKey estável): evidências + ata + status
 type MonthData = Record<string, { done?: boolean; ataSummary?: string; evidences: { url: string; name?: string; at: string }[] }>
+type Layout = { order?: string[]; notes?: Record<string, { from: number; to: number; reason: string }> }
 
 const evidenceSchema = z.object({ url: z.string().url(), name: z.string().optional(), at: z.string() })
 const monthEntrySchema = z.object({
@@ -17,9 +18,14 @@ const monthEntrySchema = z.object({
   ataSummary: z.string().max(5000).optional(),
   evidences: z.array(evidenceSchema).default([]),
 })
+const layoutSchema = z.object({
+  order: z.array(z.string()).optional(),
+  notes: z.record(z.object({ from: z.number().int(), to: z.number().int(), reason: z.string().max(2000) })).optional(),
+})
 const bodySchema = z.object({
   create:    z.boolean().optional(),                  // ativa o plano (grava baseline + início)
   monthData: z.record(monthEntrySchema).optional(),   // salva evidências/ata/status por mês
+  layout:    layoutSchema.optional(),                 // ordem manual (arrastar) + justificativas
 })
 
 function factorsFrom(baseline: FactorRisk[]): FactorInput[] {
@@ -45,15 +51,18 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     }
 
     const startDate = plan ? new Date(plan.createdAt) : new Date()
-    const months = buildMonthPlan(factors, startDate)
+    const layout: Layout = (plan?.layout as Layout) ?? {}
+    const months = buildMonthPlan(factors, startDate, layout.order)
     const md: MonthData = (plan?.monthData as MonthData) ?? {}
+    const notes = layout.notes ?? {}
 
-    // anexa o que a empresa já preencheu (evidências / ata / concluído) em cada mês
+    // anexa evidências/ata/concluído (por chave) e a nota de alteração (arrastar)
     const monthsOut = months.map((m) => ({
       ...m,
-      done: !!md[m.monthNum]?.done,
-      ataSummary: md[m.monthNum]?.ataSummary ?? '',
-      evidences: md[m.monthNum]?.evidences ?? [],
+      done: !!md[m.key]?.done,
+      ataSummary: md[m.key]?.ataSummary ?? '',
+      evidences: md[m.key]?.evidences ?? [],
+      changeNote: notes[m.key] ?? null,
     }))
 
     return NextResponse.json({
@@ -78,10 +87,12 @@ export async function POST(req: NextRequest, { params }: { params: { sectorId: s
     const parsed = bodySchema.safeParse(await req.json())
     if (!parsed.success) return NextResponse.json({ error: 'Dados inválidos.' }, { status: 400 })
 
-    const existing = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId }, select: { id: true } })
+    let existing = await prisma.actionPlan.findUnique({ where: { sectorId: params.sectorId }, select: { id: true } })
 
-    // Ativa o plano: grava o baseline (13 fatores) e o snapshot dos meses; createdAt = início
-    if (parsed.data.create && !existing) {
+    // Ativa o plano na primeira ação (create explícito OU ao salvar evidência/ata/ordem):
+    // grava o baseline (13 fatores) e o snapshot dos meses; createdAt = início
+    const wantsWrite = parsed.data.create || parsed.data.monthData || parsed.data.layout
+    if (!existing && wantsWrite) {
       const baseline = await computeSectorFactors(params.sectorId)
       if (baseline.length === 0) return NextResponse.json({ error: 'Sem respostas para montar o plano.' }, { status: 400 })
       const months = buildMonthPlan(factorsFrom(baseline), new Date())
@@ -93,14 +104,15 @@ export async function POST(req: NextRequest, { params }: { params: { sectorId: s
           monthData: {} as Prisma.InputJsonValue,
         },
       })
+      existing = { id: 'novo' }
     }
 
-    // Salva dados por mês
-    if (parsed.data.monthData) {
-      await prisma.actionPlan.update({
-        where: { sectorId: params.sectorId },
-        data: { monthData: parsed.data.monthData as Prisma.InputJsonValue },
-      })
+    // Salva dados por mês e/ou a ordem manual
+    const data: Prisma.ActionPlanUpdateInput = {}
+    if (parsed.data.monthData) data.monthData = parsed.data.monthData as Prisma.InputJsonValue
+    if (parsed.data.layout) data.layout = parsed.data.layout as Prisma.InputJsonValue
+    if (Object.keys(data).length) {
+      await prisma.actionPlan.update({ where: { sectorId: params.sectorId }, data })
     }
 
     return NextResponse.json({ ok: true })

@@ -52,6 +52,14 @@ function calendarLabel(start: Date, offsetMonths: number): string {
   const d = new Date(start.getFullYear(), start.getMonth() + offsetMonths, 1)
   return `${MESES[d.getMonth()]}/${d.getFullYear()}`
 }
+// Rótulo completo do mês: "Mês 1 (Julho/2026)" — index começa em 0
+export function monthLabelFor(start: Date, index: number): string {
+  return `Mês ${index + 1} (${calendarLabel(start, index)})`
+}
+// Chave estável de um mês pelos fatores que ele contém (ex.: "13" ou "11-12") — sobrevive à reordenação
+export function monthKey(topicNums: number[]): string {
+  return [...topicNums].sort((a, b) => a - b).join('-')
+}
 
 export type MonthFactor = {
   topicNum: number
@@ -65,6 +73,7 @@ export type MonthFactor = {
 }
 export type PlanMonth = {
   monthNum: number      // 1..12
+  key: string           // chave estável pelos fatores (ex.: "13" ou "11-12")
   label: string         // "Mês 1 (Julho/2026)"
   isDouble: boolean     // mês com 2 fatores
   reapplyDrps: boolean  // mês 12 sugere reaplicar o DRPS
@@ -107,7 +116,7 @@ function toMonthFactor(f: FactorInput): MonthFactor {
  * @param factors os 13 fatores com nível e gravidade
  * @param startDate início do plano (para rotular os meses do calendário)
  */
-export function buildMonthPlan(factors: FactorInput[], startDate: Date): PlanMonth[] {
+export function buildMonthPlan(factors: FactorInput[], startDate: Date, order?: string[]): PlanMonth[] {
   if (factors.length === 0) return []
   const ranking = orderFactors(factors)
   const byNum = new Map(factors.map((f) => [f.topicNum, f]))
@@ -132,12 +141,28 @@ export function buildMonthPlan(factors: FactorInput[], startDate: Date): PlanMon
     }
   }
 
-  const total = monthsFactors.length
-  return monthsFactors.map((fs, i) => ({
-    monthNum: i + 1,
-    label: `Mês ${i + 1} (${calendarLabel(startDate, i)})`,
+  let built = monthsFactors.map((fs) => ({
+    key: monthKey(fs.map((f) => f.topicNum)),
     isDouble: fs.length > 1,
-    reapplyDrps: i + 1 === total, // último mês sugere reaplicar o DRPS
     factors: fs.map(toMonthFactor),
+  }))
+
+  // Ordem manual (arrastar): reordena os grupos conforme `order` (lista de chaves), mantendo
+  // no fim qualquer grupo que não esteja na lista.
+  if (order && order.length) {
+    const byKey = new Map(built.map((b) => [b.key, b]))
+    const picked: typeof built = []
+    for (const k of order) { const b = byKey.get(k); if (b) { picked.push(b); byKey.delete(k) } }
+    built = [...picked, ...byKey.values()]
+  }
+
+  const total = built.length
+  return built.map((b, i) => ({
+    monthNum: i + 1,
+    key: b.key,
+    label: monthLabelFor(startDate, i),
+    isDouble: b.isDouble,
+    reapplyDrps: i + 1 === total, // último mês sugere reaplicar o DRPS
+    factors: b.factors,
   }))
 }
