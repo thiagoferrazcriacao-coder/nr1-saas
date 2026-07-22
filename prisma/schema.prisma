@@ -307,10 +307,12 @@ model ActionPlan {
   items     Json
   // JSON: FactorRisk[] — foto do risco por fator no início do plano (para comparar na reavaliação)
   baseline  Json?
-  // ritmo de intervenção escolhido pela empresa: semanal | mensal | bimestral
+  // ritmo de intervenção escolhido pela empresa: semanal | mensal | bimestral (legado)
   interventionCadence String?
-  // horizonte do plano em semanas (até o vencimento do acesso de 1 ano)
+  // horizonte do plano em semanas (legado — o plano agora é sempre de 12 meses)
   horizonWeeks Int?
+  // JSON: { [monthNum]: { done: boolean, ataSummary?: string, evidences: {url,name,at}[] } }
+  monthData Json?
   status    String   @default("ativo") // ativo | concluido | arquivado
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
