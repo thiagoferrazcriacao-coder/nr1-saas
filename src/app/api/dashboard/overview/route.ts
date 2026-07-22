@@ -4,11 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { computeSectorFactors, FactorRisk } from '@/lib/sector-factors'
 import { RiskLevel } from '@/lib/action-plan-engine'
+import { buildMonthPlan, orderFactors, FactorInput } from '@/lib/month-plan'
 
 const sev: Record<RiskLevel, number> = { baixo: 0, moderado: 1, alto: 2, critico: 3 }
 
 type AttentionItem = { sectorId: string; sectorName: string; topicNum: number; factor: string; riskLevel: RiskLevel; score: number }
-type FactorAvg = { topicNum: number; factor: string; score: number; riskLevel: RiskLevel; sectors: number }
+type FactorAvg = { topicNum: number; factor: string; score: number; riskLevel: RiskLevel; sectors: number; rank: number; interventionMonth: number | null; monthLabel: string }
 type Trend = 'melhorou' | 'estavel' | 'piorou' | 'sem_dados'
 type FactorCmp = { topicNum: number; factor: string; baseline: RiskLevel; baselineScore: number; current: RiskLevel | null; currentScore: number | null; trend: Trend }
 type SectorEvolution = { sectorId: string; name: string; reavaliada: boolean; improved: number; worsened: number; stable: number; comparison: FactorCmp[] }
@@ -79,13 +80,26 @@ export async function GET(req: NextRequest) {
     // prioriza: crítico antes de alto; dentro do mesmo nível, maior score primeiro
     attention.sort((a, b) => sev[b.riskLevel] - sev[a.riskLevel] || b.score - a.score)
 
-    // média de cada um dos 13 fatores na empresa, do maior risco para o menor
-    const factors: FactorAvg[] = Array.from(factorAcc.entries())
-      .map(([topicNum, v]) => {
-        const score = v.count ? v.sum / v.count : 0
-        return { topicNum, factor: v.factor, score: parseFloat(score.toFixed(2)), riskLevel: levelFromScore(score), sectors: v.count }
-      })
-      .sort((a, b) => b.score - a.score || a.topicNum - b.topicNum)
+    // Ordena os 13 fatores pela RÉGUA (pior → menos pior) e marca o mês da intervenção
+    const factorInputs: FactorInput[] = Array.from(factorAcc.entries()).map(([topicNum, v]) => {
+      const score = v.count ? v.sum / v.count : 0
+      return { topicNum, riskLevel: levelFromScore(score), score: parseFloat(score.toFixed(2)) }
+    })
+    const ordered = orderFactors(factorInputs)
+    const months = buildMonthPlan(factorInputs, new Date())
+    const monthOf = new Map<number, { num: number; label: string }>()
+    for (const m of months) for (const f of m.factors) monthOf.set(f.topicNum, { num: m.monthNum, label: m.label })
+
+    const factors: FactorAvg[] = ordered.map((f, i) => ({
+      topicNum: f.topicNum,
+      factor: factorAcc.get(f.topicNum)?.factor ?? '',
+      score: f.score,
+      riskLevel: f.riskLevel,
+      sectors: factorAcc.get(f.topicNum)?.count ?? 0,
+      rank: i + 1,
+      interventionMonth: monthOf.get(f.topicNum)?.num ?? null,
+      monthLabel: monthOf.get(f.topicNum)?.label ?? '',
+    }))
 
     return NextResponse.json({ attention, evolution, factors, hasAnyPlan, hasAnyReaval })
   } catch (err) {
