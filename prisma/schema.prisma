@@ -21,6 +21,8 @@ model Company {
   city             String?
   state            String?
   logoUrl          String?
+  gestorName       String?            // nome do gestor responsável (assina os documentos)
+  gestorSignatureUrl String?          // imagem da assinatura do gestor (JPG/PNG) para os documentos
   stripeCustomerId String?
   plan             String             @default("starter")
   employeeCount    Int?

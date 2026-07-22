@@ -16,12 +16,15 @@ const schema = z.object({
   employeeCount: z.number().int().min(1).max(99999).optional(),
   workModality:  z.enum(['presencial', 'remoto', 'hibrido']).optional(),
   logoUrl:       z.string().url().max(500).nullable().optional(),
+  gestorName:    z.string().max(100).nullable().optional(),
+  gestorSignatureUrl: z.string().url().max(500).nullable().optional(),
 })
 
 const SELECT = {
   id: true, name: true, fantasyName: true, cnpj: true, logoUrl: true,
   responsible: true, phone: true, address: true, city: true, state: true,
   employeeCount: true, workModality: true,
+  gestorName: true, gestorSignatureUrl: true,
   drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true,
 }
 

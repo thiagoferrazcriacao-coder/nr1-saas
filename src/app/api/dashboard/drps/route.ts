@@ -142,11 +142,13 @@ function buildHtml(opts: {
   logoUrl: string | null
   sectors: SectorData[]
   single: boolean
+  gestorName: string | null
+  gestorSignatureUrl: string | null
   drpsValidatedAt: Date | null
   drpsValidatedBy: string | null
   drpsNotes: string | null
 }): string {
-  const { origin, companyName, fantasyName, cnpj, city, state, responsible, logoUrl, sectors, single, drpsValidatedAt, drpsNotes } = opts
+  const { origin, companyName, fantasyName, cnpj, city, state, responsible, logoUrl, sectors, single, gestorName, gestorSignatureUrl, drpsNotes } = opts
   const now = new Date()
   const mesAnoRaw = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
   const mesAno = mesAnoRaw.charAt(0).toUpperCase() + mesAnoRaw.slice(1)
@@ -334,10 +336,11 @@ function buildHtml(opts: {
   ${drpsNotes ? `<div style="margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;"><p style="font-size:10.5px;font-weight:700;color:#475569;margin-bottom:4px;">Observações técnicas da responsável</p><p style="font-size:11px;color:#374151;line-height:1.6;">${drpsNotes}</p></div>` : ''}
 
   <div style="margin-top:40px;text-align:center;">
-    <div style="display:inline-block;border-top:2px solid #334155;padding-top:6px;min-width:320px;">
-      <p style="font-size:13px;font-weight:700;color:${NAVY};">Annie Talma Ferreira Coelho</p>
-      <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional — Responsável Técnica · CRP/05/44595</p>
-      <p style="font-size:10px;color:#94a3b8;margin-top:4px;">${drpsValidatedAt ? 'Assinatura digital registrada em ' + new Date(drpsValidatedAt).toLocaleString('pt-BR') : 'Assinatura eletrônica · ' + date}</p>
+    <div style="display:inline-block;padding-top:6px;min-width:320px;">
+      ${gestorSignatureUrl ? `<img src="${gestorSignatureUrl}" alt="Assinatura do gestor" style="max-height:56px;max-width:250px;object-fit:contain;display:block;margin:0 auto 4px;" />` : '<div style="height:38px;border-bottom:2px solid #334155;width:280px;margin:0 auto 6px;"></div>'}
+      <p style="font-size:13px;font-weight:700;color:${NAVY};">${gestorName || companyName}</p>
+      <p style="font-size:11px;color:#64748b;">Gestor(a) Responsável</p>
+      <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura eletrônica · ${date}</p>
     </div>
   </div>
 
@@ -368,6 +371,7 @@ export async function GET(req: NextRequest) {
       where: { id: companyId },
       select: {
         name: true, fantasyName: true, cnpj: true, city: true, state: true, responsible: true, logoUrl: true,
+        gestorName: true, gestorSignatureUrl: true,
         drpsValidatedAt: true, drpsValidatedBy: true, drpsNotes: true,
       },
     })
@@ -417,6 +421,8 @@ export async function GET(req: NextRequest) {
       logoUrl: company.logoUrl ?? null,
       sectors: sectorData,
       single,
+      gestorName: company.gestorName ?? null,
+      gestorSignatureUrl: company.gestorSignatureUrl ?? null,
       drpsValidatedAt: company.drpsValidatedAt ?? null,
       drpsValidatedBy: company.drpsValidatedBy ?? null,
       drpsNotes: company.drpsNotes ?? null,

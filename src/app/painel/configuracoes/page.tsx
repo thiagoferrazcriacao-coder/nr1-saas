@@ -32,6 +32,12 @@ export default function ConfiguracoesPage() {
   const [logoUrl, setLogoUrl]   = useState<string | null>(null)
   const [logoBusy, setLogoBusy] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
+  // Assinatura do gestor (usada em todos os documentos gerados)
+  const [gestorName, setGestorName] = useState('')
+  const [gestorSig, setGestorSig] = useState<string | null>(null)
+  const [sigBusy, setSigBusy] = useState(false)
+  const [sigSaved, setSigSaved] = useState(false)
+  const sigRef = useRef<HTMLInputElement>(null)
   const [pwd, setPwd] = useState({ cur: '', nova: '', conf: '' })
   const [pwdBusy, setPwdBusy] = useState(false)
   const [pwdMsg, setPwdMsg]   = useState<{ ok: boolean; text: string } | null>(null)
@@ -43,6 +49,8 @@ export default function ConfiguracoesPage() {
         if (data.email) setEmail(data.email)
         if (data.company) {
           setLogoUrl(data.company.logoUrl ?? null)
+          setGestorSig(data.company.gestorSignatureUrl ?? null)
+          setGestorName(data.company.gestorName ?? data.company.responsible ?? '')
           setForm({
             name:          data.company.name ?? '',
             fantasyName:   data.company.fantasyName ?? '',
@@ -78,6 +86,34 @@ export default function ConfiguracoesPage() {
       })
       if (res.ok) setLogoUrl(d.publicUrl)
     } catch { setError('Erro no envio da imagem.') } finally { setLogoBusy(false); if (logoRef.current) logoRef.current.value = '' }
+  }
+
+  // Upload da assinatura do gestor (imagem) + salva o nome
+  const onSignature = async (file: File | null) => {
+    if (!file) return
+    setSigBusy(true); setError('')
+    try {
+      const r = await fetch('/api/dashboard/materials/upload-url', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, contentType: file.type || 'image/png' }),
+      })
+      const d = await r.json()
+      if (!r.ok) { setError(d.error ?? 'Falha ao preparar o envio.'); return }
+      await fetch(d.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'image/png' }, body: file })
+      const res = await fetch('/api/dashboard/company-settings', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gestorSignatureUrl: d.publicUrl }),
+      })
+      if (res.ok) setGestorSig(d.publicUrl)
+    } catch { setError('Erro no envio da assinatura.') } finally { setSigBusy(false); if (sigRef.current) sigRef.current.value = '' }
+  }
+  const saveGestorName = async () => {
+    setSigSaved(false)
+    await fetch('/api/dashboard/company-settings', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gestorName: gestorName.trim() }),
+    })
+    setSigSaved(true); setTimeout(() => setSigSaved(false), 2000)
   }
 
   const changePassword = async (e: React.FormEvent) => {
@@ -158,6 +194,41 @@ export default function ConfiguracoesPage() {
               {logoBusy ? 'Enviando…' : logoUrl ? 'Trocar logo' : 'Enviar logo'}
             </button>
             <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={(e) => onLogo(e.target.files?.[0] ?? null)} />
+          </div>
+        </div>
+
+        {/* Assinatura do gestor — usada em TODOS os documentos gerados */}
+        <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/40">
+          <p className="text-sm font-bold text-gray-800">✍️ Assinatura do Gestor</p>
+          <p className="text-xs text-gray-500 mt-0.5 mb-3">O nome e a assinatura abaixo aparecem em <strong>todos os documentos</strong> (DRPS, Anexo para o PGR, Plano de Ação e Atas).</p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nome do gestor responsável</label>
+              <div className="flex gap-2">
+                <input value={gestorName} onChange={(e) => setGestorName(e.target.value)} placeholder="Ex.: João da Silva"
+                  className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-800 text-sm" />
+                <button type="button" onClick={saveGestorName}
+                  className="flex-shrink-0 text-sm font-semibold text-white bg-primary-800 px-3 py-2 rounded-xl hover:bg-primary-700">{sigSaved ? '✅' : 'Salvar'}</button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Imagem da assinatura</label>
+              <div className="flex items-center gap-3">
+                <div className="w-32 h-16 rounded-xl border border-gray-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {gestorSig ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={gestorSig} alt="Assinatura do gestor" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-xs text-gray-300">sem assinatura</span>
+                  )}
+                </div>
+                <button type="button" onClick={() => sigRef.current?.click()} disabled={sigBusy}
+                  className="text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-3 py-1.5 rounded-lg hover:bg-[#E0F5F6] disabled:opacity-50">
+                  {sigBusy ? 'Enviando…' : gestorSig ? 'Trocar' : 'Enviar'}
+                </button>
+                <input ref={sigRef} type="file" accept="image/*" className="hidden" onChange={(e) => onSignature(e.target.files?.[0] ?? null)} />
+              </div>
+            </div>
           </div>
         </div>
 

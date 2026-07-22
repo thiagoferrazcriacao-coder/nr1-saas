@@ -60,6 +60,8 @@ function buildPgrHtml(opts: {
   state: string | null
   address: string | null
   responsible: string | null
+  gestorName: string | null
+  gestorSignatureUrl: string | null
   employeeCount: number | null
   workModality: string | null
   totalResponses: number
@@ -67,7 +69,7 @@ function buildPgrHtml(opts: {
   matrix: MatrixResult[]
 }): string {
   const {
-    companyName, cnpj, city, state, address, responsible, employeeCount, workModality,
+    companyName, cnpj, city, state, address, responsible, gestorName, gestorSignatureUrl, employeeCount, workModality,
     totalResponses, sectorCount, matrix,
   } = opts
   const date = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -257,26 +259,19 @@ function buildPgrHtml(opts: {
     <li>Este PGR e seus registros devem ser <strong>arquivados por no mínimo 20 anos</strong>, conforme a NR-1.</li>
   </ul>
 
-  <!-- Assinaturas -->
-  <div style="margin-top:36px;padding-top:20px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;">
+  <!-- Assinatura do gestor -->
+  <div style="margin-top:36px;padding-top:20px;border-top:2px solid #e2e8f0;display:flex;justify-content:flex-start;gap:40px;flex-wrap:wrap;">
     <div>
-      <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica</p>
-      <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma</p>
-      <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
+      ${gestorSignatureUrl ? `<img src="${gestorSignatureUrl}" alt="Assinatura do gestor" style="max-height:54px;max-width:230px;object-fit:contain;display:block;margin-bottom:4px;" />` : '<div style="height:38px;border-bottom:1px solid #94a3b8;width:230px;margin-bottom:6px;"></div>'}
+      <p style="font-size:14px;font-weight:700;color:#1e3a8a;">${gestorName || responsible || companyName}</p>
+      <p style="font-size:11px;color:#64748b;">Gestor(a) Responsável</p>
       <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura eletrônica · ${date}</p>
-    </div>
-    <div>
-      <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável pela Organização</p>
-      <p style="font-size:14px;font-weight:700;color:#1e3a8a;">${responsible ?? companyName}</p>
-      <p style="font-size:11px;color:#64748b;">${companyName}</p>
-      <p style="font-size:10px;color:#94a3b8;margin-top:4px;">${date}</p>
     </div>
   </div>
 
   <div style="margin-top:16px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 14px;">
     <p style="font-size:10px;color:#92400e;line-height:1.5;">
-      <strong>Observação:</strong> assinatura eletrônica pré-aplicada da responsável técnica. A formalização final
-      (assinatura manuscrita/certificada da psicóloga) será concluída em etapa posterior, sem prejuízo da validade técnica deste documento.
+      <strong>Observação:</strong> a guarda deste documento e das evidências deve ser mantida por no mínimo 20 anos, conforme a NR-1.
     </p>
   </div>
 
@@ -299,7 +294,7 @@ export async function GET(req: NextRequest) {
       where: { id: companyId },
       select: {
         name: true, cnpj: true, city: true, state: true, address: true,
-        responsible: true, employeeCount: true, workModality: true,
+        responsible: true, gestorName: true, gestorSignatureUrl: true, employeeCount: true, workModality: true,
         sectors: { select: { id: true } },
         assessment: { select: { items: true } },
       },
@@ -352,6 +347,8 @@ export async function GET(req: NextRequest) {
       state:          company.state ?? null,
       address:        company.address ?? null,
       responsible:    company.responsible ?? null,
+      gestorName:     company.gestorName ?? null,
+      gestorSignatureUrl: company.gestorSignatureUrl ?? null,
       employeeCount:  company.employeeCount ?? null,
       workModality:   company.workModality ?? null,
       totalResponses: responses.length,

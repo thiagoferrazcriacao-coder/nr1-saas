@@ -36,6 +36,8 @@ function buildHtml(opts: {
   state:           string | null
   address:         string | null
   responsible:     string | null
+  gestorName:      string | null
+  gestorSignatureUrl: string | null
   employeeCount:   number | null
   workModality:    string | null
   drpsValidatedAt: Date | null
@@ -44,7 +46,7 @@ function buildHtml(opts: {
 }): string {
   const {
     sectorName, companyName, fantasyName, totalResponses, matrix, assessedBy,
-    cnpj, city, state, address, responsible, employeeCount,
+    cnpj, city, state, address, responsible, gestorName, gestorSignatureUrl, employeeCount,
     drpsValidatedAt, drpsValidatedBy, drpsNotes,
   } = opts
 
@@ -173,7 +175,7 @@ function buildHtml(opts: {
       ${(city || state) ? `<tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Localização</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${[city, state].filter(Boolean).join('/')}${address ? ' · ' + address : ''}</td></tr>` : ''}
       ${responsible ? `<tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Responsável pela organização</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${responsible}</td></tr>` : ''}
       <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Data do relatório</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${date}</td></tr>
-      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Responsável técnica</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">Annie Talma Ferreira Coelho — CRP/05/44595</td></tr>
+      <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Gestor responsável</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${gestorName || responsible || companyName}</td></tr>
       <tr><td style="padding:6px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-weight:600;">Próxima reaplicação</td><td style="padding:6px 10px;border:1px solid #e2e8f0;">${proxima}</td></tr>
     </tbody>
   </table>
@@ -279,7 +281,7 @@ function buildHtml(opts: {
 
   ${drpsNotes ? `
   <div style="margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
-    <p style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">📝 Observações Técnicas da Psicóloga Responsável</p>
+    <p style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">📝 Observações Técnicas</p>
     <p style="font-size:12px;color:#374151;line-height:1.6;">${drpsNotes}</p>
   </div>` : ''}
 
@@ -288,9 +290,9 @@ function buildHtml(opts: {
     ${drpsValidatedAt ? `
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
       <div>
-        <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica pela Avaliação</p>
-        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma Ferreira Coelho</p>
-        <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
+        ${gestorSignatureUrl ? `<img src="${gestorSignatureUrl}" alt="Assinatura do gestor" style="max-height:52px;max-width:220px;object-fit:contain;display:block;margin-bottom:4px;" />` : '<div style="height:36px;border-bottom:1px solid #94a3b8;width:220px;margin-bottom:6px;"></div>'}
+        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">${gestorName || responsible || companyName}</p>
+        <p style="font-size:11px;color:#64748b;">Gestor(a) Responsável</p>
         <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura digital registrada em ${new Date(drpsValidatedAt).toLocaleString('pt-BR')}</p>
       </div>
       <div style="text-align:right;">
@@ -303,9 +305,9 @@ function buildHtml(opts: {
     ${drpsValidatedBy ? `<p style="font-size:9px;color:#94a3b8;margin-top:6px;">Validado por ${drpsValidatedBy}.</p>` : ''}` : `
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">
       <div>
-        <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica pela Avaliação</p>
-        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">Annie Talma Ferreira Coelho</p>
-        <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
+        ${gestorSignatureUrl ? `<img src="${gestorSignatureUrl}" alt="Assinatura do gestor" style="max-height:52px;max-width:220px;object-fit:contain;display:block;margin-bottom:4px;" />` : '<div style="height:36px;border-bottom:1px solid #94a3b8;width:220px;margin-bottom:6px;"></div>'}
+        <p style="font-size:14px;font-weight:700;color:#1e3a8a;">${gestorName || responsible || companyName}</p>
+        <p style="font-size:11px;color:#64748b;">Gestor(a) Responsável</p>
         <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura eletrônica · ${date}</p>
       </div>
       <div style="text-align:right;">
@@ -317,8 +319,7 @@ function buildHtml(opts: {
     </div>
     <div style="margin-top:14px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 14px;">
       <p style="font-size:10px;color:#92400e;line-height:1.5;">
-        <strong>Observação:</strong> assinatura eletrônica pré-aplicada da responsável técnica. A formalização final
-        (assinatura manuscrita/certificada da psicóloga) será concluída em etapa posterior, sem prejuízo da validade técnica deste documento.
+        <strong>Observação:</strong> a guarda deste documento e das evidências deve ser mantida por no mínimo 20 anos, conforme a NR-1.
       </p>
     </div>`}
   </div>
@@ -348,7 +349,7 @@ export async function GET(
         company: {
           select: {
             name: true, fantasyName: true, cnpj: true, city: true, state: true, address: true,
-            responsible: true, employeeCount: true, workModality: true,
+            responsible: true, gestorName: true, gestorSignatureUrl: true, employeeCount: true, workModality: true,
             drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true, drpsNotes: true,
           },
         },
@@ -406,6 +407,8 @@ export async function GET(
       state:           sector.company.state ?? null,
       address:         sector.company.address ?? null,
       responsible:     sector.company.responsible ?? null,
+      gestorName:      sector.company.gestorName ?? null,
+      gestorSignatureUrl: sector.company.gestorSignatureUrl ?? null,
       employeeCount:   sector.company.employeeCount ?? null,
       workModality:    sector.company.workModality ?? null,
       drpsValidatedAt: sector.company.drpsValidatedAt ?? null,

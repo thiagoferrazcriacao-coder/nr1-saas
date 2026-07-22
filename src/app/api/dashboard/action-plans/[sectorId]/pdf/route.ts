@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { buildPlan, PlanItem, RiskLevel, cadenceLabel, Cadence } from '@/lib/action-plan-engine'
 import { computeSectorFactors, FactorRisk } from '@/lib/sector-factors'
 import { buildTrainingSchedule, weeksSince, TrainingFactor, IntervCadence } from '@/lib/training-schedule'
+import { gestorSignatureHtml } from '@/lib/signature-html'
 import { accessEndDate, horizonWeeksUntil } from '@/lib/access-window'
 
 export const dynamic = 'force-dynamic'
@@ -24,10 +25,10 @@ type Comparison = { factor: string; baseline: RiskLevel; current: RiskLevel | nu
 
 function buildHtml(o: {
   companyName: string; sectorName: string; cnpj: string | null; city: string | null; state: string | null
-  responsible: string | null; items: PlanItem[]; cadence: Cadence | null; comparison: Comparison[]; reavaliada: boolean
+  responsible: string | null; gestorName: string | null; gestorSignatureUrl: string | null; items: PlanItem[]; cadence: Cadence | null; comparison: Comparison[]; reavaliada: boolean
   training: TrainingFactor[]; weeksElapsed: number; planStarted: boolean; horizonWeeks: number; accessEnd: Date
 }): string {
-  const { companyName, sectorName, cnpj, city, state, responsible, items, cadence, comparison, reavaliada, training, weeksElapsed, planStarted, horizonWeeks, accessEnd } = o
+  const { companyName, sectorName, cnpj, city, state, responsible, gestorName, gestorSignatureUrl, items, cadence, comparison, reavaliada, training, weeksElapsed, planStarted, horizonWeeks, accessEnd } = o
   const date = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   const venc = accessEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
@@ -189,23 +190,12 @@ function buildHtml(o: {
 
   ${reavalBlock}
 
-  <div style="margin-top:32px;padding-top:18px;border-top:2px solid #e2e8f0;display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;page-break-inside:avoid;">
-    <div>
-      <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável Técnica</p>
-      <p style="font-size:14px;font-weight:700;color:#0E2A47;">Annie Talma</p>
-      <p style="font-size:11px;color:#64748b;">Psicóloga Organizacional · CRP/05/44595</p>
-      <p style="font-size:10px;color:#94a3b8;margin-top:4px;">Assinatura eletrônica · ${date}</p>
-    </div>
-    <div>
-      <p style="font-size:10px;color:#94a3b8;margin-bottom:4px;">Responsável pela Organização</p>
-      <p style="font-size:14px;font-weight:700;color:#0E2A47;">${esc(responsible ?? companyName)}</p>
-      <p style="font-size:11px;color:#64748b;">${esc(companyName)}</p>
-      <p style="font-size:10px;color:#94a3b8;margin-top:4px;">${date}</p>
-    </div>
+  <div style="margin-top:32px;padding-top:18px;border-top:2px solid #e2e8f0;display:flex;justify-content:flex-start;gap:40px;flex-wrap:wrap;page-break-inside:avoid;">
+    ${gestorSignatureHtml({ gestorName, signatureUrl: gestorSignatureUrl, companyName, date })}
   </div>
 
   <div style="margin-top:14px;background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 14px;">
-    <p style="font-size:10px;color:#92400e;line-height:1.5;"><strong>Observação:</strong> assinatura eletrônica pré-aplicada da responsável técnica. A guarda deste documento e das evidências deve ser mantida por no mínimo 20 anos, conforme a NR-1.</p>
+    <p style="font-size:10px;color:#92400e;line-height:1.5;"><strong>Observação:</strong> a guarda deste documento e das evidências deve ser mantida por no mínimo 20 anos, conforme a NR-1.</p>
   </div>
 
   <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center;">
@@ -221,7 +211,7 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
 
     const sector = await prisma.sector.findFirst({
       where: { id: params.sectorId, companyId },
-      include: { company: { select: { name: true, cnpj: true, city: true, state: true, responsible: true, createdAt: true } } },
+      include: { company: { select: { name: true, cnpj: true, city: true, state: true, responsible: true, gestorName: true, gestorSignatureUrl: true, createdAt: true } } },
     })
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
@@ -276,7 +266,9 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     const html = buildHtml({
       companyName: sector.company.name, sectorName: sector.name,
       cnpj: sector.company.cnpj ?? null, city: sector.company.city ?? null, state: sector.company.state ?? null,
-      responsible: sector.company.responsible ?? null, items, cadence, comparison, reavaliada,
+      responsible: sector.company.responsible ?? null,
+      gestorName: sector.company.gestorName ?? null, gestorSignatureUrl: sector.company.gestorSignatureUrl ?? null,
+      items, cadence, comparison, reavaliada,
       training, weeksElapsed, planStarted, horizonWeeks, accessEnd,
     })
 
