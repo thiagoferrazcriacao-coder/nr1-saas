@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { checkoutUrl } from '@/lib/kiwify'
 import HeroVideo from './_components/HeroVideo'
 
-// Quando o vídeo estiver pronto, é só colocar a URL aqui (hospedado no storage) — o autoplay já funciona.
-const HERO_VIDEO_SRC = ''
+// Vídeo de apresentação (hospedado no R2). Autoplay mudo + botão de som.
+const HERO_VIDEO_SRC = 'https://pub-efde60bdf5964a7a9da3d91129cee1be.r2.dev/landing/hero-zelo.mp4'
 
 export const metadata = {
   title: 'Zelo — Plataforma de Adequação à NR-1 (Riscos Psicossociais)',

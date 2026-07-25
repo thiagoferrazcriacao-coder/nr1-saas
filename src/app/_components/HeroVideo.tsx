@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 
 // Vídeo explicativo da 1ª dobra: toca sozinho (mudo, exigência dos navegadores) e
 // mostra um botão grande "Ativar som". Se não houver src ainda, mostra um placeholder.
-export default function HeroVideo({ src, poster }: { src?: string; poster?: string }) {
+export default function HeroVideo({ src, poster, loop = false }: { src?: string; poster?: string; loop?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
 
@@ -37,7 +37,7 @@ export default function HeroVideo({ src, poster }: { src?: string; poster?: stri
         poster={poster}
         autoPlay
         muted
-        loop
+        loop={loop}
         playsInline
         className="w-full h-auto block"
       />
