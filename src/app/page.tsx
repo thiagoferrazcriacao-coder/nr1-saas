@@ -1,9 +1,13 @@
 import Link from 'next/link'
 import { checkoutUrl } from '@/lib/kiwify'
+import HeroVideo from './_components/HeroVideo'
+
+// Quando o vídeo estiver pronto, é só colocar a URL aqui (hospedado no storage) — o autoplay já funciona.
+const HERO_VIDEO_SRC = ''
 
 export const metadata = {
   title: 'Zelo — Plataforma de Adequação à NR-1 (Riscos Psicossociais)',
-  description: 'A NR-1 já está em vigor. Toda empresa com funcionário CLT precisa do diagnóstico de riscos psicossociais. Adeque sua empresa em poucos dias com laudo (DRPS) assinado por psicóloga.',
+  description: 'A NR-1 já está em vigor. Toda empresa com funcionário CLT precisa do diagnóstico de riscos psicossociais. Adeque sua empresa em poucos dias — simples, é só adquirir e já tem acesso.',
 }
 
 // Paleta Zelo
@@ -28,73 +32,44 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="pt-28 pb-16 px-4 bg-gradient-to-b from-[#F0FBFC] to-white">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          {/* Texto */}
-          <div>
-            <div className="inline-flex items-center gap-2 bg-[#FFF4E5] border border-[#FFD8A8] text-[#B5651D] text-xs font-bold px-3 py-1.5 rounded-full mb-6">
-              <span className="w-2 h-2 bg-[#F08C00] rounded-full animate-pulse inline-block" />
-              NORMA EM VIGOR — FISCALIZAÇÃO ATIVA
-            </div>
+      {/* Animação do botão piscante */}
+      <style>{`
+        @keyframes zeloBlink { 0%,100%{ box-shadow:0 0 0 0 rgba(23,195,201,.55); transform:scale(1);} 50%{ box-shadow:0 0 0 14px rgba(23,195,201,0); transform:scale(1.03);} }
+        .btn-blink{ animation: zeloBlink 1.25s ease-in-out infinite; }
+      `}</style>
 
-            <h1 className="text-4xl sm:text-5xl font-black leading-[1.1] mb-5 text-[#0E2A47]">
-              Sua empresa adequada à{' '}
-              <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">NR-1</span>
-              {' '}— e o plano de ação{' '}
-              <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">comprovadamente em ação</span>.
-            </h1>
-
-            <p className="text-lg text-gray-600 mb-7 leading-relaxed max-w-xl">
-              A maioria dos sistemas só deixa o papel pronto. O Zelo entrega o diagnóstico{' '}
-              <strong className="text-[#0E2A47]">e as evidências auditáveis</strong> de que sua empresa está, de fato,
-              cuidando da saúde mental da equipe.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 mb-8">
-              <a href="#precos" className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-7 py-3.5 rounded-xl font-bold text-base hover:opacity-90 transition-opacity shadow-lg shadow-[#17C3C9]/25">
-                Adequar minha empresa →
-              </a>
-              <a href="#como-funciona" className="inline-flex items-center justify-center gap-2 border border-gray-200 text-[#0E2A47] px-7 py-3.5 rounded-xl font-semibold text-base hover:bg-gray-50 transition-colors">
-                Ver como funciona
-              </a>
-            </div>
-
-            <div className="flex flex-wrap gap-x-6 gap-y-2">
-              {['Evidências auditáveis', 'Vídeos e ebooks inclusos', 'Relatório de quem assistiu'].map((t) => (
-                <span key={t} className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="text-[#17C3C9] font-bold">✓</span> {t}
-                </span>
-              ))}
-            </div>
+      {/* HERO — vídeo em destaque */}
+      <section className="pt-24 pb-14 px-4 bg-gradient-to-b from-[#F0FBFC] to-white">
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-[#FFF4E5] border border-[#FFD8A8] text-[#B5651D] text-xs font-bold px-3 py-1.5 rounded-full mb-5">
+            <span className="w-2 h-2 bg-[#F08C00] rounded-full animate-pulse inline-block" />
+            NORMA EM VIGOR — FISCALIZAÇÃO ATIVA
           </div>
 
-          {/* Card de destaque (lado direito) */}
-          <div className="bg-white rounded-3xl shadow-xl shadow-[#0E2A47]/10 border border-gray-100 p-7">
-            <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-5">
-              ✦ PROVA VIVA, NÃO SÓ PAPEL
-            </div>
-            <h3 className="text-xl font-black text-[#0E2A47] mb-1">Seu plano, comprovadamente em ação</h3>
-            <p className="text-sm text-gray-500 mb-5">Como o Zelo transforma a obrigação em evidência:</p>
-            <ol className="space-y-4 mb-6">
-              {[
-                { i: '📚', t: 'Biblioteca de vídeos e ebooks', d: 'Treinamentos sobre cada risco psicossocial, prontos para usar.' },
-                { i: '🎯', t: 'O plano sugere, o gestor encaminha', d: 'O próprio plano de ação indica o conteúdo certo para cada risco. O gestor envia ao time — e isso já conta como ação da empresa.' },
-                { i: '📊', t: 'Relatório de quem assistiu (ou não)', d: 'A prova auditável de que sua empresa está trabalhando pela saúde emocional da equipe.' },
-              ].map((s, idx) => (
-                <li key={s.t} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-sm font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
-                  <span>
-                    <span className="block text-sm font-bold text-[#0E2A47]">{s.i} {s.t}</span>
-                    <span className="block text-sm text-gray-600 mt-0.5">{s.d}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <a href="#precos" className="block text-center bg-[#0E2A47] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#0A1F36] transition-colors">
-              Começar agora
-            </a>
-            <p className="text-center text-xs text-gray-400 mt-3">Inclui DRPS assinado por psicóloga (CRP), Anexo para o PGR e Plano de Ação.</p>
+          <h1 className="text-3xl sm:text-5xl font-black leading-[1.1] mb-4 text-[#0E2A47] max-w-3xl mx-auto">
+            Adeque sua empresa à{' '}
+            <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">NR-1</span>
+            {' '}de um jeito <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] bg-clip-text text-transparent">simples e rápido</span>.
+          </h1>
+          <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl mx-auto">
+            Assista ao vídeo e veja como funciona. <strong className="text-[#0E2A47]">É só adquirir e você já tem acesso</strong> — a plataforma cuida do diagnóstico, dos documentos e das provas para a fiscalização.
+          </p>
+
+          {/* VÍDEO */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <HeroVideo src={HERO_VIDEO_SRC || undefined} />
+          </div>
+
+          <a href="#precos" className="btn-blink inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-9 py-4 rounded-xl font-black text-lg hover:opacity-95 transition-opacity">
+            Quero adequar minha empresa →
+          </a>
+
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-6">
+            {['É só adquirir e acessar', 'Documentos prontos', 'Evidências auditáveis'].map((t) => (
+              <span key={t} className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="text-[#17C3C9] font-bold">✓</span> {t}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -406,6 +381,46 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* DEPOIMENTOS */}
+      <section className="bg-white py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-4">
+              ★ EMPRESAS QUE JÁ SE ADEQUARAM
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Quem usou, aprovou</h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Adequação feita pela plataforma, sem complicação. Veja o que dizem:</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {[
+              {
+                nome: 'Vedafácil — Unidade Rio',
+                iniciais: 'VF',
+                texto: 'Foi muito fácil. A gente respondeu, a plataforma gerou os documentos e ficamos adequados sem dor de cabeça. Recomendo demais.',
+              },
+              {
+                nome: 'Gomes & Coelho Advocacia',
+                iniciais: 'GC',
+                texto: 'Simples do início ao fim. Em poucos dias tínhamos o DRPS e o plano de ação prontos. Uma solução prática e segura para a NR-1.',
+              },
+            ].map((d) => (
+              <div key={d.nome} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-1 text-[#F5A623] text-lg mb-3">★★★★★</div>
+                <p className="text-gray-700 text-lg leading-relaxed">“{d.texto}”</p>
+                <div className="flex items-center gap-3 mt-5">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-black flex items-center justify-center flex-shrink-0">{d.iniciais}</div>
+                  <div>
+                    <p className="font-bold text-[#0E2A47] text-sm">{d.nome}</p>
+                    <p className="text-xs text-gray-400">Cliente Zelo · 5 estrelas</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* PREÇOS */}
       <section id="precos" className="bg-[#F6F9FC] py-20 px-4">
         <div className="max-w-5xl mx-auto">
@@ -437,16 +452,16 @@ export default function LandingPage() {
                 </ul>
                 <a
                   href={checkoutUrl(p.slug)}
-                  className={`mt-5 block text-center px-5 py-3 rounded-xl font-bold text-sm transition-opacity ${p.popular ? 'bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white hover:opacity-90' : 'bg-[#0E2A47] text-white hover:bg-[#0A1F36]'}`}
+                  className={`mt-5 block text-center px-5 py-3 rounded-xl font-bold text-sm transition-opacity ${p.popular ? 'btn-blink bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white hover:opacity-90' : 'bg-[#0E2A47] text-white hover:bg-[#0A1F36]'}`}
                 >
-                  {p.valor === 'Sob consulta' ? 'Falar com a gente →' : 'Contratar agora →'}
+                  {p.valor === 'Sob consulta' ? 'Falar com a gente →' : 'Comprar e acessar agora →'}
                 </a>
               </div>
             ))}
           </div>
 
           <div className="bg-[#FFF9F0] border border-[#FFE3B3] rounded-xl p-4 text-sm text-[#8A5A00] mb-10">
-            <strong>Pagamento único, sem mensalidade.</strong> A adequação completa fica pronta em poucos dias e a documentação tem validade de 20 anos.
+            <strong>Simples assim: é só adquirir e o acesso é liberado.</strong> Pagamento único, sem mensalidade — a adequação fica pronta em poucos dias e a documentação vale por 20 anos.
           </div>
 
           {/* CTA principal */}
@@ -455,8 +470,8 @@ export default function LandingPage() {
             <p className="text-[#9FC2D6] mb-6 text-lg max-w-xl mx-auto">
               A adequação leva poucos dias. O processo trabalhista pode levar anos — e custar muito mais.
             </p>
-            <a href="#precos" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-10 py-4 rounded-xl font-bold text-xl hover:opacity-90 transition-opacity shadow-lg shadow-[#17C3C9]/25">
-              Começar adequação agora →
+            <a href="#precos" className="btn-blink inline-flex items-center gap-2 bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white px-10 py-4 rounded-xl font-black text-xl hover:opacity-95 transition-opacity">
+              Comprar e acessar agora →
             </a>
             <p className="text-[#7FA6BE] text-sm mt-4">Plataforma 100% online · Sem contrato de longo prazo · Suporte incluso</p>
           </div>
