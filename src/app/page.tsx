@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { checkoutUrl } from '@/lib/kiwify'
 import HeroVideo from './_components/HeroVideo'
-import PlatformShowcase from './_components/PlatformShowcase'
 
 // Quando o vídeo estiver pronto, é só colocar a URL aqui (hospedado no storage) — o autoplay já funciona.
 const HERO_VIDEO_SRC = ''
@@ -33,10 +32,12 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Animação do botão piscante */}
+      {/* Animações */}
       <style>{`
         @keyframes zeloBlink { 0%,100%{ box-shadow:0 0 0 0 rgba(23,195,201,.55); transform:scale(1);} 50%{ box-shadow:0 0 0 14px rgba(23,195,201,0); transform:scale(1.03);} }
         .btn-blink{ animation: zeloBlink 1.25s ease-in-out infinite; }
+        @keyframes zeloFloat { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-10px);} }
+        .float-soft{ animation: zeloFloat 6s ease-in-out infinite; }
       `}</style>
 
       {/* HERO — vídeo em destaque */}
@@ -293,10 +294,11 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <PlatformShowcase />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/telas-zelo.png" alt="Telas do sistema Zelo: diagnóstico dos 13 riscos, plano de ação de 12 meses e biblioteca de vídeos" className="float-soft w-full max-w-5xl mx-auto h-auto" />
 
           <p className="text-center text-sm text-gray-400 mt-5">
-            Telas reais do Zelo · cada setor com seu diagnóstico, plano de ação e treinamentos com comprovação.
+            Telas reais do Zelo · diagnóstico dos 13 riscos, plano de ação de 12 meses e biblioteca de treinamentos com comprovação.
           </p>
         </div>
       </section>
