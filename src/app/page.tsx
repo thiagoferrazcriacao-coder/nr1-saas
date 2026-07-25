@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { checkoutUrl } from '@/lib/kiwify'
 import HeroVideo from './_components/HeroVideo'
+import PlatformShowcase from './_components/PlatformShowcase'
 
 // Quando o vídeo estiver pronto, é só colocar a URL aqui (hospedado no storage) — o autoplay já funciona.
 const HERO_VIDEO_SRC = ''
@@ -117,6 +118,46 @@ export default function LandingPage() {
           <p className="mt-8 text-xl font-bold text-[#0E2A47] text-center">
             Não há exceção de porte ou setor. Micro, pequena, média ou grande: com um CLT, a obrigação existe.
           </p>
+        </div>
+      </section>
+
+      {/* DEPOIMENTOS (prova social) */}
+      <section className="bg-white py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-4">
+              ★ EMPRESAS QUE JÁ SE ADEQUARAM
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Quem usou, aprovou</h2>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Adequação feita pela plataforma, sem complicação. Veja o que dizem:</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {[
+              {
+                nome: 'Vedafácil — Unidade Rio',
+                iniciais: 'VF',
+                texto: 'Foi muito fácil. A gente respondeu, a plataforma gerou os documentos e ficamos adequados sem dor de cabeça. Recomendo demais.',
+              },
+              {
+                nome: 'Gomes & Coelho Advocacia',
+                iniciais: 'GC',
+                texto: 'Simples do início ao fim. Em poucos dias tínhamos o DRPS e o plano de ação prontos. Uma solução prática e segura para a NR-1.',
+              },
+            ].map((d) => (
+              <div key={d.nome} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-1 text-[#F5A623] text-lg mb-3">★★★★★</div>
+                <p className="text-gray-700 text-lg leading-relaxed">“{d.texto}”</p>
+                <div className="flex items-center gap-3 mt-5">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-black flex items-center justify-center flex-shrink-0">{d.iniciais}</div>
+                  <div>
+                    <p className="font-bold text-[#0E2A47] text-sm">{d.nome}</p>
+                    <p className="text-xs text-gray-400">Cliente Zelo · 5 estrelas</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -242,74 +283,20 @@ export default function LandingPage() {
       {/* VEJA A PLATAFORMA POR DENTRO */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-4">
               ✦ SIMPLES DE USAR
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Veja a plataforma por dentro</h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              Tudo num painel claro e visual. Você acompanha o risco de cada setor e gera os documentos com um clique — sem planilha, sem complicação.
+              Diagnóstico, plano de ação de 12 meses e biblioteca de treinamentos — tudo num painel claro e visual. As telas passam sozinhas; toque para explorar.
             </p>
           </div>
 
-          {/* Mockup do navegador com o relatório */}
-          <div className="rounded-2xl border border-gray-200 shadow-2xl shadow-[#0E2A47]/20 overflow-hidden max-w-4xl mx-auto">
-            <div className="bg-[#0E2A47] px-4 py-3 flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#ff5f57] inline-block" />
-              <span className="w-3 h-3 rounded-full bg-[#febc2e] inline-block" />
-              <span className="w-3 h-3 rounded-full bg-[#28c840] inline-block" />
-              <div className="ml-3 flex-1 bg-white/10 rounded-md px-3 py-1 text-xs text-[#9FC2D6] truncate">app.zelo.com.br/painel · Relatório do setor</div>
-            </div>
-            <div className="p-6 bg-[#F8FAFC]">
-              <div className="flex items-center justify-between flex-wrap gap-2 mb-5">
-                <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">Relatório de Risco Psicossocial</p>
-                  <h3 className="text-lg font-black text-[#0E2A47]">Setor: Comercial</h3>
-                </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200">Risco Moderado</span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                {[
-                  { l: 'Score Gravidade', v: '1.6', c: '#ca8a04' },
-                  { l: 'Risco Final', v: 'Moderado', c: '#ca8a04' },
-                  { l: 'Fatores Alto/Crítico', v: '2', c: '#0E2A47' },
-                ].map((s) => (
-                  <div key={s.l} className="bg-white rounded-xl border border-gray-100 p-3 text-center">
-                    <p className="text-[10px] text-gray-400 uppercase">{s.l}</p>
-                    <p className="text-xl font-black mt-1" style={{ color: s.c }}>{s.v}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-2.5">
-                {[
-                  { f: 'Sobrecarga de Trabalho', pct: 72, c: '#ea580c', lvl: 'Alto' },
-                  { f: 'Reconhecimento', pct: 58, c: '#ca8a04', lvl: 'Moderado' },
-                  { f: 'Comunicação', pct: 30, c: '#16a34a', lvl: 'Baixo' },
-                  { f: 'Assédio', pct: 12, c: '#16a34a', lvl: 'Baixo' },
-                  { f: 'Suporte e Apoio', pct: 24, c: '#16a34a', lvl: 'Baixo' },
-                ].map((row) => (
-                  <div key={row.f} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-600 w-40 flex-shrink-0 truncate">{row.f}</span>
-                    <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${row.pct}%`, background: row.c }} />
-                    </div>
-                    <span className="text-[10px] font-bold w-16 text-right" style={{ color: row.c }}>{row.lvl}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-2 mt-5">
-                <span className="bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white text-xs font-semibold px-4 py-2 rounded-lg">📄 Gerar DRPS</span>
-                <span className="bg-white border border-gray-200 text-[#0E2A47] text-xs font-semibold px-4 py-2 rounded-lg">📊 Ver gráfico</span>
-                <span className="bg-white border border-gray-200 text-[#0E2A47] text-xs font-semibold px-4 py-2 rounded-lg">🎯 Plano de Ação</span>
-              </div>
-            </div>
-          </div>
+          <PlatformShowcase />
 
           <p className="text-center text-sm text-gray-400 mt-5">
-            Painel real do Zelo · cada setor com seu diagnóstico, gráfico e documentos prontos para baixar.
+            Telas reais do Zelo · cada setor com seu diagnóstico, plano de ação e treinamentos com comprovação.
           </p>
         </div>
       </section>
@@ -375,46 +362,6 @@ export default function LandingPage() {
                     ✅ Assina o DRPS com validade legal
                   </div>
                 )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* DEPOIMENTOS */}
-      <section className="bg-white py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 bg-[#F0FBFC] text-[#109CA1] text-xs font-bold px-3 py-1 rounded-full mb-4">
-              ★ EMPRESAS QUE JÁ SE ADEQUARAM
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Quem usou, aprovou</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Adequação feita pela plataforma, sem complicação. Veja o que dizem:</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-6">
-            {[
-              {
-                nome: 'Vedafácil — Unidade Rio',
-                iniciais: 'VF',
-                texto: 'Foi muito fácil. A gente respondeu, a plataforma gerou os documentos e ficamos adequados sem dor de cabeça. Recomendo demais.',
-              },
-              {
-                nome: 'Gomes & Coelho Advocacia',
-                iniciais: 'GC',
-                texto: 'Simples do início ao fim. Em poucos dias tínhamos o DRPS e o plano de ação prontos. Uma solução prática e segura para a NR-1.',
-              },
-            ].map((d) => (
-              <div key={d.nome} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-1 text-[#F5A623] text-lg mb-3">★★★★★</div>
-                <p className="text-gray-700 text-lg leading-relaxed">“{d.texto}”</p>
-                <div className="flex items-center gap-3 mt-5">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-black flex items-center justify-center flex-shrink-0">{d.iniciais}</div>
-                  <div>
-                    <p className="font-bold text-[#0E2A47] text-sm">{d.nome}</p>
-                    <p className="text-xs text-gray-400">Cliente Zelo · 5 estrelas</p>
-                  </div>
-                </div>
               </div>
             ))}
           </div>
