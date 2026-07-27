@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { PROGRAMS, START_HERE_PROGRAM } from '@/lib/programs'
 import { slotsFor } from '@/lib/video-index'
@@ -30,6 +30,8 @@ export default function AdminVideosPage() {
   const [editId, setEditId] = useState<string | null>(null)   // null = adicionar; id = substituir o vídeo dessa aula
   const [editTitle, setEditTitle] = useState('')              // título da aula que está sendo substituída (referência)
 
+  const ffmpegRef = useRef<any>(null)
+
   const fetchLessons = useCallback(() => {
     fetch('/api/admin/lessons')
       .then((r) => { if (r.status === 401) { router.replace('/admin/login'); return null } return r.json() })
@@ -43,23 +45,34 @@ export default function AdminVideosPage() {
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
-  // Testa se o navegador consegue MOSTRAR a imagem do vídeo (pega .MOV/HEVC do iPhone, que só tem áudio)
-  const checkPlayable = (f: File) => {
-    setFileWarning('')
-    const ext = (f.name.split('.').pop() || '').toLowerCase()
-    const risky = ['mov', 'avi', 'wmv', 'mkv', 'flv', 'm4v', '3gp']
-    const v = document.createElement('video')
-    v.preload = 'metadata'
-    let done = false
-    const finish = (warn: string) => { if (done) return; done = true; try { URL.revokeObjectURL(v.src) } catch {}; setFileWarning(warn); setChecking(false) }
-    const warnMsg = `⚠️ Este arquivo (.${ext}) pode não mostrar imagem no navegador — costuma ser vídeo de celular (iPhone/HEVC). Para garantir, envie em MP4 (H.264).`
-    v.onloadeddata = () => finish(v.videoWidth > 0 ? '' : warnMsg)
-    v.onerror = () => finish(`⚠️ Não foi possível ler este vídeo. Envie em MP4 (H.264) para tocar em qualquer aparelho.`)
-    setTimeout(() => finish(v.videoWidth > 0 ? '' : (risky.includes(ext) ? warnMsg : '')), 5000)
-    v.src = URL.createObjectURL(f)
+  // Todo vídeo é normalizado para MP4/H.264 antes de ir para o R2.
+  // Isso permite receber MOV/HEVC, AVI, MKV e outros formatos sem depender do navegador.
+  const convertToBrowserMp4 = async (source: File): Promise<File> => {
+    setChecking(true); setProgress(3)
+    const { FFmpeg } = await import('@ffmpeg/ffmpeg')
+    const { fetchFile, toBlobURL } = await import('@ffmpeg/util')
+    const ffmpeg = ffmpegRef.current ?? new FFmpeg()
+    if (!ffmpegRef.current) {
+      ffmpeg.on('progress', ({ progress }: { progress: number }) => setProgress(Math.min(48, 3 + Math.round(progress * 45))))
+      await ffmpeg.load({
+        coreURL: await toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js', 'text/javascript'),
+        wasmURL: await toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm', 'application/wasm'),
+      })
+      ffmpegRef.current = ffmpeg
+    }
+    const input = `input-${Date.now()}-${source.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
+    const output = `zelo-${Date.now()}.mp4`
+    await ffmpeg.writeFile(input, await fetchFile(source))
+    await ffmpeg.exec(['-i', input, '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', output])
+    const data = await ffmpeg.readFile(output)
+    await ffmpeg.deleteFile(input).catch(() => {})
+    await ffmpeg.deleteFile(output).catch(() => {})
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer)
+    setChecking(false); setProgress(50)
+    return new File([bytes.buffer as ArrayBuffer], `${source.name.replace(/\.[^.]+$/, '')}.mp4`, { type: 'video/mp4' })
   }
 
-  const onPickFile = (f: File | null) => { setFile(f); setFileWarning(''); if (f) { setChecking(true); checkPlayable(f) } }
+  const onPickFile = (f: File | null) => { setFile(f); setFileWarning(''); setChecking(false); setProgress(0) }
 
   const readDuration = (f: File): Promise<number> =>
     new Promise((resolve) => {
@@ -93,7 +106,8 @@ export default function AdminVideosPage() {
     if (!editId && !title.trim()) { setError('Dê um título à aula.'); return }
     setUploading(true); setProgress(0)
     try {
-      const { publicUrl, durationSec } = await uploadToR2(file)
+      const normalizedFile = await convertToBrowserMp4(file)
+      const { publicUrl, durationSec } = await uploadToR2(normalizedFile)
       if (editId) {
         // Substituir o vídeo da aula (mantém título, posição, etc.)
         const res = await fetch(`/api/admin/lessons/${editId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ videoUrl: publicUrl, durationSec }) })
@@ -249,15 +263,15 @@ export default function AdminVideosPage() {
               <label className="block text-xs font-semibold text-gray-500 mb-1">Descrição (opcional)</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-4 resize-none" />
             </>)}
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo <span className="font-normal text-gray-400">(de preferência MP4)</span></label>
-            <input type="file" accept="video/mp4,video/webm,video/*" onChange={(e) => onPickFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-2" />
-            {checking && <div className="mb-4 text-xs text-gray-400">Verificando o vídeo…</div>}
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Arquivo de vídeo <span className="font-normal text-gray-400">(o sistema converte automaticamente para MP4/H.264)</span></label>
+            <input type="file" accept="video/*" onChange={(e) => onPickFile(e.target.files?.[0] ?? null)} className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-800 file:text-white file:text-sm file:font-semibold mb-2" />
+            {checking && <div className="mb-4 text-xs text-indigo-600">Convertendo para um formato compatível… aguarde antes de fechar esta janela.</div>}
             {!checking && fileWarning && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4">
                 <p className="text-amber-800 text-xs leading-relaxed">{fileWarning}</p>
               </div>
             )}
-            {!checking && !fileWarning && file && <div className="mb-4 text-xs text-green-600">✓ Vídeo compatível — vai tocar normalmente.</div>}
+            {!checking && !fileWarning && file && <div className="mb-4 text-xs text-green-600">✓ Arquivo selecionado — será convertido automaticamente para tocar em qualquer navegador.</div>}
             {uploading && (
               <div className="mb-4">
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] transition-all" style={{ width: `${progress}%` }} /></div>
