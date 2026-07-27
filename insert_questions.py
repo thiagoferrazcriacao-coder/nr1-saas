@@ -5,7 +5,7 @@ import ssl
 url = "https://ep-withered-flower-amil9lqj-pooler.c-5.us-east-1.aws.neon.tech/sql"
 headers = {
     "Content-Type": "application/json",
-    "Neon-Connection-String": "postgresql://neondb_owner:npg_fx57zXavQCgk@ep-withered-flower-amil9lqj-pooler.c-5.us-east-1.aws.neon.tech/neondb"
+    "Neon-Connection-String": "COLOQUE_AQUI_SUA_DATABASE_URL"
 }
 
 def run_sql(query, label=""):
