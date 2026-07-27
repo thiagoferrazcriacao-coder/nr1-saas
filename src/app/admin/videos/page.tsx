@@ -45,7 +45,13 @@ export default function AdminVideosPage() {
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
-  // Todo vídeo é normalizado para MP4/H.264 antes de ir para o R2.
+  const needsNormalization = (source: File) => {
+    const ext = source.name.split('.').pop()?.toLowerCase()
+    // MP4/WebM comuns já são aceitos pelo navegador; não desperdiça tempo convertendo.
+    return !(source.type === 'video/mp4' && ext === 'mp4') && !(source.type === 'video/webm' && ext === 'webm')
+  }
+
+  // Todo vídeo incompatível é normalizado para MP4/H.264 antes de ir para o R2.
   // Isso permite receber MOV/HEVC, AVI, MKV e outros formatos sem depender do navegador.
   const convertToBrowserMp4 = async (source: File): Promise<File> => {
     setChecking(true); setProgress(3)
@@ -63,7 +69,7 @@ export default function AdminVideosPage() {
     const input = `input-${Date.now()}-${source.name.replace(/[^a-zA-Z0-9.]/g, '_')}`
     const output = `zelo-${Date.now()}.mp4`
     await ffmpeg.writeFile(input, await fetchFile(source))
-    await ffmpeg.exec(['-i', input, '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', output])
+    await ffmpeg.exec(['-i', input, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', output])
     const data = await ffmpeg.readFile(output)
     await ffmpeg.deleteFile(input).catch(() => {})
     await ffmpeg.deleteFile(output).catch(() => {})
@@ -106,7 +112,7 @@ export default function AdminVideosPage() {
     if (!editId && !title.trim()) { setError('Dê um título à aula.'); return }
     setUploading(true); setProgress(0)
     try {
-      const normalizedFile = await convertToBrowserMp4(file)
+      const normalizedFile = needsNormalization(file) ? await convertToBrowserMp4(file) : file
       const { publicUrl, durationSec } = await uploadToR2(normalizedFile)
       if (editId) {
         // Substituir o vídeo da aula (mantém título, posição, etc.)
@@ -271,7 +277,7 @@ export default function AdminVideosPage() {
                 <p className="text-amber-800 text-xs leading-relaxed">{fileWarning}</p>
               </div>
             )}
-            {!checking && !fileWarning && file && <div className="mb-4 text-xs text-green-600">✓ Arquivo selecionado — será convertido automaticamente para tocar em qualquer navegador.</div>}
+            {!checking && !fileWarning && file && (needsNormalization(file) ? <div className="mb-4 text-xs text-indigo-600">✓ Este formato será convertido rapidamente para MP4/H.264 antes do envio.</div> : <div className="mb-4 text-xs text-green-600">✓ MP4/WebM compatível — será enviado diretamente, sem conversão.</div>)}
             {uploading && (
               <div className="mb-4">
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] transition-all" style={{ width: `${progress}%` }} /></div>
