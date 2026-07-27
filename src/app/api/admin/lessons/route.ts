@@ -14,7 +14,11 @@ export async function GET(req: NextRequest) {
       where: { companyId: null },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
     })
-    return NextResponse.json({ lessons, r2Configured: r2Configured() })
+    const normalizedLessons = lessons.map((lesson) => ({
+      ...lesson,
+      program: lesson.programNum === START_HERE_PROGRAM.num ? START_HERE_PROGRAM.name : (PROGRAMS.find((p) => p.num === lesson.programNum)?.name ?? lesson.program),
+    }))
+    return NextResponse.json({ lessons: normalizedLessons, r2Configured: r2Configured() })
   } catch (err) {
     if ((err as Error).message === 'Não autorizado') return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
     console.error(err)

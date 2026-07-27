@@ -139,6 +139,12 @@ export default function AdminVideosPage() {
     return <div className="flex justify-center py-24"><div className="w-10 h-10 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" /></div>
   }
 
+  const orderLessonsForDisplay = (items: Lesson[]) => [...items].sort((a, b) => {
+    const refA = a.videoRef ? Number(a.videoRef) : Number.POSITIVE_INFINITY
+    const refB = b.videoRef ? Number(b.videoRef) : Number.POSITIVE_INFINITY
+    return refA - refB
+  })
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
@@ -157,7 +163,7 @@ export default function AdminVideosPage() {
         <p className="text-gray-500 text-sm mb-3">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} em {ADMIN_PROGRAMS.length} temas.</p>
         <div className="space-y-3">
           {ADMIN_PROGRAMS.map((p) => {
-            const ls = lessons.filter((l) => l.programNum === p.num)
+            const ls = orderLessonsForDisplay(lessons.filter((l) => l.programNum === p.num))
             return (
               <div key={p.num} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-[#F6F9FC] to-white border-b border-gray-100">
@@ -225,7 +231,7 @@ export default function AdminVideosPage() {
           <form onSubmit={handleUpload} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-[#109CA1] font-bold">{PROGRAMS.find((p) => p.num === uploadProgram)?.name}</p>
+                <p className="text-xs text-[#109CA1] font-bold">{ADMIN_PROGRAMS.find((p) => p.num === uploadProgram)?.name}</p>
                 <h3 className="font-bold text-gray-900">{editId ? 'Substituir vídeo' : 'Adicionar vídeo-aula'}</h3>
               </div>
               <button type="button" onClick={closeUpload} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>

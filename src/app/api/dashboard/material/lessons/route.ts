@@ -17,11 +17,15 @@ export async function GET(req: NextRequest) {
       where: { companyId: null, active: true },
       orderBy: [{ programNum: 'asc' }, { order: 'asc' }],
     })
+    const normalizedLessons = lessons.map((lesson) => ({
+      ...lesson,
+      program: lesson.programNum === START_HERE_PROGRAM.num ? START_HERE_PROGRAM.name : (PROGRAMS.find((p) => p.num === lesson.programNum)?.name ?? lesson.program),
+    }))
     const gp = await prisma.gestorProgress.findMany({ where: { userId } })
     const gestorProgress: Record<string, { percent: number; completed: boolean }> = {}
     for (const p of gp) gestorProgress[p.lessonId] = { percent: p.percent, completed: p.completed }
     const learnCode = await ensureLearnCode(companyId)
-    return NextResponse.json({ lessons, gestorProgress, learnCode, demoUnlocked: isDemoEmail(email), r2Configured: r2Configured() })
+    return NextResponse.json({ lessons: normalizedLessons, gestorProgress, learnCode, demoUnlocked: isDemoEmail(email), r2Configured: r2Configured() })
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
