@@ -2,18 +2,33 @@
 
 import { useRef, useState } from 'react'
 
-// Vídeo explicativo da 1ª dobra: toca sozinho (mudo, exigência dos navegadores) e
-// mostra um botão grande "Ativar som". Se não houver src ainda, mostra um placeholder.
+// O autoplay começa mudo porque iOS/Android bloqueiam autoplay com áudio.
+// No toque do usuário, o som é ativado removendo também o defaultMuted/atributo muted.
 export default function HeroVideo({ src, poster, loop = false }: { src?: string; poster?: string; loop?: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [muted, setMuted] = useState(true)
+  const [showControls, setShowControls] = useState(false)
 
-  const toggleSound = () => {
+  const enableSound = async () => {
     const v = videoRef.current
     if (!v) return
-    v.muted = !v.muted
-    setMuted(v.muted)
-    if (!v.muted) void v.play()
+    v.defaultMuted = false
+    v.removeAttribute('muted')
+    v.muted = false
+    v.volume = 1
+    setMuted(false)
+    setShowControls(true)
+    try { await v.play() } catch {}
+  }
+
+  const toggleSound = async () => {
+    const v = videoRef.current
+    if (!v) return
+    if (v.muted) return enableSound()
+    v.muted = true
+    v.defaultMuted = true
+    v.setAttribute('muted', '')
+    setMuted(true)
   }
 
   if (!src) {
@@ -39,10 +54,13 @@ export default function HeroVideo({ src, poster, loop = false }: { src?: string;
         muted
         loop={loop}
         playsInline
+        controls={showControls}
         className="w-full h-auto block"
       />
       <button
-        onClick={toggleSound}
+        type="button"
+        onClick={() => { void toggleSound() }}
+        aria-label={muted ? 'Ativar som do vídeo' : 'Silenciar vídeo'}
         className="absolute bottom-3 right-3 flex items-center gap-2 bg-black/70 hover:bg-black/85 text-white text-sm font-semibold px-4 py-2 rounded-full backdrop-blur transition-colors"
       >
         {muted ? '🔊 Ativar som' : '🔇 Silenciar'}
