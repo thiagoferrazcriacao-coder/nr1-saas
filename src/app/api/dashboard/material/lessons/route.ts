@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, requireOwner } from '@/lib/auth'
 import { r2Configured } from '@/lib/r2'
-import { PROGRAMS } from '@/lib/programs'
+import { PROGRAMS, START_HERE_PROGRAM } from '@/lib/programs'
 import { ensureLearnCode } from '@/lib/learn-code'
 import { isDemoEmail } from '@/lib/demo'
 
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 }
 
 const createSchema = z.object({
-  programNum:  z.number().int().min(1).max(13),
+  programNum:  z.number().int().min(0).max(13),
   trilha:      z.enum(['gestor', 'colaborador']).default('colaborador'),
   title:       z.string().trim().min(1).max(200),
   description: z.string().trim().max(1000).optional(),
@@ -49,7 +49,9 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0]?.message ?? 'Dados inválidos.' }, { status: 400 })
     }
-    const program = PROGRAMS.find((p) => p.num === parsed.data.programNum)
+    const program = parsed.data.programNum === START_HERE_PROGRAM.num
+      ? START_HERE_PROGRAM
+      : PROGRAMS.find((p) => p.num === parsed.data.programNum)
     if (!program) return NextResponse.json({ error: 'Categoria inválida.' }, { status: 400 })
 
     const last = await prisma.lesson.findFirst({

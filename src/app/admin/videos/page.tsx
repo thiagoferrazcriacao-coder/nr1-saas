@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { PROGRAMS } from '@/lib/programs'
+import { PROGRAMS, START_HERE_PROGRAM } from '@/lib/programs'
 import { slotsFor } from '@/lib/video-index'
 
 type Trilha = 'gestor' | 'colaborador'
+const ADMIN_PROGRAMS = [START_HERE_PROGRAM, ...PROGRAMS]
 type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; videoRef: string | null; title: string; description: string | null; videoUrl: string; active: boolean }
 
 export default function AdminVideosPage() {
@@ -38,7 +39,7 @@ export default function AdminVideosPage() {
 
   useEffect(() => { fetchLessons() }, [fetchLessons])
 
-  const openUpload = (p: number) => { setEditId(null); setUploadProgram(p); setUploadTrilha('colaborador'); setUploadVideoRef(''); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openUpload = (p: number) => { setEditId(null); setUploadProgram(p); setUploadTrilha(p === START_HERE_PROGRAM.num ? 'gestor' : 'colaborador'); setUploadVideoRef(''); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
@@ -133,9 +134,9 @@ export default function AdminVideosPage() {
       )}
 
       <div>
-        <p className="text-gray-500 text-sm mb-3">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} em {PROGRAMS.length} temas.</p>
+        <p className="text-gray-500 text-sm mb-3">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} em {ADMIN_PROGRAMS.length} temas.</p>
         <div className="space-y-3">
-          {PROGRAMS.map((p) => {
+          {ADMIN_PROGRAMS.map((p) => {
             const ls = lessons.filter((l) => l.programNum === p.num)
             return (
               <div key={p.num} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
@@ -214,12 +215,20 @@ export default function AdminVideosPage() {
                 <p className="text-amber-800 text-xs leading-relaxed">Trocando o vídeo da aula <strong>&quot;{editTitle}&quot;</strong>. O título e a posição continuam os mesmos — só o arquivo do vídeo muda.</p>
               </div>
             ) : (<>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Trilha</label>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <button type="button" onClick={() => { setUploadTrilha('colaborador'); setUploadVideoRef('') }} className={`text-sm font-semibold py-2.5 rounded-xl border transition-colors ${uploadTrilha === 'colaborador' ? 'bg-teal-50 border-teal-300 text-teal-700' : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200'}`}>👥 Colaborador</button>
-                <button type="button" onClick={() => { setUploadTrilha('gestor'); setUploadVideoRef('') }} className={`text-sm font-semibold py-2.5 rounded-xl border transition-colors ${uploadTrilha === 'gestor' ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:border-indigo-200'}`}>👔 Gestor</button>
-              </div>
-              {uploadProgram != null && (
+              {uploadProgram === START_HERE_PROGRAM.num ? (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5 mb-4">
+                  <p className="text-indigo-800 text-xs leading-relaxed">👔 Estes vídeos ficam exclusivamente na <strong>Trilha do Gestor</strong> e entram na contabilização de treinamento da liderança.</p>
+                </div>
+              ) : (
+                <>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">Trilha</label>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <button type="button" onClick={() => { setUploadTrilha('colaborador'); setUploadVideoRef('') }} className={`text-sm font-semibold py-2.5 rounded-xl border transition-colors ${uploadTrilha === 'colaborador' ? 'bg-teal-50 border-teal-300 text-teal-700' : 'bg-white border-gray-200 text-gray-500 hover:border-teal-200'}`}>👥 Colaborador</button>
+                    <button type="button" onClick={() => { setUploadTrilha('gestor'); setUploadVideoRef('') }} className={`text-sm font-semibold py-2.5 rounded-xl border transition-colors ${uploadTrilha === 'gestor' ? 'bg-indigo-50 border-indigo-300 text-indigo-600' : 'bg-white border-gray-200 text-gray-500 hover:border-indigo-200'}`}>👔 Gestor</button>
+                  </div>
+                </>
+              )}
+              {uploadProgram != null && uploadProgram !== START_HERE_PROGRAM.num && (
                 <>
                   <label className="block text-xs font-semibold text-gray-500 mb-1">Aula do Índice de Vídeos <span className="font-normal text-gray-400">(vincula o vídeo ao tema planejado)</span></label>
                   <select value={uploadVideoRef} onChange={(e) => {

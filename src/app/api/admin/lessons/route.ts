@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
 import { r2Configured } from '@/lib/r2'
-import { PROGRAMS } from '@/lib/programs'
+import { PROGRAMS, START_HERE_PROGRAM } from '@/lib/programs'
 
 // GET — biblioteca global de vídeos
 export async function GET(req: NextRequest) {
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 }
 
 const createSchema = z.object({
-  programNum:  z.number().int().min(1).max(13),
+  programNum:  z.number().int().min(0).max(13),
   trilha:      z.enum(['gestor', 'colaborador']).default('colaborador'),
   videoRef:    z.string().trim().max(10).optional(),
   title:       z.string().trim().min(1).max(200),
@@ -42,7 +42,12 @@ export async function POST(req: NextRequest) {
   try {
     const parsed = createSchema.safeParse(await req.json())
     if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0]?.message ?? 'Dados inválidos.' }, { status: 400 })
-    const program = PROGRAMS.find((p) => p.num === parsed.data.programNum)
+    if (parsed.data.programNum === START_HERE_PROGRAM.num && parsed.data.trilha !== 'gestor') {
+      return NextResponse.json({ error: 'Comece por aqui pertence somente à Trilha do Gestor.' }, { status: 400 })
+    }
+    const program = parsed.data.programNum === START_HERE_PROGRAM.num
+      ? START_HERE_PROGRAM
+      : PROGRAMS.find((p) => p.num === parsed.data.programNum)
     if (!program) return NextResponse.json({ error: 'Categoria inválida.' }, { status: 400 })
 
     const last = await prisma.lesson.findFirst({

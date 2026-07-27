@@ -1,3 +1,6 @@
+// Categoria introdutória da trilha do gestor. Fica antes dos 13 fatores.
+export const START_HERE_PROGRAM = { num: 0, name: 'Comece por aqui' }
+
 // Os 13 fatores de risco psicossocial do protocolo NR-1.
 export const PROGRAMS: { num: number; name: string }[] = [
   { num: 1,  name: 'Gestão do Estresse e Carga de Trabalho' },

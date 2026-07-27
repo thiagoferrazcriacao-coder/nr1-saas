@@ -180,6 +180,47 @@ export default function MaterialDidaticoPage() {
     )
   }
 
+  const renderComecePorAqui = () => {
+    const startLessons = lessons.filter((l) => l.programNum === 0 && l.trilha === 'gestor')
+    const doneCount = startLessons.filter((l) => gestorProgress[l.id]?.completed).length
+    return (
+      <div className="bg-indigo-50/40 border-2 border-indigo-100 rounded-2xl overflow-hidden mb-5">
+        <div className="px-5 py-4 border-b border-indigo-100 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-black text-indigo-900">🚀 Comece por aqui</p>
+            <p className="text-xs text-indigo-700 mt-0.5">Orientações iniciais para o gestor começar a jornada NR-1.</p>
+          </div>
+          <span className="text-[11px] font-bold text-indigo-700 bg-white/70 border border-indigo-100 px-2.5 py-1 rounded-full">{doneCount}/{startLessons.length} concluído{doneCount !== 1 ? 's' : ''}</span>
+        </div>
+        <div className="divide-y divide-indigo-100/70">
+          {startLessons.length === 0 ? (
+            <p className="px-5 py-4 text-sm text-indigo-700/70">Os vídeos introdutórios serão disponibilizados em breve.</p>
+          ) : startLessons.map((lesson, i) => {
+            const gp = gestorProgress[lesson.id]
+            return (
+              <div key={lesson.id} className="px-5 py-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-8 h-8 rounded-lg bg-white text-indigo-600 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{lesson.title}</p>
+                      {lesson.description && <p className="text-[11px] mt-0.5 text-gray-500 truncate">{lesson.description}</p>}
+                    </div>
+                  </div>
+                  <button onClick={() => setVideo(lesson)} className="flex-shrink-0 flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:bg-indigo-500 transition-colors">▶ Assistir</button>
+                </div>
+                <div className="flex items-center gap-2 mt-2 pl-11">
+                  <div className="flex-1 h-1.5 bg-white/80 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{ width: `${gp?.percent ?? 0}%`, background: barColor(gp?.percent ?? 0) }} /></div>
+                  <span className={`text-[11px] font-semibold w-20 text-right ${gp?.completed ? 'text-green-600' : gp?.percent ? 'text-yellow-600' : 'text-gray-400'}`}>{gp?.completed ? '✅ Concluído' : gp?.percent ? `${gp.percent}%` : 'não assistido'}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 max-w-4xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -281,6 +322,7 @@ export default function MaterialDidaticoPage() {
           </div>
         )}
 
+        {activeTrilha === 'gestor' && renderComecePorAqui()}
         {/* Abra cada fator pra ver as aulas */}
         <p className="text-xs text-gray-400 mb-2.5 pl-1">Toque num fator de risco para abrir as aulas 👇</p>
         {renderTrilha(activeTrilha)}

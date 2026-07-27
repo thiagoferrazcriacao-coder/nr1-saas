@@ -4,13 +4,13 @@ import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
-import { PROGRAMS } from '@/lib/programs'
+import { PROGRAMS, START_HERE_PROGRAM } from '@/lib/programs'
 
 const patchSchema = z.object({
   title:       z.string().trim().min(1).max(200).optional(),
   description: z.string().trim().max(1000).nullable().optional(),
   trilha:      z.enum(['gestor', 'colaborador']).optional(),
-  programNum:  z.number().int().min(1).max(13).optional(),
+  programNum:  z.number().int().min(0).max(13).optional(),
   order:       z.number().int().min(0).optional(),
   active:      z.boolean().optional(),
   videoUrl:    z.string().url().optional(),
@@ -27,7 +27,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Se mudou o fator, atualiza o nome do programa junto
     const data: Prisma.LessonUpdateInput = { ...parsed.data }
     if (parsed.data.programNum != null) {
-      const program = PROGRAMS.find((p) => p.num === parsed.data.programNum)
+      const program = parsed.data.programNum === START_HERE_PROGRAM.num
+        ? START_HERE_PROGRAM
+        : PROGRAMS.find((p) => p.num === parsed.data.programNum)
       if (!program) return NextResponse.json({ error: 'Fator inválido.' }, { status: 400 })
       data.program = program.name
     }
