@@ -45,14 +45,16 @@ export default function AdminVideosPage() {
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
-  // A extensão/container não revela o codec: um .mp4 pode ser H.265/HEVC,
-  // que costuma tocar no Windows mas falha no Safari/iPhone. Como o navegador
-  // não fornece uma detecção confiável do codec antes do upload, todo arquivo
-  // novo passa pela normalização para MP4/H.264/AAC.
-  const needsNormalization = (_source: File) => true
+  // Upload rápido para MP4/WebM comuns. Formatos de celular e containers
+  // arriscados (MOV/HEVC, AVI, MKV etc.) continuam sendo normalizados antes do envio.
+  // A conversão de MP4/H.265 será movida para o servidor numa etapa posterior,
+  // pois detectar o codec no navegador não é confiável.
+  const needsNormalization = (source: File) => {
+    const ext = source.name.split('.').pop()?.toLowerCase()
+    return !(source.type === 'video/mp4' && ext === 'mp4') && !(source.type === 'video/webm' && ext === 'webm')
+  }
 
-  // Todo vídeo é normalizado para MP4/H.264 antes de ir para o R2.
-  // Isso permite receber MOV/HEVC, AVI, MKV e MP4/H.265 sem depender do navegador.
+  // Normaliza formatos incompatíveis para MP4/H.264/AAC antes de ir para o R2.
   const convertToBrowserMp4 = async (source: File): Promise<File> => {
     setChecking(true); setProgress(3)
     const { FFmpeg } = await import('@ffmpeg/ffmpeg')
