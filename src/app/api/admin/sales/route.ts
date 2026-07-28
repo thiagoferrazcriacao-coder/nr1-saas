@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/admin-auth'
+import { ZELO_PLAN_AMOUNTS_CENTS } from '@/lib/kiwify'
 
 const planLabel: Record<string, string> = {
   'ate-10': 'Até 10 CLT', '11-30': '11 a 30 CLT', '31-50': '31 a 50 CLT', '51-100': '51 a 100 CLT',
@@ -13,6 +14,7 @@ export async function GET(req: NextRequest) {
     requireAdmin(req)
 
     const sales = await prisma.sale.findMany({
+      where: { amountCents: { in: [...ZELO_PLAN_AMOUNTS_CENTS] } },
       orderBy: { createdAt: 'desc' }, take: 500,
       include: { partner: { select: { name: true } } },
     })

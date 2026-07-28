@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendWelcomeEmail, emailConfigured } from '@/lib/email'
+import { isZeloAmount } from '@/lib/kiwify'
 
 // Mapeia o valor (em reais) ao plano
 function inferPlan(amountReais: number): string | null {
@@ -66,6 +67,13 @@ export async function POST(req: NextRequest) {
     const amountReais = rawAmount > 10000 ? Math.round(rawAmount / 100) : Math.round(rawAmount)
     const amountCents = amountReais * 100
     const plan = inferPlan(amountReais)
+
+    // O webhook da Kiwify é compartilhado com outros produtos. Só aceitamos
+    // os quatro valores atualmente cadastrados para os planos da Zelo.
+    if (!plan || !isZeloAmount(amountCents)) {
+      console.warn('[KIWIFY-IGNORED-NON-ZELO]', { orderId, productName, amountReais })
+      return NextResponse.json({ ok: true, ignored: true, reason: 'not-zelo-product' })
+    }
 
     const data = {
       customerName: customerName ? String(customerName) : null,

@@ -12,6 +12,12 @@ export const KIWIFY_LINKS: Record<string, string> = {
 
 // Retorna o destino do botão de cada plano: link da Kiwify (se configurado)
 // ou o checkout interno como fallback.
+export const ZELO_PLAN_AMOUNTS_CENTS = [149700, 199700, 249700, 299700] as const
+
+export function isZeloAmount(amountCents: number): boolean {
+  return (ZELO_PLAN_AMOUNTS_CENTS as readonly number[]).includes(amountCents)
+}
+
 export function checkoutUrl(slug: string, partnerCode?: string): string {
   const link = KIWIFY_LINKS[slug]
   const base = link && link.trim() ? link.trim() : `/checkout?plano=${slug}`
