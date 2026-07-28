@@ -49,8 +49,16 @@ export async function POST(req: NextRequest) {
     const customerName  = pick(body, 'Customer.full_name', 'Customer.name', 'customer.full_name', 'customer.name', 'customer_name') ?? null
     const customerEmail = pick(body, 'Customer.email', 'customer.email', 'customer_email', 'email') ?? null
     const productName   = pick(body, 'Product.product_name', 'Product.name', 'product.product_name', 'product.name', 'product_name') ?? null
+    const trackingCode = pick(
+      body,
+      'src', 'sck', 'utm_source', 'utm_campaign', 'tracking.src', 'tracking.sck',
+      'Tracking.src', 'Tracking.sck', 'custom_fields.partner', 'custom_fields.partner_code',
+    )
+    const partnerCode = trackingCode ? String(trackingCode).trim().toUpperCase() : null
+    const partner = partnerCode
+      ? await prisma.partner.findUnique({ where: { code: partnerCode }, select: { id: true } })
+      : null
 
-    // Valor: pode vir em centavos ou reais, em vários campos
     const rawAmount = Number(
       pick(body, 'Commissions.charge_amount', 'commissions.charge_amount', 'charge_amount',
         'order_total', 'amount', 'Commissions.product_base_price', 'product_base_price') ?? 0
@@ -66,6 +74,7 @@ export async function POST(req: NextRequest) {
       plan,
       amountCents,
       status,
+      ...(partner ? { partnerId: partner.id } : {}),
       raw: body,
     }
 

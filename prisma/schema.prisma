@@ -268,6 +268,22 @@ model LessonProgress {
   @@index([lessonId])
 }
 
+// Parceiro que indica empresas para a Zelo.
+model Partner {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  contactName String?
+  email       String?
+  phone       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sales       Sale[]
+
+  @@index([active])
+}
+
 // Venda registrada via webhook da Kiwify
 model Sale {
   id            String   @id @default(uuid())
@@ -278,13 +294,16 @@ model Sale {
   plan          String?                   // slug do plano (ate-10, 11-30, ...) inferido pelo valor
   amountCents   Int      @default(0)
   status        String   @default("paid") // paid | refunded | chargeback | waiting
+  partnerId     String?
   raw           Json?                      // payload bruto (auditoria)
   welcomeSentAt DateTime?                  // quando o e-mail de boas-vindas/acesso foi enviado
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  partner       Partner? @relation(fields: [partnerId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([status])
+  @@index([partnerId])
 }
 
 // Código de verificação de e-mail (cadastro seguro do gestor)

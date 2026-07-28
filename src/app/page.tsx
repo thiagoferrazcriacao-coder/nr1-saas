@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { checkoutUrl } from '@/lib/kiwify'
 import HeroVideo from './_components/HeroVideo'
@@ -13,7 +14,8 @@ export const metadata = {
 // Paleta Zelo
 // navy #0E2A47 · teal #17C3C9 · azul #5B8DEF
 
-export default function LandingPage() {
+export default function LandingPage({ searchParams }: { searchParams?: { src?: string } }) {
+  const partnerCode = (searchParams?.src || cookies().get('zelo_partner')?.value)?.trim().toUpperCase()
   return (
     <div className="font-sans text-[#0E2A47] bg-white">
 
@@ -400,7 +402,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <a
-                  href={checkoutUrl(p.slug)}
+                  href={checkoutUrl(p.slug, partnerCode)}
                   className={`mt-5 block text-center px-5 py-3 rounded-xl font-bold text-sm transition-opacity ${p.popular ? 'btn-blink bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white hover:opacity-90' : 'bg-[#0E2A47] text-white hover:bg-[#0A1F36]'}`}
                 >
                   {p.valor === 'Sob consulta' ? 'Falar com a gente →' : 'Comprar e acessar agora →'}

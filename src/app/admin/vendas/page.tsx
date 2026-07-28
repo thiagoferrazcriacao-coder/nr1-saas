@@ -10,6 +10,7 @@ type Venda = {
   planLabel: string
   valorReais: number
   status: string
+  partnerName: string | null
   createdAt: string
 }
 type Resumo = { totalVendas: number; receitaReais: number; porPlano: Record<string, number> }
@@ -80,6 +81,7 @@ export default function AdminVendasPage() {
                 <tr className="text-gray-400 text-xs border-b border-gray-100">
                   <th className="text-left px-5 py-3 font-medium">Cliente</th>
                   <th className="text-left px-5 py-3 font-medium">Plano</th>
+                  <th className="text-left px-5 py-3 font-medium">Parceiro</th>
                   <th className="text-left px-5 py-3 font-medium">Valor</th>
                   <th className="text-left px-5 py-3 font-medium">Status</th>
                   <th className="text-left px-5 py-3 font-medium">Data</th>
@@ -95,6 +97,7 @@ export default function AdminVendasPage() {
                         <p className="text-gray-400 text-xs">{v.customerEmail || ''}</p>
                       </td>
                       <td className="px-5 py-3 text-gray-600">{v.planLabel}</td>
+                      <td className="px-5 py-3 text-gray-600">{v.partnerName || '—'}</td>
                       <td className="px-5 py-3 font-semibold text-gray-900">R$ {fmt(v.valorReais)}</td>
                       <td className="px-5 py-3"><span className={`text-xs font-semibold px-2.5 py-1 rounded-lg border ${st.cls}`}>{st.label}</span></td>
                       <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">{new Date(v.createdAt).toLocaleString('pt-BR')}</td>

@@ -12,7 +12,10 @@ export async function GET(req: NextRequest) {
   try {
     requireAdmin(req)
 
-    const sales = await prisma.sale.findMany({ orderBy: { createdAt: 'desc' }, take: 500 })
+    const sales = await prisma.sale.findMany({
+      orderBy: { createdAt: 'desc' }, take: 500,
+      include: { partner: { select: { name: true } } },
+    })
 
     const pagas = sales.filter((s) => s.status === 'paid')
     const receitaCents = pagas.reduce((acc, s) => acc + (s.amountCents ?? 0), 0)
@@ -39,6 +42,7 @@ export async function GET(req: NextRequest) {
         planLabel: s.plan ? (planLabel[s.plan] ?? s.plan) : (s.productName ?? '—'),
         valorReais: Math.round((s.amountCents ?? 0) / 100),
         status: s.status,
+        partnerName: s.partner?.name ?? null,
         createdAt: s.createdAt,
       })),
     })

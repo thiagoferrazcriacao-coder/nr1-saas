@@ -12,7 +12,12 @@ export const KIWIFY_LINKS: Record<string, string> = {
 
 // Retorna o destino do botão de cada plano: link da Kiwify (se configurado)
 // ou o checkout interno como fallback.
-export function checkoutUrl(slug: string): string {
+export function checkoutUrl(slug: string, partnerCode?: string): string {
   const link = KIWIFY_LINKS[slug]
-  return link && link.trim() ? link.trim() : `/checkout?plano=${slug}`
+  const base = link && link.trim() ? link.trim() : `/checkout?plano=${slug}`
+  if (!partnerCode) return base
+
+  const separator = base.includes('?') ? '&' : '?'
+  const code = encodeURIComponent(partnerCode)
+  return `${base}${separator}src=${code}&utm_source=partner&utm_medium=referral&utm_campaign=${code.toLowerCase()}`
 }
