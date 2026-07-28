@@ -45,14 +45,9 @@ export default function AdminVideosPage() {
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
-  // Upload rápido para MP4/WebM comuns. Formatos de celular e containers
-  // arriscados (MOV/HEVC, AVI, MKV etc.) continuam sendo normalizados antes do envio.
-  // A conversão de MP4/H.265 será movida para o servidor numa etapa posterior,
-  // pois detectar o codec no navegador não é confiável.
-  const needsNormalization = (source: File) => {
-    const ext = source.name.split('.').pop()?.toLowerCase()
-    return !(source.type === 'video/mp4' && ext === 'mp4') && !(source.type === 'video/webm' && ext === 'webm')
-  }
+  // Upload imediato: a conversão será feita no servidor posteriormente,
+  // sem travar o computador durante o envio.
+  const needsNormalization = (_source: File) => false
 
   // Normaliza formatos incompatíveis para MP4/H.264/AAC antes de ir para o R2.
   const convertToBrowserMp4 = async (source: File): Promise<File> => {
