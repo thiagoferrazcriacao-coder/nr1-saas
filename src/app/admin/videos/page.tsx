@@ -45,14 +45,14 @@ export default function AdminVideosPage() {
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
-  const needsNormalization = (source: File) => {
-    const ext = source.name.split('.').pop()?.toLowerCase()
-    // MP4/WebM comuns já são aceitos pelo navegador; não desperdiça tempo convertendo.
-    return !(source.type === 'video/mp4' && ext === 'mp4') && !(source.type === 'video/webm' && ext === 'webm')
-  }
+  // A extensão/container não revela o codec: um .mp4 pode ser H.265/HEVC,
+  // que costuma tocar no Windows mas falha no Safari/iPhone. Como o navegador
+  // não fornece uma detecção confiável do codec antes do upload, todo arquivo
+  // novo passa pela normalização para MP4/H.264/AAC.
+  const needsNormalization = (_source: File) => true
 
-  // Todo vídeo incompatível é normalizado para MP4/H.264 antes de ir para o R2.
-  // Isso permite receber MOV/HEVC, AVI, MKV e outros formatos sem depender do navegador.
+  // Todo vídeo é normalizado para MP4/H.264 antes de ir para o R2.
+  // Isso permite receber MOV/HEVC, AVI, MKV e MP4/H.265 sem depender do navegador.
   const convertToBrowserMp4 = async (source: File): Promise<File> => {
     setChecking(true); setProgress(3)
     const { FFmpeg } = await import('@ffmpeg/ffmpeg')
