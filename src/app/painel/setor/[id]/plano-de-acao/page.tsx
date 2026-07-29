@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 type RiskLevel = 'baixo' | 'moderado' | 'alto' | 'critico'
-type SchedVideo = { key: string; title: string; author: string }
+type SchedVideo = { key: string; title: string; author: string; videoUrl?: string }
 type SimpleAction = { title: string; how: string; who: string; evidence: string; howMuch?: string }
 type MonthFactor = {
   topicNum: number; factor: string; riskLevel: RiskLevel; score: number
@@ -258,7 +258,9 @@ function FactorBlock({ f }: { f: MonthFactor }) {
         <div>
           <p className="text-[11px] font-bold text-indigo-600 mb-1">👔 Gestor assiste</p>
           <div className="space-y-1">
-            {f.gestorVideos.map((v) => (
+            {f.gestorVideos.map((v) => v.videoUrl ? (
+              <a key={v.key} href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="block text-[11px] text-[#1b5e96] bg-blue-50 rounded px-2 py-1 truncate hover:underline" title={`Assistir: ${v.title}`}><span className="text-blue-400">▶ {v.key}</span> {v.title}</a>
+            ) : (
               <div key={v.key} className="text-[11px] text-gray-700 bg-gray-50 rounded px-2 py-1 truncate" title={v.title}><span className="text-gray-400">{v.key}</span> {v.title}</div>
             ))}
           </div>
@@ -266,7 +268,9 @@ function FactorBlock({ f }: { f: MonthFactor }) {
         <div>
           <p className="text-[11px] font-bold text-teal-700 mb-1">👥 Equipe assiste</p>
           <div className="space-y-1">
-            {f.colabVideos.map((v) => (
+            {f.colabVideos.map((v) => v.videoUrl ? (
+              <a key={v.key} href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="block text-[11px] text-[#0e8f95] bg-teal-50 rounded px-2 py-1 truncate hover:underline" title={`Assistir: ${v.title}`}><span className="text-teal-500">▶ {v.key}</span> {v.title}</a>
+            ) : (
               <div key={v.key} className="text-[11px] text-gray-700 bg-gray-50 rounded px-2 py-1 truncate" title={v.title}><span className="text-gray-400">{v.key}</span> {v.title}</div>
             ))}
           </div>

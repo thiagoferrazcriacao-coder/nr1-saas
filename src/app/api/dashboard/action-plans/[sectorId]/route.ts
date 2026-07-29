@@ -53,12 +53,22 @@ export async function GET(req: NextRequest, { params }: { params: { sectorId: st
     const startDate = plan ? new Date(plan.createdAt) : new Date()
     const layout: Layout = (plan?.layout as Layout) ?? {}
     const months = buildMonthPlan(factors, startDate, layout.order)
+    const lessons = await prisma.lesson.findMany({
+      where: { companyId: null, active: true, videoRef: { not: null } },
+      select: { videoRef: true, videoUrl: true },
+    })
+    const videoUrlByRef = new Map(lessons.map((l) => [l.videoRef as string, l.videoUrl]))
     const md: MonthData = (plan?.monthData as MonthData) ?? {}
     const notes = layout.notes ?? {}
 
     // anexa evidências/ata/concluído (por chave) e a nota de alteração (arrastar)
     const monthsOut = months.map((m) => ({
       ...m,
+      factors: m.factors.map((f) => ({
+        ...f,
+        gestorVideos: f.gestorVideos.map((v) => ({ ...v, videoUrl: videoUrlByRef.get(v.key) })),
+        colabVideos: f.colabVideos.map((v) => ({ ...v, videoUrl: videoUrlByRef.get(v.key) })),
+      })),
       done: !!md[m.key]?.done,
       ataSummary: md[m.key]?.ataSummary ?? '',
       evidences: md[m.key]?.evidences ?? [],

@@ -68,8 +68,8 @@ export type MonthFactor = {
   score: number
   simpleAction: SimpleAction | null
   extraMeasure?: string // medida obrigatória (ex.: canal de denúncias do assédio)
-  gestorVideos: { key: string; title: string; author: string }[]
-  colabVideos: { key: string; title: string; author: string }[]
+  gestorVideos: { key: string; title: string; author: string; videoUrl?: string }[]
+  colabVideos: { key: string; title: string; author: string; videoUrl?: string }[]
 }
 export type PlanMonth = {
   monthNum: number      // 1..12

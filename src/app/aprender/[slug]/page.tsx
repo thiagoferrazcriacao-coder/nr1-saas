@@ -43,14 +43,16 @@ export default function AprenderPage() {
   const [companyName, setCompanyName] = useState('')
   const [role, setRole] = useState<'gestor' | 'colaborador'>('colaborador')
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [factorOrder, setFactorOrder] = useState<number[]>(FACTOR_NUMS)
   const [materials, setMaterials] = useState<Material[]>([])
   const [current, setCurrent] = useState<Lesson | null>(null)
 
-  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[]; role?: string; demoUnlocked?: boolean }) => {
+  const applyPayload = (data: { companyName: string; lessons: Lesson[]; materials?: Material[]; role?: string; demoUnlocked?: boolean; factorOrder?: number[] }) => {
     setCompanyName(data.companyName)
     setRole(data.role === 'gestor' ? 'gestor' : 'colaborador')
     if (typeof data.demoUnlocked === 'boolean') setDemoUnlocked(data.demoUnlocked)
     setLessons(data.lessons)
+    setFactorOrder(data.factorOrder?.length ? data.factorOrder : FACTOR_NUMS)
     setMaterials(data.materials ?? [])
     setStep('curso')
   }
@@ -392,7 +394,7 @@ export default function AprenderPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {FACTOR_NUMS.map((num) => {
+          {factorOrder.map((num) => {
             const slots = slotsFor(num, role)
             const items = slots.map((s) => ({ slot: s, lesson: byRef.get(s.key) }))
             const avail = items.filter((x) => x.lesson)

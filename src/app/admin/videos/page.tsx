@@ -41,7 +41,10 @@ export default function AdminVideosPage() {
 
   useEffect(() => { fetchLessons() }, [fetchLessons])
 
-  const openUpload = (p: number) => { setEditId(null); setUploadProgram(p); setUploadTrilha(p === START_HERE_PROGRAM.num ? 'gestor' : 'colaborador'); setUploadVideoRef(''); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openUpload = (p: number, videoRef = '') => {
+    const slot = videoRef ? slotsFor(p, 'gestor').concat(slotsFor(p, 'colaborador')).find((s) => s.key === videoRef) : null
+    setEditId(null); setUploadProgram(p); setUploadTrilha(slot?.trilha ?? (p === START_HERE_PROGRAM.num ? 'gestor' : 'colaborador')); setUploadVideoRef(videoRef); setTitle(slot?.title ?? ''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('')
+  }
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
@@ -161,6 +164,13 @@ export default function AdminVideosPage() {
         <div className="space-y-3">
           {ADMIN_PROGRAMS.map((p) => {
             const ls = orderLessonsForDisplay(lessons.filter((l) => l.programNum === p.num))
+            const catalog = p.num === START_HERE_PROGRAM.num
+              ? ls.map((lesson) => ({ slot: null, lesson }))
+              : slotsFor(p.num, 'gestor').concat(slotsFor(p.num, 'colaborador')).sort((a, b) => a.videoNum - b.videoNum).map((slot) => ({
+                  slot,
+                  lesson: ls.find((lesson) => lesson.videoRef === slot.key && lesson.trilha === slot.trilha),
+                }))
+            const avulsos = p.num === START_HERE_PROGRAM.num ? [] : ls.filter((lesson) => !lesson.videoRef)
             return (
               <div key={p.num} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between gap-3 px-5 py-4 bg-gradient-to-r from-[#F6F9FC] to-white border-b border-gray-100">
@@ -171,24 +181,34 @@ export default function AdminVideosPage() {
                   <button onClick={() => openUpload(p.num)} disabled={!r2ok} className="flex-shrink-0 text-sm font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-3 py-2 rounded-xl hover:bg-[#E0F5F6] transition-colors disabled:opacity-40">➕ Adicionar vídeo</button>
                 </div>
                 <div className="px-5 py-3">
-                  {ls.length === 0 ? (
+                  {catalog.length === 0 && avulsos.length === 0 ? (
                     <p className="text-gray-400 text-sm py-1">Nenhum vídeo neste tema ainda.</p>
                   ) : (
                     <div className="divide-y divide-gray-50">
-                      {ls.map((l, i) => (
-                        <div key={l.id} className="flex items-center justify-between gap-3 py-2.5">
+                      {catalog.map(({ slot, lesson: l }, i) => (
+                        <div key={slot?.key ?? l?.id ?? `slot-${i}`} className={`flex items-center justify-between gap-3 py-2.5 ${!l ? 'grayscale opacity-55' : ''}`}>
                           <div className="flex items-center gap-3 min-w-0">
                             <span className="w-7 h-7 rounded-lg bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-                            <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${l.trilha === 'gestor' ? 'bg-indigo-50 text-indigo-600' : 'bg-teal-50 text-teal-700'}`}>{l.trilha === 'gestor' ? '👔 Gestor' : '👥 Colab.'}</span>
-                            <p className={`text-sm font-medium truncate ${l.active ? 'text-gray-800' : 'text-gray-400 line-through'}`}>{l.title}</p>
+                            <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${((slot?.trilha ?? l?.trilha) === 'gestor') ? 'bg-indigo-50 text-indigo-600' : 'bg-teal-50 text-teal-700'}`}>{((slot?.trilha ?? l?.trilha) === 'gestor') ? '👔 Gestor' : '👥 Colab.'}</span>
+                            <span className="text-[10px] font-bold text-gray-400 flex-shrink-0">{slot?.key ?? 'avulso'}</span>
+                            <p className={`text-sm font-medium truncate ${l?.active ? 'text-gray-800' : 'text-gray-500'}`}>{slot?.title ?? l?.title}</p>
+                            <span className="text-[10px] text-gray-400 flex-shrink-0">· {slot?.author ?? '—'}</span>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <button onClick={() => setPreview(l)} title="Ver o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-[#CCEFF1] bg-[#F0FBFC] text-[#109CA1] hover:bg-[#E0F5F6]">▶ Ver</button>
-                            <button onClick={() => openReplace(l)} disabled={!r2ok} title="Substituir o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-40">🔄 Substituir</button>
-                            <button onClick={() => toggleActive(l)} title={l.active ? 'Desativar' : 'Ativar'} className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">{l.active ? '👁️' : '🚫'}</button>
-                            <button onClick={() => editLesson(l)} title="Editar" className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">✏️</button>
-                            <button onClick={() => deleteLesson(l)} title="Excluir" className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">🗑️</button>
+                            {l ? <>
+                              <button onClick={() => setPreview(l)} title="Ver o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-[#CCEFF1] bg-[#F0FBFC] text-[#109CA1] hover:bg-[#E0F5F6]">▶ Ver</button>
+                              <button onClick={() => openReplace(l)} disabled={!r2ok} title="Substituir o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-40">🔄 Substituir</button>
+                              <button onClick={() => toggleActive(l)} title={l.active ? 'Desativar' : 'Ativar'} className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">{l.active ? '👁️' : '🚫'}</button>
+                              <button onClick={() => editLesson(l)} title="Editar" className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">✏️</button>
+                              <button onClick={() => deleteLesson(l)} title="Excluir" className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">🗑️</button>
+                            </> : <button onClick={() => openUpload(p.num, slot?.key ?? '')} disabled={!r2ok} title="Adicionar exatamente nesta aula" className="text-[10px] font-semibold text-[#109CA1] border border-[#CCEFF1] bg-[#F0FBFC] px-2.5 py-1.5 rounded-lg hover:bg-[#E0F5F6] disabled:opacity-40">＋ Adicionar vídeo</button>}
                           </div>
+                        </div>
+                      ))}
+                      {avulsos.map((l, i) => (
+                        <div key={l.id} className="flex items-center justify-between gap-3 py-2.5">
+                          <div className="flex items-center gap-3 min-w-0"><span className="w-7 h-7 rounded-lg bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center flex-shrink-0">{catalog.length + i + 1}</span><span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Avulso</span><p className="text-sm font-medium truncate text-gray-800">{l.title}</p><span className="text-[10px] text-gray-400">· sem autor definido</span></div>
+                          <div className="flex items-center gap-1 flex-shrink-0"><button onClick={() => setPreview(l)} title="Ver o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-[#CCEFF1] bg-[#F0FBFC] text-[#109CA1] hover:bg-[#E0F5F6]">▶ Ver</button><button onClick={() => openReplace(l)} disabled={!r2ok} title="Substituir o vídeo" className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-40">🔄 Substituir</button></div>
                         </div>
                       ))}
                     </div>
