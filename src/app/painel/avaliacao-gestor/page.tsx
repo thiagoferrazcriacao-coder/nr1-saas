@@ -6,7 +6,13 @@ import { MANAGER_QUESTIONS, ManagerAnswer, managerIsComplete } from '@/lib/manag
 
 type StoredAssessment = { items?: { answers?: ManagerAnswer[] }[]; openingAcceptedAt?: string | null }
 
-const openingText = `Este questionário faz parte do diagnóstico exigido pela NR-1. As suas respostas serão usadas, junto com as respostas da sua equipe, para classificar os riscos psicossociais da empresa e gerar os documentos oficiais do programa.\n\nResponda com base em fatos: o que de fato aconteceu, o que está registrado e o que a empresa realmente tem hoje. Não responda pensando no resultado que gostaria de ver.\n\nSuas respostas são a declaração oficial da empresa e constarão da documentação que pode ser examinada por auditores do trabalho e pela Justiça. Não há resposta certa ou errada: um risco médio ou alto apenas define por onde o plano de ação começa. O que protege a empresa é um diagnóstico honesto seguido de ação registrada.`
+const openingText = `Este questionário é a sua parte no diagnóstico exigido pela NR-1. Suas respostas, somadas às da sua equipe, classificam os riscos psicossociais da empresa e geram os documentos oficiais do programa.
+
+Responda com base em fatos: o que de fato aconteceu, o que está registrado e o que a empresa realmente tem hoje. Não responda pensando no resultado que gostaria de ver.
+
+Suas respostas constituem declaração oficial da empresa. Elas passam a integrar a documentação que pode ser examinada por auditores do trabalho e pela Justiça. Informação que não corresponde à realidade enfraquece a defesa da empresa em vez de protegê-la: se o documento afirmar que nunca houve ocorrências e existirem provas em contrário, é a palavra da empresa que perde valor no momento em que mais importa.
+
+Não existe resposta certa ou errada. Um fator classificado como médio ou alto não pune a empresa, apenas define por onde o plano de ação começa. O que protege a empresa não é o resultado bonito, é o diagnóstico honesto seguido de ação registrada.`
 
 export default function AvaliacaoGestorPage() {
   const router = useRouter()
@@ -55,12 +61,12 @@ export default function AvaliacaoGestorPage() {
   if (!started) return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 lg:p-10">
-        <span className="text-xs font-bold uppercase tracking-wide text-primary-700">Antes de começar</span>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">Avaliação do Gestor</h1>
-        <p className="text-sm text-gray-500 mt-2">São 39 perguntas objetivas sobre fatos da organização. O sistema calcula automaticamente a probabilidade de cada fator; você não escolhe Baixa, Média ou Alta.</p>
+        <span className="text-xs font-bold uppercase tracking-wide text-primary-700">Antes de começar, leia com atenção.</span>
+        <h1 className="text-2xl font-bold text-gray-900 mt-2">Declaração do Gestor</h1>
+        <p className="text-sm text-gray-500 mt-2">Leia todo o aviso antes de iniciar as perguntas.</p>
         <div className="whitespace-pre-line text-sm leading-7 text-gray-700 bg-blue-50 border border-blue-200 rounded-xl p-5 mt-6">{openingText}</div>
-        <label className="flex items-start gap-3 mt-6 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1 h-4 w-4" /><span>Declaro que li e entendi que minhas respostas constituem declaração oficial da empresa e me comprometo a respondê-las com veracidade.</span></label>
-        <button disabled={!accepted} onClick={() => setStarted(true)} className="mt-7 w-full sm:w-auto bg-primary-800 text-white px-6 py-3 rounded-xl font-semibold disabled:bg-gray-200 disabled:text-gray-400">Ler e iniciar avaliação →</button>
+        <label className="flex items-start gap-3 mt-6 text-sm text-gray-700 cursor-pointer"><input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1 h-4 w-4" /><span>Declaro que as informações que vou prestar correspondem à realidade da empresa e compreendo que constituem declaração oficial, sob minha responsabilidade.</span></label>
+        <button disabled={!accepted} onClick={() => setStarted(true)} className="mt-7 w-full sm:w-auto bg-primary-800 text-white px-6 py-3 rounded-xl font-semibold disabled:bg-gray-200 disabled:text-gray-400">Iniciar declaração</button>
       </div>
     </div>
   )
