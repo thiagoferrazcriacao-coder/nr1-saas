@@ -25,6 +25,7 @@ const SELECT = {
   responsible: true, phone: true, address: true, city: true, state: true,
   employeeCount: true, workModality: true,
   gestorTutorialCompletedAt: true,
+  teamLinkSentAt: true,
   gestorName: true, gestorSignatureUrl: true,
   drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true,
 }

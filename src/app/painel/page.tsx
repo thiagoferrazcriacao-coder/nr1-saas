@@ -15,9 +15,12 @@ type Sector = {
 
 type CompanySettings = {
   employeeCount: number | null
+  cnpj: string | null
+  responsible: string | null
   name: string
   drpsStatus: string
   gestorTutorialCompletedAt: string | null
+  teamLinkSentAt: string | null
 }
 
 type RiskLevel = 'baixo' | 'moderado' | 'alto' | 'critico'
@@ -198,11 +201,12 @@ export default function PainelPage() {
 
   // Passos de onboarding
   const step1Done = !!company?.gestorTutorialCompletedAt
-  const step2Done = sectors.length > 0 && !!employeeCount
+  const step2Done = !!company?.employeeCount && !!company?.cnpj && !!company?.responsible
   const step3Done = assessmentDone
-  const step4Done = participationReady
-  const step5Done = sectorsWithData.length > 0 && sectorsWithData.some((s) => s.riskLevel !== null)
-  const onboardingDone = step1Done && step2Done && step3Done && step4Done && step5Done
+  const step4Done = !!company?.teamLinkSentAt
+  const step5Done = participationReady
+  const step6Done = sectorsWithData.length > 0 && sectorsWithData.some((s) => s.riskLevel !== null)
+  const onboardingDone = step1Done && step2Done && step3Done && step4Done && step5Done && step6Done
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -243,10 +247,11 @@ export default function PainelPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {[
               { done: step1Done, icon: '🎬', title: 'Assista ao tutorial', desc: 'Entenda como conduzir a plataforma', action: () => setTutorialOpen(true), actionLabel: 'Abrir tutorial' },
-              { done: step2Done, icon: '🏢', title: 'Configure a empresa', desc: 'Informe funcionários e dados da empresa', action: () => { window.location.href = '/painel/configuracoes' }, actionLabel: 'Configurar' },
-              { done: step3Done, icon: '📋', title: 'Avaliação do Gestor', desc: 'Responda para liberar o link dos funcionários', action: () => { window.location.href = '/painel/avaliacao-gestor' }, actionLabel: 'Responder' },
-              { done: step4Done, icon: '🔗', title: 'Alcance 80% de respostas', desc: 'Envie o link e acompanhe a participação', action: null, actionLabel: null },
-              { done: step5Done, icon: '✅', title: 'Revise o DRPS', desc: 'Confira o diagnóstico e o Plano de Ação', action: null, actionLabel: null },
+              { done: step2Done, icon: '🏢', title: 'Preencha os Dados da Empresa', desc: 'Informe CNPJ, responsável e funcionários', action: () => { window.location.href = '/painel/configuracoes' }, actionLabel: 'Preencher' },
+              { done: step3Done, icon: '📋', title: 'Avaliação do Gestor', desc: 'Responda para liberar a Avaliação do Time', action: () => { window.location.href = '/painel/avaliacao-gestor' }, actionLabel: 'Responder' },
+              { done: step4Done, icon: '📨', title: 'Envie o link aos funcionários', desc: 'Copie a mensagem pronta na Avaliação do Time', action: () => { window.location.href = '/painel/avaliacao-time' }, actionLabel: 'Abrir área' },
+              { done: step5Done, icon: '🔗', title: 'Alcance 80% de respostas', desc: 'Acompanhe a participação do time', action: () => { window.location.href = '/painel/avaliacao-time' }, actionLabel: 'Acompanhar' },
+              { done: step6Done, icon: '✅', title: 'Revise o DRPS', desc: 'Confira o diagnóstico e o Plano de Ação', action: null, actionLabel: null },
             ].map((step, i) => (
               <div key={i} className={`bg-white rounded-xl p-4 border ${step.done ? 'border-green-200' : 'border-gray-200'}`}>
                 <div className="flex items-center gap-2 mb-2"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{step.done ? '✓' : i + 1}</div><span className="text-lg">{step.icon}</span></div>
@@ -461,24 +466,20 @@ export default function PainelPage() {
         </div>
       )}
 
-      {/* Trava: link do time só libera após a Avaliação do Gestor */}
-      {!loading && !assessmentDone && sectors.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 flex items-start justify-between gap-4 flex-wrap">
+      {/* Próximo passo: avaliação do time */}
+      {!loading && sectors.length > 0 && (
+        <div className={`${!assessmentDone ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'} border rounded-2xl p-4 mb-4 flex items-start justify-between gap-4 flex-wrap`}>
           <div className="flex items-start gap-3">
-            <span className="text-xl">🔒</span>
+            <span className="text-xl">{assessmentDone ? '📨' : '🔒'}</span>
             <div>
-              <p className="text-sm font-semibold text-amber-900">Link bloqueado</p>
-              <p className="text-sm text-amber-800 mt-0.5">
-                Para enviar o questionário ao time, primeiro preencha a <strong>Avaliação do Gestor</strong>.
-                Ela define a probabilidade de cada risco — sem ela, o DRPS sai incompleto.
+              <p className={`text-sm font-semibold ${assessmentDone ? 'text-blue-900' : 'text-amber-900'}`}>{assessmentDone ? 'Agora envie o link aos funcionários' : 'Avaliação do Time bloqueada'}</p>
+              <p className={`text-sm mt-0.5 ${assessmentDone ? 'text-blue-800' : 'text-amber-800'}`}>
+                {assessmentDone ? 'Abra a Avaliação do Time para copiar o link e a mensagem pronta. Depois confirme o envio para liberar Vídeos, Relatório Geral, Documentos e Material Didático.' : 'Para enviar o questionário ao time, primeiro preencha a Avaliação do Gestor.'}
               </p>
             </div>
           </div>
-          <Link
-            href="/painel/avaliacao-gestor"
-            className="flex-shrink-0 bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-amber-700 transition-colors"
-          >
-            Preencher agora
+          <Link href={assessmentDone ? '/painel/avaliacao-time' : '/painel/avaliacao-gestor'} className={`flex-shrink-0 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors ${assessmentDone ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700'}`}>
+            {assessmentDone ? 'Abrir Avaliação do Time' : 'Preencher agora'}
           </Link>
         </div>
       )}
@@ -551,28 +552,19 @@ export default function PainelPage() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-                    <button
-                      onClick={() => setQrSector(sector)}
-                      disabled={!assessmentDone}
-                      title={assessmentDone ? 'Gerar QR Code' : 'Preencha a Avaliação do Gestor para liberar o QR Code'}
-                      className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    <Link
+                      href="/painel/avaliacao-time"
+                      className="text-xs px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors"
                     >
-                      {assessmentDone ? '📱 QR Code' : '🔒 QR Code'}
-                    </button>
-                    <button
-                      onClick={() => handleCopy(sector)}
-                      disabled={!assessmentDone}
-                      title={assessmentDone ? 'Copiar link do questionário' : 'Preencha a Avaliação do Gestor para liberar o link'}
-                      className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    >
-                      {!assessmentDone ? '🔒 Link' : copiedId === sector.id ? '✅ Copiado!' : '🔗 Link'}
-                    </button>
+                      📨 Enviar ao time
+                    </Link>
                     {sector.totalResponses > 0 && (
                       <Link
                         href={`/painel/setor/${sector.id}`}
-                        className="text-xs px-3 py-2 rounded-lg bg-primary-800 text-white hover:bg-primary-700 transition-colors"
+                        className={`text-xs px-3 py-2 rounded-lg transition-colors ${company?.teamLinkSentAt ? 'bg-primary-800 text-white hover:bg-primary-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                        aria-disabled={!company?.teamLinkSentAt}
                       >
-                        📊 Relatório
+                        {company?.teamLinkSentAt ? '📊 Relatório' : '🔒 Relatório'}
                       </Link>
                     )}
                     <button

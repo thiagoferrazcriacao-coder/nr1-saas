@@ -28,6 +28,7 @@ model Company {
   employeeCount    Int?
   workModality     String?            // presencial | remoto | hibrido
   gestorTutorialCompletedAt DateTime? // tutorial obrigatório de condução da plataforma
+  teamLinkSentAt DateTime?       // quando o gestor confirmou o envio do link ao time
   termsAcceptedAt  DateTime?
   termsAcceptedIp  String?
   drpsStatus       String             @default("pendente") // pendente | em_revisao | aprovado | rejeitado
