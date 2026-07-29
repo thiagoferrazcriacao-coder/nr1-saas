@@ -27,6 +27,7 @@ model Company {
   plan             String             @default("starter")
   employeeCount    Int?
   workModality     String?            // presencial | remoto | hibrido
+  gestorTutorialCompletedAt DateTime? // tutorial obrigatório de condução da plataforma
   termsAcceptedAt  DateTime?
   termsAcceptedIp  String?
   drpsStatus       String             @default("pendente") // pendente | em_revisao | aprovado | rejeitado

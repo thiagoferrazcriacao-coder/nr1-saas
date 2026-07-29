@@ -24,6 +24,7 @@ const SELECT = {
   id: true, name: true, fantasyName: true, cnpj: true, logoUrl: true,
   responsible: true, phone: true, address: true, city: true, state: true,
   employeeCount: true, workModality: true,
+  gestorTutorialCompletedAt: true,
   gestorName: true, gestorSignatureUrl: true,
   drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true,
 }

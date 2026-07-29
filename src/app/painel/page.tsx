@@ -17,6 +17,7 @@ type CompanySettings = {
   employeeCount: number | null
   name: string
   drpsStatus: string
+  gestorTutorialCompletedAt: string | null
 }
 
 type RiskLevel = 'baixo' | 'moderado' | 'alto' | 'critico'
@@ -110,6 +111,8 @@ export default function PainelPage() {
   const [copiedId, setCopiedId]     = useState<string | null>(null)
   const [qrSector, setQrSector]     = useState<Sector | null>(null)
   const [assessmentDone, setAssessmentDone] = useState(true) // assume preenchida até confirmar
+  const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [tutorialConfirming, setTutorialConfirming] = useState(false)
   const [overview, setOverview]     = useState<Overview | null>(null)
 
   const fetchData = async () => {
@@ -124,6 +127,7 @@ export default function PainelPage() {
       if (settingsRes.ok) {
         const { company: c } = await settingsRes.json()
         setCompany(c)
+        setTutorialOpen(!c?.gestorTutorialCompletedAt)
       }
       if (assessmentRes.ok) {
         const { assessment } = await assessmentRes.json()
@@ -155,6 +159,18 @@ export default function PainelPage() {
     }
   }
 
+  const completeTutorial = async () => {
+    setTutorialConfirming(true)
+    try {
+      const res = await fetch('/api/dashboard/gestor-tutorial', { method: 'POST' })
+      if (!res.ok) return
+      setTutorialOpen(false)
+      setCompany((current) => current ? { ...current, gestorTutorialCompletedAt: new Date().toISOString() } : current)
+    } finally {
+      setTutorialConfirming(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir setor e todas as suas respostas?')) return
     await fetch(`/api/dashboard/sectors/${id}`, { method: 'DELETE' })
@@ -178,53 +194,65 @@ export default function PainelPage() {
   const employeeCount    = company?.employeeCount ?? null
   const targetPerSector  = employeeCount && sectors.length ? Math.ceil(employeeCount / sectors.length) : null
   const globalProgress   = employeeCount ? Math.min(100, Math.round((totalResponses / employeeCount) * 100)) : null
+  const participationReady = globalProgress !== null && globalProgress >= 80
 
   // Passos de onboarding
-  const step1Done = sectors.length > 0
-  const step2Done = sectors.some((s) => s.totalResponses > 0)
-  const step3Done = sectorsWithData.length > 0 && sectorsWithData.some((s) => s.riskLevel !== null)
-  const step4Done = company?.drpsStatus === 'aprovado'
-  const onboardingDone = step1Done && step2Done && step3Done
+  const step1Done = !!company?.gestorTutorialCompletedAt
+  const step2Done = sectors.length > 0 && !!employeeCount
+  const step3Done = assessmentDone
+  const step4Done = participationReady
+  const step5Done = sectorsWithData.length > 0 && sectorsWithData.some((s) => s.riskLevel !== null)
+  const onboardingDone = step1Done && step2Done && step3Done && step4Done && step5Done
 
   return (
     <div className="max-w-5xl mx-auto">
+
+      {/* Tutorial obrigatório — o espaço é substituído pelo vídeo do gestor quando ele for enviado. */}
+      {tutorialOpen && (
+        <div className="fixed inset-0 z-50 bg-[#0E2A47]/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0E2A47] to-[#1769AA] px-6 py-5 text-white">
+              <p className="text-xs font-bold uppercase tracking-wider text-cyan-200">Primeiro passo obrigatório</p>
+              <h2 className="text-2xl font-bold mt-1">Como conduzir sua empresa na Zelo</h2>
+              <p className="text-blue-100 text-sm mt-1">Assista ao tutorial antes de começar a configuração.</p>
+            </div>
+            <div className="p-6">
+              <div className="aspect-video rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-6">
+                <span className="text-5xl mb-3">🎬</span>
+                <p className="font-bold text-slate-700">Espaço reservado para o vídeo tutorial</p>
+                <p className="text-sm text-slate-500 mt-2 max-w-md">O vídeo mostrará como configurar a empresa, responder a Avaliação do Gestor, enviar o link aos funcionários e acompanhar o DRPS.</p>
+              </div>
+              <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900">
+                <strong>Depois do tutorial, você seguirá nesta ordem:</strong> configurar a empresa → responder a Avaliação do Gestor → enviar o link aos funcionários → alcançar 80% de respostas → revisar o DRPS e o Plano de Ação.
+              </div>
+              <button onClick={completeTutorial} disabled={tutorialConfirming} className="w-full mt-5 py-3 rounded-xl bg-gradient-to-r from-[#17C3C9] to-[#3F7DE0] text-white font-bold hover:opacity-95 disabled:opacity-50">
+                {tutorialConfirming ? 'Salvando...' : 'Concluí o tutorial e quero começar →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Guia de configuração inicial */}
       {!onboardingDone && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm">▶</span>
-            </div>
-            <div>
-              <h2 className="font-bold text-gray-900">Guia de Configuração</h2>
-              <p className="text-sm text-gray-500">Siga os passos para lançar seu primeiro diagnóstico</p>
-            </div>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><span className="text-white text-sm">▶</span></div>
+            <div><h2 className="font-bold text-gray-900">Comece por aqui</h2><p className="text-sm text-gray-500">Siga uma etapa por vez para concluir seu DRPS.</p></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {[
-              { done: step1Done, icon: '🏢', title: 'Crie seus setores', desc: 'Cadastre cada setor da empresa', action: () => setModalOpen(true), actionLabel: 'Criar Setor' },
-              { done: step2Done, icon: '🔗', title: 'Distribua os links', desc: 'Envie o link ou QR code para os colaboradores', action: null, actionLabel: null },
-              { done: step3Done, icon: '📊', title: 'Aguarde as respostas', desc: 'Acompanhe o progresso em tempo real', action: null, actionLabel: null },
-              { done: step4Done, icon: '✅', title: 'Baixe o DRPS', desc: 'Relatório assinado pela psicóloga Annie Talma', action: null, actionLabel: null },
+              { done: step1Done, icon: '🎬', title: 'Assista ao tutorial', desc: 'Entenda como conduzir a plataforma', action: () => setTutorialOpen(true), actionLabel: 'Abrir tutorial' },
+              { done: step2Done, icon: '🏢', title: 'Configure a empresa', desc: 'Informe funcionários e dados da empresa', action: () => { window.location.href = '/painel/configuracoes' }, actionLabel: 'Configurar' },
+              { done: step3Done, icon: '📋', title: 'Avaliação do Gestor', desc: 'Responda para liberar o link dos funcionários', action: () => { window.location.href = '/painel/avaliacao-gestor' }, actionLabel: 'Responder' },
+              { done: step4Done, icon: '🔗', title: 'Alcance 80% de respostas', desc: 'Envie o link e acompanhe a participação', action: null, actionLabel: null },
+              { done: step5Done, icon: '✅', title: 'Revise o DRPS', desc: 'Confira o diagnóstico e o Plano de Ação', action: null, actionLabel: null },
             ].map((step, i) => (
               <div key={i} className={`bg-white rounded-xl p-4 border ${step.done ? 'border-green-200' : 'border-gray-200'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {step.done ? '✓' : i + 1}
-                  </div>
-                  <span className="text-lg">{step.icon}</span>
-                </div>
+                <div className="flex items-center gap-2 mb-2"><div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{step.done ? '✓' : i + 1}</div><span className="text-lg">{step.icon}</span></div>
                 <p className={`text-sm font-semibold ${step.done ? 'text-green-700 line-through' : 'text-gray-800'}`}>{step.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{step.desc}</p>
-                {!step.done && step.action && (
-                  <button
-                    onClick={step.action}
-                    className="mt-3 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    {step.actionLabel} →
-                  </button>
-                )}
+                {!step.done && step.action && <button onClick={step.action} className="mt-3 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700 transition-colors">{step.actionLabel} →</button>}
               </div>
             ))}
           </div>
