@@ -34,7 +34,9 @@ export async function sendVerificationCode(email: string, code: string): Promise
     html,
   })
   if (error) {
-    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error))
+    const msg = typeof error === 'string'
+      ? error
+      : JSON.stringify(error, Object.getOwnPropertyNames(error))
     throw new Error(`Resend: ${msg}`)
   }
 }
@@ -76,7 +78,9 @@ export async function sendWelcomeEmail(email: string, name?: string | null): Pro
     from: FROM, to: email, subject: 'Bem-vindo(a) ao Zelo — crie seu acesso', html,
   })
   if (error) {
-    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error))
+    const msg = typeof error === 'string'
+      ? error
+      : JSON.stringify(error, Object.getOwnPropertyNames(error))
     throw new Error(`Resend: ${msg}`)
   }
 }
@@ -109,7 +113,9 @@ export async function sendPasswordResetCode(email: string, code: string): Promis
     html,
   })
   if (error) {
-    const msg = typeof error === 'string' ? error : (error.message || JSON.stringify(error))
+    const msg = typeof error === 'string'
+      ? error
+      : JSON.stringify(error, Object.getOwnPropertyNames(error))
     throw new Error(`Resend: ${msg}`)
   }
 }
