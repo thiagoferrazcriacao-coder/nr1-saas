@@ -39,8 +39,9 @@ type Report = {
 type Assessment = {
   topicNum: number
   topic: string
-  probability: Probability
-  observations?: string
+  probability: Probability | 'nao_aplicavel'
+  formalFloorApplied?: boolean
+  notApplicable?: boolean
 }
 
 // ─── Configs visuais ──────────────────────────────────────────────────────────
@@ -99,10 +100,9 @@ export default function SetorReportPage() {
       setReport(rep)
       if (settings?.company?.drpsStatus) setDrpsStatus(settings.company.drpsStatus)
 
-      // Inicializa avaliações com os valores salvos ou padrão 'media'
       const init: Assessment[] = rep.byTopic.map((t) => {
         const existing = saved.find((s) => s.topicNum === t.topicNum)
-        return { topicNum: t.topicNum, topic: t.topic, probability: existing?.probability ?? 'media', observations: existing?.observations ?? '' }
+        return { topicNum: t.topicNum, topic: t.topic, probability: existing?.probability ?? 'media', formalFloorApplied: existing?.formalFloorApplied, notApplicable: existing?.notApplicable }
       })
       setAssessments(init)
       setMatrix(buildRiskMatrix(rep.byTopic, init))
@@ -347,179 +347,20 @@ export default function SetorReportPage() {
       {/* ── ABA: MATRIZ NR-1 ───────────────────────────────────────────────── */}
       {activeTab === 'matrix' && (
         <div className="space-y-6">
-          {/* Avaliador */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-              <div>
-                <h2 className="font-bold text-gray-900">Avaliação de Probabilidade</h2>
-                <p className="text-gray-400 text-xs mt-0.5">
-                  Defina a probabilidade de cada fator de risco ocorrer. A matriz NR-1 é calculada automaticamente.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {saved && <span className="text-green-600 text-xs font-medium">✅ Salvo</span>}
-                <button
-                  onClick={handleSaveAssessments}
-                  disabled={saving}
-                  className="bg-primary-800 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors"
-                >
-                  {saving ? 'Salvando...' : '💾 Salvar Avaliação'}
-                </button>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Nome do avaliador (opcional)</label>
-              <input
-                type="text"
-                value={assessedBy}
-                onChange={(e) => setAssessedBy(e.target.value)}
-                placeholder="Ex: Dr. João Silva — Psicólogo"
-                className="w-full max-w-sm px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-800"
-              />
-            </div>
-
-            {/* Legenda de probabilidade */}
-            <div className="flex gap-3 mb-4 flex-wrap">
-              {(['baixa', 'media', 'alta'] as Probability[]).map((p) => (
-                <div key={p} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${probConfig[p].bg} ${probConfig[p].ring} ring-1`}>
-                  <span className={`text-xs font-semibold ${probConfig[p].text}`}>
-                    {p === 'baixa' ? '🟢' : p === 'media' ? '🟡' : '🔴'} Prob. {probConfig[p].label}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-4">
+            <h2 className="font-bold text-gray-900">Probabilidade calculada automaticamente</h2>
+            <p className="text-gray-500 text-sm mt-1">O resultado abaixo vem da Avaliação do Gestor estruturada. Não é possível editar manualmente a probabilidade nesta tela.</p>
+            <div className="space-y-4 mt-5">
               {assessments.map((a) => {
                 const mx = matrix.find((m) => m.topicNum === a.topicNum)
                 const mxCfg = mx ? riskConfig[mx.riskFinal] : null
-                return (
-                  <div key={a.topicNum} className="border border-gray-100 rounded-xl p-4 bg-gray-50">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800">{a.topicNum}. {a.topic}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Gravidade: <strong>{report.byTopic.find((t) => t.topicNum === a.topicNum)?.score.toFixed(2)}</strong>
-                          {' '}({riskConfig[report.byTopic.find((t) => t.topicNum === a.topicNum)?.riskLevel ?? 'baixo'].label})
-                        </p>
-                      </div>
-                      {mxCfg && (
-                        <span className={`text-xs font-bold px-3 py-1 rounded-lg border flex-shrink-0 ${mxCfg.bg} ${mxCfg.text} ${mxCfg.border}`}>
-                          Risco Final: {mxCfg.label}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Seletor de probabilidade */}
-                    <div className="flex gap-2 mt-3">
-                      {(['baixa', 'media', 'alta'] as Probability[]).map((p) => (
-                        <button
-                          key={p}
-                          onClick={() => updateProb(a.topicNum, p)}
-                          className={`flex-1 py-2 rounded-lg text-xs font-semibold border-2 transition-all ${
-                            a.probability === p
-                              ? `${probConfig[p].bg} ${probConfig[p].ring} ring-2 ${probConfig[p].text}`
-                              : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                          }`}
-                        >
-                          {p === 'baixa' ? '🟢' : p === 'media' ? '🟡' : '🔴'} {probConfig[p].label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Campo de observações */}
-                    <textarea
-                      value={a.observations}
-                      onChange={(e) => updateObs(a.topicNum, e.target.value)}
-                      placeholder="Observações / critérios qualitativos (opcional)..."
-                      rows={2}
-                      className="mt-2 w-full px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-primary-800 resize-none"
-                    />
-                  </div>
-                )
+                const probLabel = a.probability === 'nao_aplicavel' ? 'Não aplicável' : probConfig[a.probability].label
+                return <div key={a.topicNum} className="border border-gray-100 rounded-xl p-4 bg-gray-50"><div className="flex items-start justify-between gap-4 flex-wrap"><div><p className="text-sm font-semibold text-gray-800">{a.topicNum}. {a.topic}</p><p className="text-xs text-gray-400 mt-1">Gravidade: <strong>{report.byTopic.find((t) => t.topicNum === a.topicNum)?.score.toFixed(2)}</strong></p></div>{mxCfg && <span className={`text-xs font-bold px-3 py-1 rounded-lg border ${mxCfg.bg} ${mxCfg.text} ${mxCfg.border}`}>{a.notApplicable ? 'Não aplicável' : `Risco Final: ${mxCfg.label}`}</span>}</div><div className="flex items-center gap-2 mt-3"><span className="text-xs text-gray-500">Probabilidade:</span><span className={`text-xs font-bold px-3 py-1.5 rounded-lg ${a.probability === 'nao_aplicavel' ? 'bg-gray-200 text-gray-600' : `${probConfig[a.probability].bg} ${probConfig[a.probability].text}`}`}>{probLabel}</span>{a.formalFloorApplied && <span className="text-xs text-amber-700 bg-amber-100 px-2 py-1 rounded-lg">Piso por registro formal</span>}{mx?.prudentialAdjustmentApplied && <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-lg">Ajuste prudencial aplicado</span>}</div></div>
               })}
             </div>
           </div>
-
-          {/* Tabela resumo da matriz */}
           {matrix.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="font-bold text-gray-900 mb-1">Resumo da Matriz de Risco</h2>
-              <p className="text-gray-400 text-xs mb-4">Cruzamento Gravidade × Probabilidade conforme NR-1</p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-2 px-3 font-semibold text-gray-600 text-xs">Tópico</th>
-                      <th className="text-center py-2 px-3 font-semibold text-gray-600 text-xs">Gravidade</th>
-                      <th className="text-center py-2 px-3 font-semibold text-gray-600 text-xs">Probabilidade</th>
-                      <th className="text-center py-2 px-3 font-semibold text-gray-600 text-xs">Risco Final</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matrix.map((m) => {
-                      const finalCfg = riskConfig[m.riskFinal]
-                      const gravCfg  = riskConfig[
-                        m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto'
-                      ]
-                      const probCfg  = probConfig[m.probabilidade]
-                      return (
-                        <tr key={m.topicNum} className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="py-2 px-3 text-gray-800 font-medium text-xs">{m.topicNum}. {m.topic}</td>
-                          <td className="py-2 px-3 text-center">
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${gravCfg.bg} ${gravCfg.text}`}>
-                              {m.gravidade.charAt(0).toUpperCase() + m.gravidade.slice(1)} ({m.gravScore.toFixed(1)})
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-center">
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${probCfg.bg} ${probCfg.text}`}>
-                              {probCfg.label}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-center">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${finalCfg.bg} ${finalCfg.text} ${finalCfg.border}`}>
-                              {finalCfg.label}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Legenda visual da matriz */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-xl">
-                <p className="text-xs font-semibold text-gray-500 mb-3">Tabela de referência NR-1</p>
-                <table className="text-xs w-full max-w-xs">
-                  <thead>
-                    <tr>
-                      <th className="text-gray-400 font-medium py-1 px-2 text-left">Prob ╲ Grav</th>
-                      <th className="text-green-600 font-semibold py-1 px-2 text-center">Baixa</th>
-                      <th className="text-yellow-600 font-semibold py-1 px-2 text-center">Média</th>
-                      <th className="text-red-600 font-semibold py-1 px-2 text-center">Alta</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { prob: 'Alta',  cells: ['Moderado','Alto','Crítico'], colors: ['bg-yellow-100 text-yellow-700','bg-orange-100 text-orange-700','bg-red-100 text-red-700'] },
-                      { prob: 'Média', cells: ['Baixo','Moderado','Alto'],   colors: ['bg-green-100 text-green-700','bg-yellow-100 text-yellow-700','bg-orange-100 text-orange-700'] },
-                      { prob: 'Baixa', cells: ['Baixo','Baixo','Moderado'],  colors: ['bg-green-100 text-green-700','bg-green-100 text-green-700','bg-yellow-100 text-yellow-700'] },
-                    ].map((row) => (
-                      <tr key={row.prob}>
-                        <td className="text-gray-500 font-medium py-1 px-2">{row.prob}</td>
-                        {row.cells.map((c, i) => (
-                          <td key={i} className="py-1 px-2 text-center">
-                            <span className={`px-2 py-0.5 rounded font-semibold ${row.colors[i]}`}>{c}</span>
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"><h2 className="font-bold text-gray-900 mb-1">Resumo da Matriz de Risco</h2><p className="text-gray-400 text-xs mb-4">Cruzamento Gravidade × Probabilidade conforme NR-1</p><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-gray-100"><th className="text-left py-2 px-3 font-semibold text-gray-600 text-xs">Tópico</th><th className="text-center py-2 px-3 font-semibold text-gray-600 text-xs">Gravidade</th><th className="text-center py-2 px-3 font-semibold text-gray-600 text-xs">Probabilidade</th><th className="text-center py-2 px-3 font-semibold text-gray-600 text-xs">Risco Final</th></tr></thead><tbody>{matrix.map((m) => { const finalCfg = riskConfig[m.riskFinal]; const gravCfg = riskConfig[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']; return <tr key={m.topicNum} className="border-b border-gray-50"><td className="py-2 px-3 text-gray-800 font-medium text-xs">{m.topicNum}. {m.topic}</td><td className="py-2 px-3 text-center"><span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${gravCfg.bg} ${gravCfg.text}`}>{m.gravidade} ({m.gravScore.toFixed(1)})</span></td><td className="py-2 px-3 text-center"><span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700">{m.probabilidade === 'nao_aplicavel' ? 'Não aplicável' : probConfig[m.probabilidade].label}</span></td><td className="py-2 px-3 text-center"><span className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${finalCfg.bg} ${finalCfg.text} ${finalCfg.border}`}>{m.notApplicable ? 'Não aplicável' : finalCfg.label}</span></td></tr> })}</tbody></table></div></div>
           )}
         </div>
       )}

@@ -2,59 +2,42 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { calculateManagerResults, managerIsComplete } from '@/lib/manager-assessment'
 
-const itemSchema = z.object({
-  topicNum: z.number().int().min(1).max(13),
-  topic: z.string(),
-  probability: z.enum(['baixa', 'media', 'alta']),
-})
-
+const answerSchema = z.object({ code: z.string().regex(/^G(1[0-3]|[1-9])\.[1-3]$/), value: z.number().int().min(0).max(3) })
 const schema = z.object({
-  items: z.array(itemSchema).length(13, 'Todos os 13 tópicos devem ser avaliados'),
+  answers: z.array(answerSchema),
+  openingAccepted: z.literal(true),
+  confirmation: z.literal(true),
 })
 
-// GET — busca avaliação atual da empresa
 export async function GET(req: NextRequest) {
   try {
     const { companyId } = requireAuth(req)
-
-    const assessment = await prisma.companyAssessment.findUnique({
-      where: { companyId },
-    })
-
+    const assessment = await prisma.companyAssessment.findUnique({ where: { companyId } })
     return NextResponse.json({ assessment })
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 }
 
-// POST — salva ou atualiza avaliação do gestor
 export async function POST(req: NextRequest) {
   try {
-    const { companyId } = requireAuth(req)
+    const { companyId, userId, email } = requireAuth(req)
+    const parsed = schema.safeParse(await req.json())
+    if (!parsed.success) return NextResponse.json({ error: 'Aceite a declaração inicial, responda todas as perguntas e confirme o envio.' }, { status: 400 })
+    if (!managerIsComplete(parsed.data.answers)) return NextResponse.json({ error: 'Todas as perguntas obrigatórias devem ser respondidas.' }, { status: 400 })
 
-    const body = await req.json()
-    const parsed = schema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message ?? 'Dados inválidos.' },
-        { status: 400 }
-      )
-    }
-
+    const now = new Date()
+    const items = calculateManagerResults(parsed.data.answers)
     const assessment = await prisma.companyAssessment.upsert({
       where: { companyId },
-      create: {
-        companyId,
-        items: parsed.data.items,
-      },
-      update: {
-        items: parsed.data.items,
-      },
+      create: { companyId, items, openingAcceptedAt: now, openingAcceptedBy: `${userId}:${email}`, confirmationAt: now, confirmationBy: `${userId}:${email}`, completedAt: now },
+      update: { items, openingAcceptedAt: now, openingAcceptedBy: `${userId}:${email}`, confirmationAt: now, confirmationBy: `${userId}:${email}`, completedAt: now },
     })
-
     return NextResponse.json({ assessment })
-  } catch {
+  } catch (err) {
+    console.error(err)
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }
 }

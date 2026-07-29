@@ -32,10 +32,13 @@ export type Severity = 'baixa' | 'media' | 'alta'
 export type MatrixResult = {
   topicNum: number
   topic: string
-  gravidade: Severity        // calculada do questionário
-  gravScore: number          // score numérico 0–4
-  probabilidade: Probability // informada pelo avaliador
-  riskFinal: RiskLevel       // cruzamento na matriz NR-1
+  gravidade: Severity
+  gravScore: number
+  probabilidade: Probability | 'nao_aplicavel'
+  riskFinal: RiskLevel
+  prudentialAdjustmentApplied?: boolean
+  formalFloorApplied?: boolean
+  notApplicable?: boolean
 }
 
 /** Converte score numérico (0–4) para nível de risco */
@@ -73,22 +76,24 @@ export function calcMatrix(severity: Severity, probability: Probability): RiskLe
 /** Gera a matriz completa para todos os tópicos de um setor */
 export function buildRiskMatrix(
   byTopic: TopicScore[],
-  assessments: { topicNum: number; probability: Probability }[]
+  assessments: { topicNum: number; probability: Probability | 'nao_aplicavel'; formalFloorApplied?: boolean; notApplicable?: boolean }[]
 ): MatrixResult[] {
-  const probMap = new Map(assessments.map((a) => [a.topicNum, a.probability]))
+  const probMap = new Map(assessments.map((a) => [a.topicNum, a]))
 
-  return byTopic.map((t) => {
-    const probability = probMap.get(t.topicNum) ?? 'media'
+  const results: MatrixResult[] = []
+  for (const t of byTopic) {
+    const assessment = probMap.get(t.topicNum)
+    const calculated = assessment?.probability ?? 'media'
     const gravidade = getSeverity(t.score)
-    return {
-      topicNum: t.topicNum,
-      topic: t.topic,
-      gravidade,
-      gravScore: t.score,
-      probabilidade: probability,
-      riskFinal: calcMatrix(gravidade, probability),
+    if (calculated === 'nao_aplicavel' || assessment?.notApplicable) {
+      results.push({ topicNum: t.topicNum, topic: t.topic, gravidade, gravScore: t.score, probabilidade: 'nao_aplicavel', riskFinal: 'baixo', notApplicable: true })
+      continue
     }
-  })
+    const prudentialAdjustmentApplied = gravidade === 'alta' && calculated === 'baixa'
+    const probability = prudentialAdjustmentApplied ? 'media' : calculated as Probability
+    results.push({ topicNum: t.topicNum, topic: t.topic, gravidade, gravScore: t.score, probabilidade: probability, riskFinal: calcMatrix(gravidade, probability), prudentialAdjustmentApplied, formalFloorApplied: assessment?.formalFloorApplied })
+  }
+  return results
 }
 
 /** Cor CSS correspondente ao nível de risco */

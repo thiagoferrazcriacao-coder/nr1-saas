@@ -72,7 +72,7 @@ function narrative(sd: SectorData): string {
   if (media.length) {
     parts.push(`Os fatores relacionados a <strong>${fmtList(media.map(low))}</strong> apresentaram classificação intermediária, sugerindo a necessidade de monitoramento sistemático e de ajustes organizacionais preventivos, a fim de evitar a evolução para níveis mais elevados.`)
   }
-  parts.push('No que se refere à probabilidade de ocorrência, a análise técnica considerou a frequência percebida dos relatos, a recorrência histórica de situações semelhantes e a existência (ou ausência) de medidas formais de controle. O resultado do cruzamento entre gravidade e probabilidade, conforme a Matriz de Risco NR-1, é apresentado na tabela e nos gráficos a seguir.')
+  parts.push('A probabilidade de ocorrência foi calculada automaticamente a partir das respostas objetivas do gestor sobre ocorrências, registros formais e medidas de prevenção e controle. A regra documentada atribui pontuação de 0 a 9 por fator e converte o resultado em Baixa, Média ou Alta.')
   if (protet.length) {
     parts.push(`Observou-se, ainda, a presença de fatores protetivos relacionados a <strong>${fmtList(protet.map(low))}</strong>, que atuam como elementos moderadores do risco e devem ser mantidos e fortalecidos nas estratégias de intervenção deste setor.`)
   }
@@ -83,13 +83,14 @@ function narrative(sd: SectorData): string {
 function sectorBlock(sd: SectorData, label: string): string {
   const rows = sd.matrix.map((m) => {
     const gC = gravColor[m.gravidade]
-    const pC = m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
+    const pC = m.probabilidade === 'nao_aplicavel' ? '#64748b' : m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
+    const pLabel = m.probabilidade === 'nao_aplicavel' ? 'Não aplicável' : probLabel[m.probabilidade]
     const fC = riskColors[m.riskFinal], fBg = riskBg[m.riskFinal]
     return `<tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:6px 8px;font-size:10.5px;color:#94a3b8;text-align:center;">${String(m.topicNum).padStart(2, '0')}</td>
       <td style="padding:6px 8px;font-size:10.5px;color:#374151;">${m.topic}</td>
       <td style="padding:6px 8px;text-align:center;font-size:10.5px;color:${gC};font-weight:600;">${gravLabel[m.gravidade]}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:10.5px;color:${pC};font-weight:600;">${probLabel[m.probabilidade]}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:10.5px;color:${pC};font-weight:600;">${pLabel}</td>
       <td style="padding:6px 8px;text-align:center;">
         <span style="background:${fBg};color:${fC};border:1px solid ${fC}40;padding:2px 8px;border-radius:20px;font-size:9.5px;font-weight:bold;">${riskLabel[m.riskFinal]}</span>
       </td></tr>`
@@ -194,7 +195,7 @@ function buildHtml(opts: {
   const fluxograma = `<div class="avoid-break" style="display:flex;align-items:stretch;justify-content:space-between;gap:4px;background:#F6F9FC;border:1px solid #e2e8f0;border-radius:12px;padding:16px 12px;margin:10px 0 4px;">
     ${flowStep('1', 'Alinhamento inicial', 'Reunião e definição dos setores')}${arrow}
     ${flowStep('2', 'Coleta de dados', 'Questionário confidencial (digital)')}${arrow}
-    ${flowStep('3', 'Análise integrada', 'Dados + análise técnica')}${arrow}
+    ${flowStep('3', 'Cálculo automático', 'Respostas estruturadas do gestor')}${arrow}
     ${flowStep('4', 'Classificação', 'Matriz de Risco NR-1')}${arrow}
     ${flowStep('5', 'Relatório técnico', 'Síntese e recomendações')}
   </div>`
@@ -284,9 +285,10 @@ function buildHtml(opts: {
   ${H3('Média por eixo temático')}
   ${P('Cada um dos treze fatores (como assédio, sobrecarga de trabalho, autonomia, reconhecimento, entre outros) recebe uma média de gravidade calculada a partir das respostas de todas as questões daquele eixo. Essas médias são então consolidadas e classificadas em Baixa, Média ou Alta.')}
   ${H3('Probabilidade de ocorrência')}
-  ${P('A probabilidade é definida a partir de avaliação qualitativa conduzida pelo profissional responsável, que correlaciona os achados com o inventário de riscos psicossociais. São considerados três critérios: a <strong>frequência</strong> percebida do risco no setor (baixa, média ou alta); o <strong>histórico</strong> de ocorrências semelhantes (sim, não ou frequente); e os <strong>recursos disponíveis</strong> para mitigação (adequados, insuficientes ou inexistentes).')}
+  ${P('A probabilidade é determinada por instrumento estruturado respondido pelo responsável da organização. Para cada fator são avaliados três critérios: ocorrência nos últimos 12 meses, registros e consequências formais e medidas de prevenção e controle existentes. Cada alternativa recebe de 0 a 3 pontos; a soma por fator varia de 0 a 9 e resulta em Baixa (0–3), Média (4–6) ou Alta (7–9).')}
+  ${P('Mais de um registro formal impede classificação Baixa. Se a gravidade dos trabalhadores for Alta e a probabilidade calculada for Baixa, aplica-se ajuste prudencial para Média. O fator trabalho remoto e isolado é Não aplicável quando não houver exposição declarada.')}
   ${H3('Matriz de Risco NR-1')}
-  ${P('A classificação final resulta do cruzamento entre a gravidade (obtida do questionário) e a probabilidade (obtida da análise técnica), utilizando a matriz compatível com os parâmetros da NR-1, que resulta nas categorias Baixo, Médio, Alto ou Crítico:')}
+  ${P('A classificação final resulta do cruzamento entre a gravidade obtida do questionário dos trabalhadores e a probabilidade calculada pelo instrumento estruturado do gestor, utilizando a matriz compatível com os parâmetros da NR-1:')}
   <table style="margin:10px 0 4px;max-width:520px;">
     <thead><tr>
       <th style="padding:7px 10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:10.5px;text-align:left;color:#475569;">Probabilidade \\ Gravidade</th>
@@ -308,11 +310,11 @@ function buildHtml(opts: {
   ${P('A aplicação do DRPS seguiu fluxo técnico estruturado, garantindo consistência metodológica, confidencialidade das informações e adequação às diretrizes do Gerenciamento de Riscos Ocupacionais.')}
   ${fluxograma}
   ${P('Inicialmente, realizou-se o <strong>alinhamento</strong> com a organização para compreender sua estrutura, número de colaboradores, setores existentes e contexto produtivo, definindo-se os setores a avaliar e o período de aplicação. Em seguida, procedeu-se à <strong>coleta</strong> por questionário digital, com anonimato e comunicação prévia aos colaboradores quanto ao objetivo e ao uso agregado dos dados.')}
-  ${P('Após a coleta, os dados quantitativos foram <strong>consolidados</strong> (médias por item e por eixo, correção da lógica invertida e classificação preliminar da gravidade). Paralelamente, a <strong>análise qualitativa</strong> — observações contextuais e informações organizacionais — qualificou a probabilidade de ocorrência. Procedeu-se, então, ao <strong>cruzamento</strong> na Matriz de Risco NR-1 e à organização dos achados neste <strong>relatório técnico</strong>, com recomendações proporcionais e orientações para integração ao PGR.')}
+  ${P('Após a coleta, os dados quantitativos foram <strong>consolidados</strong> (médias por item e por eixo, correção da lógica invertida e classificação preliminar da gravidade). Paralelamente, as respostas organizacionais do gestor foram pontuadas automaticamente por fator. Procedeu-se, então, ao <strong>cruzamento</strong> na Matriz de Risco NR-1 e à organização dos achados neste <strong>relatório técnico</strong>, com recomendações proporcionais e orientações para integração ao PGR.')}
   <div class="page-break"></div>
 
   ${H('5', 'Análises e Resultados')}
-  ${P('A seguir, apresentam-se os resultados obtidos, com descrição integrada dos dados quantitativos e da análise qualitativa realizada.' + (single ? ' Considerando a estrutura avaliada, os resultados representam a organização como um todo.' : ' Os resultados são apresentados por setor avaliado.'))}
+  ${P('A seguir, apresentam-se os resultados obtidos, com descrição integrada dos dados quantitativos dos trabalhadores e do cálculo estruturado das respostas organizacionais do gestor.' + (single ? ' Considerando a estrutura avaliada, os resultados representam a organização como um todo.' : ' Os resultados são apresentados por setor avaliado.'))}
   ${item5}
 
   <div class="page-break"></div>
@@ -332,7 +334,7 @@ function buildHtml(opts: {
 
   ${H('7', 'Conclusão')}
   ${P('A análise evidencia que os fatores de riscos psicossociais identificados demandam atenção técnica proporcional à sua classificação final. Os riscos classificados como Alto ou Crítico requerem priorização de medidas estruturadas, com responsáveis, prazos e indicadores, integrando-se formalmente ao Programa de Gerenciamento de Riscos. Os fatores em nível Médio indicam necessidade de monitoramento; os classificados como Baixo devem permanecer sob acompanhamento periódico.')}
-  ${P('Recomenda-se a adesão ao Plano de Ação estruturado, com registro eletrônico de presença dos colaboradores nos treinamentos, documentação das medidas adotadas e reaplicação do DRPS prevista para ' + proxima + '. A avaliação representa recorte temporal específico, baseado em autorrelato e análise técnica contextual, não substituindo avaliações clínicas individuais.')}
+  ${P('Recomenda-se a adesão ao Plano de Ação estruturado, com registro eletrônico de presença dos colaboradores nos treinamentos, documentação das medidas adotadas e reaplicação do DRPS prevista para ' + proxima + '. A avaliação representa recorte temporal específico, baseado em autorrelato coletivo e declaração organizacional estruturada, não substituindo avaliações clínicas individuais.')}
   ${drpsNotes ? `<div style="margin-top:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;"><p style="font-size:10.5px;font-weight:700;color:#475569;margin-bottom:4px;">Observações técnicas da responsável</p><p style="font-size:11px;color:#374151;line-height:1.6;">${drpsNotes}</p></div>` : ''}
 
   <div style="margin-top:40px;text-align:center;">
@@ -373,7 +375,7 @@ export async function GET(req: NextRequest) {
         name: true, fantasyName: true, cnpj: true, city: true, state: true, responsible: true, logoUrl: true,
         gestorName: true, gestorSignatureUrl: true,
         drpsValidatedAt: true, drpsValidatedBy: true, drpsNotes: true,
-      },
+        assessment: true,      },
     })
     if (!company) return NextResponse.json({ error: 'Empresa não encontrada.' }, { status: 404 })
 
@@ -382,10 +384,8 @@ export async function GET(req: NextRequest) {
 
     const sectorData: SectorData[] = []
     for (const s of sectors) {
-      const [responses, assessments] = await Promise.all([
-        prisma.response.findMany({ where: { sectorId: s.id } }),
-        prisma.topicAssessment.findMany({ where: { sectorId: s.id } }),
-      ])
+      const responses = await prisma.response.findMany({ where: { sectorId: s.id } })
+      const assessments = Array.isArray(company.assessment?.items) ? company.assessment.items as { topicNum: number; probability: Probability | 'nao_aplicavel'; formalFloorApplied?: boolean; notApplicable?: boolean }[] : []
       if (responses.length === 0) continue
 
       const byCode = new Map<string, number[]>()
@@ -397,7 +397,7 @@ export async function GET(req: NextRequest) {
       const { byTopic } = calcScore(avg, questions)
       const full = byTopic.map((t) => {
         const found = assessments.find((a) => a.topicNum === t.topicNum)
-        return { topicNum: t.topicNum, probability: (found?.probability as Probability) ?? 'media' }
+        return { topicNum: t.topicNum, probability: found?.probability ?? 'media', formalFloorApplied: found?.formalFloorApplied, notApplicable: found?.notApplicable }
       })
       const matrix = buildRiskMatrix(byTopic, full)
       sectorData.push({ name: s.name, totalResponses: responses.length, matrix })

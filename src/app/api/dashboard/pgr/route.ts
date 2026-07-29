@@ -79,14 +79,15 @@ function buildPgrHtml(opts: {
 
   const inventarioRows = matrix.map((m) => {
     const gravC = riskColors[m.gravidade === 'baixa' ? 'baixo' : m.gravidade === 'media' ? 'moderado' : 'alto']
-    const probC = m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
+    const probC = m.probabilidade === 'nao_aplicavel' ? '#64748b' : m.probabilidade === 'alta' ? '#dc2626' : m.probabilidade === 'media' ? '#ca8a04' : '#16a34a'
+    const probText = m.probabilidade === 'nao_aplicavel' ? 'Não aplicável' : probLabel[m.probabilidade]
     const finC  = riskColors[m.riskFinal]
     const finBg = riskBg[m.riskFinal]
     return `
       <tr style="border-bottom:1px solid #f1f5f9;">
         <td style="padding:7px 10px;font-size:11px;color:#374151;">${m.topicNum}. ${m.topic}</td>
         <td style="padding:7px 10px;text-align:center;font-size:11px;color:${gravC};font-weight:600;">${gravLabel[m.gravidade]} (${m.gravScore.toFixed(1)})</td>
-        <td style="padding:7px 10px;text-align:center;font-size:11px;color:${probC};font-weight:600;">${probLabel[m.probabilidade]}</td>
+        <td style="padding:7px 10px;text-align:center;font-size:11px;color:${probC};font-weight:600;">${probText}</td>
         <td style="padding:7px 10px;text-align:center;">
           <span style="background:${finBg};color:${finC};border:1px solid ${finC}40;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:bold;">${riskLabel[m.riskFinal]}</span>
         </td>
@@ -166,7 +167,7 @@ function buildPgrHtml(opts: {
     da organização <strong>${companyName}</strong>, em atendimento à Norma Regulamentadora nº 1 (NR-1) e à Portaria MTE nº 1.419/2024.
     Foram avaliados <strong>${sectorCount} setor${sectorCount !== 1 ? 'es' : ''}</strong>, com base em
     <strong>${totalResponses} resposta${totalResponses !== 1 ? 's' : ''} anônima${totalResponses !== 1 ? 's' : ''}</strong> de colaboradores
-    e na avaliação de probabilidade conduzida pela gestão.
+    e no cálculo automático da probabilidade a partir da declaração estruturada da gestão.
   </p>
   <p class="txt">
     O objetivo é identificar, avaliar e controlar os fatores de risco psicossocial que possam afetar a saúde mental
@@ -186,7 +187,7 @@ function buildPgrHtml(opts: {
   <ul class="txt">
     <li><strong>Gravidade</strong> — apurada de forma objetiva a partir do questionário anônimo respondido pelos colaboradores
       (50 itens, 13 fatores, método fundamentado em modelos validados internacionalmente);</li>
-    <li><strong>Probabilidade</strong> — informada pela gestão para cada fator, considerando o contexto e os controles existentes.</li>
+    <li><strong>Probabilidade</strong> — calculada automaticamente pelas respostas objetivas da gestão sobre ocorrências, registros formais e medidas existentes.</li>
   </ul>
   <p class="txt">O cruzamento <strong>Gravidade × Probabilidade</strong> gera a classificação final de cada risco na Matriz NR-1.</p>
 
@@ -332,10 +333,10 @@ export async function GET(req: NextRequest) {
     const { byTopic } = calcScore(avgAnswers, questions)
 
     // Probabilidade vem da Avaliação do Gestor (CompanyAssessment)
-    const assessmentItems = (company.assessment?.items as { topicNum: number; probability: Probability }[] | undefined) ?? []
+    const assessmentItems = (company.assessment?.items as { topicNum: number; probability: Probability | 'nao_aplicavel'; formalFloorApplied?: boolean; notApplicable?: boolean }[] | undefined) ?? []
     const fullAssessments = byTopic.map((t) => {
       const found = assessmentItems.find((a) => a.topicNum === t.topicNum)
-      return { topicNum: t.topicNum, probability: found?.probability ?? ('media' as Probability) }
+      return { topicNum: t.topicNum, probability: found?.probability ?? ('media' as Probability), formalFloorApplied: found?.formalFloorApplied, notApplicable: found?.notApplicable }
     })
 
     const matrix = buildRiskMatrix(byTopic, fullAssessments)

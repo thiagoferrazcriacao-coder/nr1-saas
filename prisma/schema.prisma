@@ -45,7 +45,7 @@ model Company {
   employees        Employee[]
   lessons          Lesson[]
   materials        Material[]
-
+  technicalReviews TechnicalReviewAta[]
   @@index([slug])
 }
 
@@ -147,11 +147,28 @@ model Question {
 model CompanyAssessment {
   id          String   @id @default(uuid())
   companyId   String   @unique
-  // JSON: { topicNum: int, topic: string, probability: "baixa"|"media"|"alta" }[]
+  // JSON: { topicNum, topic, answers, score, probability, formalFloorApplied, notApplicable }[]
   items       Json
+  openingAcceptedAt DateTime?
+  openingAcceptedBy String?
+  confirmationAt DateTime?
+  confirmationBy String?
   completedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model TechnicalReviewAta {
+  id          String   @id @default(uuid())
+  companyId   String
+  reviewedAt  DateTime @default(now())
+  reviewer    String
+  sampleSize  Int
+  findings    String
+  actions     String?
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, reviewedAt])
 }
 
 // ─── Material Didático (escola de vídeos) ───────────────────────────────────

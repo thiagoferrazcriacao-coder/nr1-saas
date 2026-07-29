@@ -18,14 +18,12 @@ export async function GET(
 
     const sector = await prisma.sector.findFirst({
       where: { id: params.sectorId, companyId },
-      include: { company: { select: { slug: true } } },
+      include: { company: { select: { slug: true, assessment: true } } },
     })
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
-    const [responses, assessments] = await Promise.all([
-      prisma.response.findMany({ where: { sectorId: params.sectorId }, select: { answers: true } }),
-      prisma.topicAssessment.findMany({ where: { sectorId: params.sectorId } }),
-    ])
+    const responses = await prisma.response.findMany({ where: { sectorId: params.sectorId }, select: { answers: true } })
+    const assessments = Array.isArray(sector.company.assessment?.items) ? sector.company.assessment.items as { topicNum: number; probability: Probability | 'nao_aplicavel'; formalFloorApplied?: boolean; notApplicable?: boolean }[] : []
 
     if (responses.length === 0) {
       return NextResponse.json({ slug: sector.company.slug, recommended: [] })
@@ -52,7 +50,7 @@ export async function GET(
 
     const fullAssessments = byTopic.map((t) => {
       const found = assessments.find((a) => a.topicNum === t.topicNum)
-      return { topicNum: t.topicNum, probability: (found?.probability as Probability) ?? 'media' }
+      return { topicNum: t.topicNum, probability: found?.probability ?? 'media', formalFloorApplied: found?.formalFloorApplied, notApplicable: found?.notApplicable }
     })
 
     const matrix = buildRiskMatrix(byTopic, fullAssessments)

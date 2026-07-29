@@ -230,7 +230,7 @@ function buildHtml(opts: {
     tratamento agregado dos dados (LGPD). As respostas foram registradas em escala Likert de 0 a 4, representando a frequência
     percebida; itens de natureza protetiva foram tratados por lógica invertida.
     <strong>Gravidade:</strong> determinada pela conversão das respostas em valores numéricos e cálculo das médias por item e por fator.
-    <strong>Probabilidade:</strong> definida por análise técnica especializada, considerando histórico, contexto e a efetividade dos controles.
+    <strong>Probabilidade:</strong> calculada automaticamente pelas respostas estruturadas do gestor sobre ocorrências, registros formais e medidas de prevenção e controle.
     <strong>Classificação final:</strong> cruzamento entre gravidade e probabilidade na Matriz de Risco NR-1 (Baixo, Moderado, Alto ou Crítico).
   </p>
 
@@ -351,16 +351,14 @@ export async function GET(
             name: true, fantasyName: true, cnpj: true, city: true, state: true, address: true,
             responsible: true, gestorName: true, gestorSignatureUrl: true, employeeCount: true, workModality: true,
             drpsStatus: true, drpsValidatedAt: true, drpsValidatedBy: true, drpsNotes: true,
-          },
+            assessment: true,          },
         },
       },
     })
     if (!sector) return NextResponse.json({ error: 'Setor não encontrado.' }, { status: 404 })
 
-    const [responses, assessments] = await Promise.all([
-      prisma.response.findMany({ where: { sectorId: params.sectorId }, orderBy: { createdAt: 'desc' } }),
-      prisma.topicAssessment.findMany({ where: { sectorId: params.sectorId }, orderBy: { topicNum: 'asc' } }),
-    ])
+    const responses = await prisma.response.findMany({ where: { sectorId: params.sectorId }, orderBy: { createdAt: 'desc' } })
+    const assessments = Array.isArray(sector.company.assessment?.items) ? sector.company.assessment.items as { topicNum: number; probability: Probability | 'nao_aplicavel'; formalFloorApplied?: boolean; notApplicable?: boolean }[] : []
     if (responses.length === 0) return NextResponse.json({ error: 'Sem respostas.' }, { status: 404 })
 
     const questions = await prisma.question.findMany({
@@ -384,11 +382,11 @@ export async function GET(
 
     const fullAssessments = byTopic.map((t) => {
       const found = assessments.find((a) => a.topicNum === t.topicNum)
-      return { topicNum: t.topicNum, probability: (found?.probability as Probability) ?? 'media' }
+      return { topicNum: t.topicNum, probability: found?.probability ?? 'media', formalFloorApplied: found?.formalFloorApplied, notApplicable: found?.notApplicable }
     })
 
     const matrix = buildRiskMatrix(byTopic, fullAssessments)
-    const assessedBy = assessments[0]?.assessedBy ?? null
+    const assessedBy = sector.company.responsible ?? null
 
     const date     = new Date().toISOString().split('T')[0]
     const filename = `DRPS-${sector.name.replace(/\s+/g, '-')}-${date}.html`
