@@ -8,6 +8,11 @@ const createSchema = z.object({
   name: z.string().min(1).max(100),
 })
 
+const GENERAL_SECTOR_NAMES = new Set(['geral', 'empresa inteira', 'empresa toda'])
+function isGeneralSector(name: string): boolean {
+  return GENERAL_SECTOR_NAMES.has(name.trim().toLocaleLowerCase('pt-BR'))
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { companyId } = requireAuth(req)
@@ -66,8 +71,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nome inválido.' }, { status: 400 })
     }
 
+    const existing = await prisma.sector.findMany({
+      where: { companyId },
+      select: { name: true },
+    })
+    const requestedGeneral = isGeneralSector(parsed.data.name)
+    const alreadyGeneral = existing.some((sector) => isGeneralSector(sector.name))
+
+    if (requestedGeneral && existing.length > 0) {
+      return NextResponse.json({ error: 'O setor Empresa inteira deve ser o único setor da empresa.' }, { status: 409 })
+    }
+    if (!requestedGeneral && alreadyGeneral) {
+      return NextResponse.json({ error: 'A empresa já usa o link geral. Remova-o antes de criar setores separados.' }, { status: 409 })
+    }
+
     const sector = await prisma.sector.create({
-      data: { companyId, name: parsed.data.name },
+      data: { companyId, name: requestedGeneral ? 'Empresa inteira' : parsed.data.name.trim() },
     })
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''

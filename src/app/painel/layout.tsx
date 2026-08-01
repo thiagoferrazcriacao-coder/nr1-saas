@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -25,29 +25,33 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   const [sectors, setSectors] = useState<SectorGate[]>([])
   const [assessmentDone, setAssessmentDone] = useState(false)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const auth = await fetch('/api/auth/refresh', { method: 'POST' })
-        if (!auth.ok) { router.replace('/login'); return }
-        const terms = await fetch('/api/dashboard/accept-terms').then((r) => r.json())
-        if (!terms.accepted) { router.replace('/termos'); return }
-        const [settingsRes, sectorsRes, assessmentRes] = await Promise.all([
-          fetch('/api/dashboard/company-settings'),
-          fetch('/api/dashboard/sectors'),
-          fetch('/api/dashboard/company-assessment'),
-        ])
-        if (settingsRes.ok) setCompany((await settingsRes.json()).company ?? null)
-        if (sectorsRes.ok) setSectors(await sectorsRes.json())
-        if (assessmentRes.ok) setAssessmentDone(!!(await assessmentRes.json()).assessment)
-      } catch {
-        router.replace('/login')
-      } finally {
-        setChecking(false)
-      }
+  const loadGate = useCallback(async () => {
+    try {
+      const auth = await fetch('/api/auth/refresh', { method: 'POST' })
+      if (!auth.ok) { router.replace('/login'); return }
+      const terms = await fetch('/api/dashboard/accept-terms').then((r) => r.json())
+      if (!terms.accepted) { router.replace('/termos'); return }
+      const [settingsRes, sectorsRes, assessmentRes] = await Promise.all([
+        fetch('/api/dashboard/company-settings'),
+        fetch('/api/dashboard/sectors'),
+        fetch('/api/dashboard/company-assessment'),
+      ])
+      if (settingsRes.ok) setCompany((await settingsRes.json()).company ?? null)
+      if (sectorsRes.ok) setSectors(await sectorsRes.json())
+      if (assessmentRes.ok) setAssessmentDone(!!(await assessmentRes.json()).assessment)
+    } catch {
+      router.replace('/login')
+    } finally {
+      setChecking(false)
     }
-    load()
   }, [router])
+
+  useEffect(() => {
+    loadGate()
+    const handleGateUpdate = () => { loadGate() }
+    window.addEventListener('zelo:gate-updated', handleGateUpdate)
+    return () => window.removeEventListener('zelo:gate-updated', handleGateUpdate)
+  }, [loadGate])
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
