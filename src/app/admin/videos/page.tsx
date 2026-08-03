@@ -48,9 +48,9 @@ export default function AdminVideosPage() {
   const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
-  // Upload imediato: a conversão será feita no servidor posteriormente,
-  // sem travar o computador durante o envio.
-  const needsNormalization = (_source: File) => false
+  // O navegador não informa de forma confiável se um MP4 usa H.264 ou HEVC.
+  // Normalizamos todos os novos arquivos para impedir vídeo sem imagem em iPhone/Safari.
+  const needsNormalization = (_source: File) => true
 
   // Normaliza formatos incompatíveis para MP4/H.264/AAC antes de ir para o R2.
   const convertToBrowserMp4 = async (source: File): Promise<File> => {

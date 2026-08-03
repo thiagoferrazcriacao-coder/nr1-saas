@@ -30,6 +30,7 @@ type FactorCmp = { topicNum: number; factor: string; baseline: RiskLevel; baseli
 type SectorEvolution = { sectorId: string; name: string; reavaliada: boolean; improved: number; worsened: number; stable: number; comparison: FactorCmp[] }
 type FactorAvg = { topicNum: number; factor: string; score: number; riskLevel: RiskLevel; sectors: number; rank: number; interventionMonth: number | null; monthLabel: string }
 type Overview = { attention: AttentionItem[]; evolution: SectorEvolution[]; factors: FactorAvg[]; hasAnyPlan: boolean; hasAnyReaval: boolean }
+type TutorialLesson = { title: string; videoUrl: string; description: string | null }
 
 const riskBar: Record<RiskLevel, string> = { baixo: '#16a34a', moderado: '#ca8a04', alto: '#ea580c', critico: '#dc2626' }
 
@@ -117,14 +118,16 @@ export default function PainelPage() {
   const [tutorialOpen, setTutorialOpen] = useState(false)
   const [tutorialConfirming, setTutorialConfirming] = useState(false)
   const [overview, setOverview]     = useState<Overview | null>(null)
+  const [tutorialLesson, setTutorialLesson] = useState<TutorialLesson | null>(null)
 
   const fetchData = async () => {
     try {
-      const [sectorsRes, settingsRes, assessmentRes, overviewRes] = await Promise.all([
+      const [sectorsRes, settingsRes, assessmentRes, overviewRes, lessonsRes] = await Promise.all([
         fetch('/api/dashboard/sectors'),
         fetch('/api/dashboard/company-settings'),
         fetch('/api/dashboard/company-assessment'),
         fetch('/api/dashboard/overview'),
+        fetch('/api/dashboard/material/lessons'),
       ])
       if (sectorsRes.ok) setSectors(await sectorsRes.json())
       if (settingsRes.ok) {
@@ -139,6 +142,11 @@ export default function PainelPage() {
         setAssessmentDone(false)
       }
       if (overviewRes.ok) setOverview(await overviewRes.json())
+      if (lessonsRes.ok) {
+        const { lessons } = await lessonsRes.json()
+        const tutorial = (lessons ?? []).find((lesson: { programNum: number; trilha: string; active: boolean }) => lesson.programNum === 0 && lesson.trilha === 'gestor' && lesson.active)
+        setTutorialLesson(tutorial ? { title: tutorial.title, videoUrl: tutorial.videoUrl, description: tutorial.description } : null)
+      }
     } finally {
       setLoading(false)
     }
@@ -221,11 +229,18 @@ export default function PainelPage() {
               <p className="text-blue-100 text-sm mt-1">Assista ao tutorial antes de começar a configuração.</p>
             </div>
             <div className="p-6">
-              <div className="aspect-video rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-6">
-                <span className="text-5xl mb-3">🎬</span>
-                <p className="font-bold text-slate-700">Espaço reservado para o vídeo tutorial</p>
-                <p className="text-sm text-slate-500 mt-2 max-w-md">O vídeo mostrará como configurar a empresa, responder a Avaliação do Gestor, enviar o link aos funcionários e acompanhar o DRPS.</p>
-              </div>
+              {tutorialLesson ? (
+                <div className="aspect-video rounded-2xl overflow-hidden bg-black">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={tutorialLesson.videoUrl} controls playsInline className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="aspect-video rounded-2xl bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center p-6">
+                  <span className="text-5xl mb-3">🎬</span>
+                  <p className="font-bold text-slate-700">O tutorial ainda não foi publicado</p>
+                  <p className="text-sm text-slate-500 mt-2 max-w-md">O administrador deve publicar o vídeo em Admin → Gerenciar Vídeos → Comece por aqui.</p>
+                </div>
+              )}
               <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-900">
                 <strong>Depois do tutorial, você seguirá nesta ordem:</strong> configurar a empresa → responder a Avaliação do Gestor → enviar o link aos funcionários → alcançar 80% de respostas → revisar o DRPS e o Plano de Ação.
               </div>
