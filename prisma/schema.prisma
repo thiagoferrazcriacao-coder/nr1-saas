@@ -188,6 +188,7 @@ model Lesson {
   durationSec Int              @default(0)
   order       Int              @default(0)
   active      Boolean          @default(true)
+  isOnboardingTutorial Boolean  @default(false) // tutorial exibido no primeiro acesso do gestor
   createdAt   DateTime         @default(now())
   company     Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   progresses  LessonProgress[]

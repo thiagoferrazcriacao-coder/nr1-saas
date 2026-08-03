@@ -144,7 +144,7 @@ export default function PainelPage() {
       if (overviewRes.ok) setOverview(await overviewRes.json())
       if (lessonsRes.ok) {
         const { lessons } = await lessonsRes.json()
-        const tutorial = (lessons ?? []).find((lesson: { programNum: number; trilha: string; active: boolean }) => lesson.programNum === 0 && lesson.trilha === 'gestor' && lesson.active)
+        const tutorial = (lessons ?? []).find((lesson: { isOnboardingTutorial?: boolean; active: boolean }) => lesson.isOnboardingTutorial && lesson.active)
         setTutorialLesson(tutorial ? { title: tutorial.title, videoUrl: tutorial.videoUrl, description: tutorial.description } : null)
       }
     } finally {

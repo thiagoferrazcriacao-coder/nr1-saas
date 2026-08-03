@@ -7,7 +7,7 @@ import { slotsFor } from '@/lib/video-index'
 
 type Trilha = 'gestor' | 'colaborador'
 const ADMIN_PROGRAMS = [START_HERE_PROGRAM, ...PROGRAMS]
-type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; videoRef: string | null; title: string; description: string | null; videoUrl: string; active: boolean }
+type Lesson = { id: string; programNum: number; program: string; trilha: Trilha; videoRef: string | null; title: string; description: string | null; videoUrl: string; active: boolean; isOnboardingTutorial: boolean }
 
 export default function AdminVideosPage() {
   const router = useRouter()
@@ -29,6 +29,7 @@ export default function AdminVideosPage() {
   const [preview, setPreview] = useState<Lesson | null>(null) // vídeo aberto pra conferir
   const [editId, setEditId] = useState<string | null>(null)   // null = adicionar; id = substituir o vídeo dessa aula
   const [editTitle, setEditTitle] = useState('')              // título da aula que está sendo substituída (referência)
+  const [uploadTutorial, setUploadTutorial] = useState(false)
 
   const ffmpegRef = useRef<any>(null)
 
@@ -43,9 +44,10 @@ export default function AdminVideosPage() {
 
   const openUpload = (p: number, videoRef = '') => {
     const slot = videoRef ? slotsFor(p, 'gestor').concat(slotsFor(p, 'colaborador')).find((s) => s.key === videoRef) : null
-    setEditId(null); setUploadProgram(p); setUploadTrilha(slot?.trilha ?? (p === START_HERE_PROGRAM.num ? 'gestor' : 'colaborador')); setUploadVideoRef(videoRef); setTitle(slot?.title ?? ''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('')
+    setEditId(null); setUploadTutorial(false); setUploadProgram(p); setUploadTrilha(slot?.trilha ?? (p === START_HERE_PROGRAM.num ? 'gestor' : 'colaborador')); setUploadVideoRef(videoRef); setTitle(slot?.title ?? ''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('')
   }
-  const openReplace = (l: Lesson) => { setEditId(l.id); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openTutorialUpload = () => { setEditId(null); setUploadTutorial(true); setUploadProgram(START_HERE_PROGRAM.num); setUploadTrilha('gestor'); setUploadVideoRef(''); setTitle(''); setDescription(''); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
+  const openReplace = (l: Lesson) => { setEditId(l.id); setUploadTutorial(l.isOnboardingTutorial); setEditTitle(l.title); setUploadProgram(l.programNum); setUploadTrilha(l.trilha); setFile(null); setFileWarning(''); setChecking(false); setProgress(0); setError('') }
   const closeUpload = () => { if (!uploading) { setUploadProgram(null); setEditId(null) } }
 
   // O navegador não informa de forma confiável se um MP4 usa H.264 ou HEVC.
@@ -120,7 +122,7 @@ export default function AdminVideosPage() {
         if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Falha ao substituir.'); setUploading(false); return }
       } else {
         // Criar nova aula
-        const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, trilha: uploadTrilha, videoRef: uploadVideoRef || undefined, title: title.trim(), description: description.trim() || undefined, videoUrl: publicUrl, durationSec }) })
+        const res = await fetch('/api/admin/lessons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ programNum: uploadProgram, trilha: uploadTrilha, videoRef: uploadVideoRef || undefined, title: title.trim(), description: description.trim() || undefined, videoUrl: publicUrl, durationSec, isOnboardingTutorial: uploadTutorial }) })
         if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Falha ao salvar.'); setUploading(false); return }
       }
       setUploadProgram(null); setEditId(null); fetchLessons()
@@ -144,6 +146,7 @@ export default function AdminVideosPage() {
     const refB = b.videoRef ? Number(b.videoRef) : Number.POSITIVE_INFINITY
     return refA - refB
   })
+  const onboardingLessons = lessons.filter((l) => l.isOnboardingTutorial)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -159,11 +162,29 @@ export default function AdminVideosPage() {
         </div>
       )}
 
+      <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 border-2 border-indigo-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-indigo-100">
+          <div className="min-w-0">
+            <p className="font-bold text-indigo-950">🎬 Tutorial inicial — primeiro acesso</p>
+            <p className="text-xs text-indigo-700 mt-0.5">Vídeo que abre antes do “Comece por aqui”, para explicar a plataforma ao gestor.</p>
+          </div>
+          <button onClick={openTutorialUpload} disabled={!r2ok} className="flex-shrink-0 text-sm font-semibold text-white bg-indigo-600 px-3 py-2 rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-40">➕ Subir tutorial</button>
+        </div>
+        <div className="px-5 py-3">
+          {onboardingLessons.length === 0 ? <p className="text-sm text-indigo-700/70">Nenhum tutorial inicial publicado.</p> : onboardingLessons.map((l) => (
+            <div key={l.id} className="flex items-center justify-between gap-3 py-2">
+              <p className="text-sm font-medium text-gray-800 truncate">{l.title}</p>
+              <div className="flex gap-1 flex-shrink-0"><button onClick={() => setPreview(l)} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-white text-indigo-700">▶ Ver</button><button onClick={() => openReplace(l)} disabled={!r2ok} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 disabled:opacity-40">🔄 Substituir</button></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div>
         <p className="text-gray-500 text-sm mb-3">{lessons.length} vídeo{lessons.length !== 1 ? 's' : ''} em {ADMIN_PROGRAMS.length} temas.</p>
         <div className="space-y-3">
           {ADMIN_PROGRAMS.map((p) => {
-            const ls = orderLessonsForDisplay(lessons.filter((l) => l.programNum === p.num))
+            const ls = orderLessonsForDisplay(lessons.filter((l) => l.programNum === p.num && !l.isOnboardingTutorial))
             const catalog = p.num === START_HERE_PROGRAM.num
               ? ls.map((lesson) => ({ slot: null, lesson }))
               : slotsFor(p.num, 'gestor').concat(slotsFor(p.num, 'colaborador')).sort((a, b) => a.videoNum - b.videoNum).map((slot) => ({
@@ -258,7 +279,11 @@ export default function AdminVideosPage() {
                 <p className="text-amber-800 text-xs leading-relaxed">Trocando o vídeo da aula <strong>&quot;{editTitle}&quot;</strong>. O título e a posição continuam os mesmos — só o arquivo do vídeo muda.</p>
               </div>
             ) : (<>
-              {uploadProgram === START_HERE_PROGRAM.num ? (
+              {uploadTutorial ? (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5 mb-4">
+                  <p className="text-indigo-800 text-xs leading-relaxed">🎬 Este é o <strong>Tutorial inicial do primeiro acesso</strong>. Ele será exibido ao gestor antes do “Comece por aqui”.</p>
+                </div>
+              ) : uploadProgram === START_HERE_PROGRAM.num ? (
                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5 mb-4">
                   <p className="text-indigo-800 text-xs leading-relaxed">👔 Estes vídeos ficam exclusivamente na <strong>Trilha do Gestor</strong> e entram na contabilização de treinamento da liderança.</p>
                 </div>

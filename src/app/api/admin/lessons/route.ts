@@ -34,6 +34,7 @@ const createSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   videoUrl:    z.string().url(),
   durationSec: z.number().int().min(0).optional(),
+  isOnboardingTutorial: z.boolean().optional(),
 })
 
 // POST — cria aula na biblioteca global
@@ -48,6 +49,9 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0]?.message ?? 'Dados inválidos.' }, { status: 400 })
     if (parsed.data.programNum === START_HERE_PROGRAM.num && parsed.data.trilha !== 'gestor') {
       return NextResponse.json({ error: 'Comece por aqui pertence somente à Trilha do Gestor.' }, { status: 400 })
+    }
+    if (parsed.data.isOnboardingTutorial && (parsed.data.programNum !== START_HERE_PROGRAM.num || parsed.data.trilha !== 'gestor')) {
+      return NextResponse.json({ error: 'O tutorial inicial pertence somente à Trilha do Gestor.' }, { status: 400 })
     }
     const program = parsed.data.programNum === START_HERE_PROGRAM.num
       ? START_HERE_PROGRAM
@@ -69,6 +73,7 @@ export async function POST(req: NextRequest) {
         trilha: parsed.data.trilha, videoRef: parsed.data.videoRef ?? null,
         title: parsed.data.title, description: parsed.data.description ?? null,
         videoUrl: parsed.data.videoUrl, durationSec: parsed.data.durationSec ?? 0,
+        isOnboardingTutorial: parsed.data.isOnboardingTutorial ?? false,
         order: (last?.order ?? -1) + 1,
       },
     })
