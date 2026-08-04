@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { calcScore } from '@/lib/scoring'
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -17,11 +18,12 @@ export async function GET(req: NextRequest) {
   try {
     const { companyId } = requireAuth(req)
 
+    const questions = await prisma.question.findMany({ select: { code: true, topic: true, topicNum: true, reverse: true } })
     const sectors = await prisma.sector.findMany({
       where: { companyId },
       include: {
         responses: {
-          select: { riskScore: true, riskLevel: true },
+          select: { riskScore: true, riskLevel: true, answers: true },
         },
       },
       orderBy: { createdAt: 'asc' },
@@ -31,7 +33,12 @@ export async function GET(req: NextRequest) {
 
     const result = sectors.map((sector) => {
       const responses = sector.responses
-      const withScore = responses.filter((r) => r.riskScore !== null)
+      const scored = responses.map((r) => {
+        if (r.riskScore !== null) return r
+        const calculated = calcScore(r.answers as { questionCode: string; value: number }[], questions)
+        return { ...r, riskScore: calculated.total, riskLevel: calculated.riskLevel }
+      })
+      const withScore = scored.filter((r) => r.riskScore !== null)
       const avg = withScore.length
         ? withScore.reduce((s, r) => s + (r.riskScore ?? 0), 0) / withScore.length
         : null

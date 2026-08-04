@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { FACTOR_NAMES, FACTOR_NUMS, slotsFor } from '@/lib/video-index'
 
 type Lesson = {
@@ -24,6 +24,8 @@ const materialIcon: Record<MaterialKind, string> = { video: '🎬', youtube: '�
 export default function AprenderPage() {
   const params = useParams()
   const slug = params.slug as string
+  const searchParams = useSearchParams()
+  const demoMode = searchParams.get('demo') === '1'
 
   // Material Didático liberado só a partir de 27/07/2026 (o usuário de teste vê antes)
   const [demoUnlocked, setDemoUnlocked] = useState(false)
@@ -68,16 +70,24 @@ export default function AprenderPage() {
 
   // Sessão já existente?
   useEffect(() => {
-    fetch(`/api/aprender/${slug}/me`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.role) setRole(d.role === 'gestor' ? 'gestor' : 'colaborador')
-        if (d.companyName) setCompanyName(d.companyName)
-        if (typeof d.demoUnlocked === 'boolean') setDemoUnlocked(d.demoUnlocked)
-        if (d.loggedIn) applyPayload(d); else setStep('auth')
-      })
-      .catch(() => setStep('auth'))
-  }, [slug])
+    const load = async () => {
+      try {
+        if (demoMode) {
+          const demo = await fetch(`/api/aprender/${slug}/demo-login`, { method: 'POST' }).then((r) => r.json())
+          if (!demo.lessons) throw new Error('Não foi possível abrir a demo.')
+          applyPayload(demo)
+          return
+        }
+        const me = await fetch(`/api/aprender/${slug}/me`).then((r) => r.json())
+        if (me.role) setRole(me.role === 'gestor' ? 'gestor' : 'colaborador')
+        if (me.companyName) setCompanyName(me.companyName)
+        if (typeof me.demoUnlocked === 'boolean') setDemoUnlocked(me.demoUnlocked)
+        if (me.loggedIn) { applyPayload(me); return }
+        setStep('auth')
+      } catch { setStep('auth') }
+    }
+    void load()
+  }, [slug, demoMode])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()

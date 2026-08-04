@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import DemoGuide from './demo-guide'
 
 type CompanyGate = {
   employeeCount: number | null
@@ -24,6 +25,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
   const [company, setCompany] = useState<CompanyGate | null>(null)
   const [sectors, setSectors] = useState<SectorGate[]>([])
   const [assessmentDone, setAssessmentDone] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
 
   const loadGate = useCallback(async () => {
     try {
@@ -36,7 +38,11 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         fetch('/api/dashboard/sectors'),
         fetch('/api/dashboard/company-assessment'),
       ])
-      if (settingsRes.ok) setCompany((await settingsRes.json()).company ?? null)
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json()
+        setCompany(settings.company ?? null)
+        setIsDemo(settings.email === 'demo@zelo.test')
+      }
       if (sectorsRes.ok) setSectors(await sectorsRes.json())
       if (assessmentRes.ok) setAssessmentDone(!!(await assessmentRes.json()).assessment)
     } catch {
@@ -114,6 +120,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
         <div className="p-4 border-t border-gray-100"><button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 w-full transition-colors"><span>🚪</span>Sair</button></div>
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
+        {isDemo && <DemoGuide companyConfigured={companyConfigured} assessmentDone={assessmentDone} teamLinkSent={teamLinkSent} />}
         <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3"><button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-700"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg></button><img src="/logo-zelo-3.png" alt="Zelo" className="h-12 w-auto" /></header>
         {nextStep && !isAssessmentPage && <div className="bg-orange-50 border-b border-orange-200 px-4 py-3 flex items-center justify-between gap-4 flex-wrap"><p className="text-sm text-orange-800 font-medium">⚠️ {nextStep.text}</p><Link href={nextStep.href} className="text-xs bg-orange-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-orange-700">{nextStep.label}</Link></div>}
         <main className="flex-1 p-4 lg:p-8 overflow-auto">

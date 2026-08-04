@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { calculateManagerResults, MANAGER_QUESTIONS } from '@/lib/manager-assessment'
 import { signToken, signRefreshToken } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -17,19 +15,20 @@ export async function POST() {
 
     const company = await prisma.company.create({
       data: {
-        name: 'Alvorada Serviços Industriais Ltda.',
-        fantasyName: 'Alvorada Serviços',
+        name: '',
+        fantasyName: '',
         slug: DEMO_SLUG,
-        cnpj: '12.345.678/0001-90',
-        responsible: 'Mariana Oliveira',
-        gestorName: 'Mariana Oliveira',
-        phone: '(24) 3333-2026',
-        address: 'Avenida das Indústrias, 100',
-        city: 'Volta Redonda',
-        state: 'RJ',
-        employeeCount: 32,
+        cnpj: '',
+        responsible: '',
+        gestorName: '',
+        phone: '',
+        address: '',
+        city: '',
+        state: '',
+        employeeCount: null,
         workModality: 'presencial',
         termsAcceptedAt: new Date(),
+        gestorTutorialCompletedAt: new Date(),
         plan: 'starter',
       },
     })
@@ -37,27 +36,7 @@ export async function POST() {
       data: { companyId: company.id, email: DEMO_EMAIL, passwordHash: await bcrypt.hash('demo-only', 10), role: 'ADMIN' },
     })
 
-    const answers = MANAGER_QUESTIONS.map((q) => ({ code: q.code, value: q.topicNum === 13 ? 1 : (q.topicNum % 4) }))
-    await prisma.companyAssessment.create({
-      data: {
-        companyId: company.id,
-        items: calculateManagerResults(answers) as unknown as Prisma.InputJsonValue,
-        openingAcceptedAt: new Date(),
-        openingAcceptedBy: `${user.id}:${DEMO_EMAIL}`,
-        confirmationAt: new Date(),
-        confirmationBy: `${user.id}:${DEMO_EMAIL}`,
-      },
-    })
-
     const sectors = await Promise.all(['Administrativo', 'Produção', 'Comercial'].map((name) => prisma.sector.create({ data: { companyId: company.id, name } })))
-    const questions = await prisma.question.findMany({ select: { code: true, topicNum: true, reverse: true } })
-    for (const [sectorIndex, sector] of sectors.entries()) {
-      const rows = Array.from({ length: sectorIndex === 1 ? 16 : 8 }, (_, respondent) => ({
-        sectorId: sector.id,
-        answers: questions.map((q) => ({ questionCode: q.code, value: Math.max(0, Math.min(4, (q.topicNum + respondent + sectorIndex) % 4)) })),
-      }))
-      if (rows.length) await prisma.response.createMany({ data: rows as Prisma.ResponseCreateManyInput[] })
-    }
 
     const token = signToken({ userId: user.id, companyId: company.id, role: user.role, email: DEMO_EMAIL })
     const refresh = signRefreshToken({ userId: user.id })
