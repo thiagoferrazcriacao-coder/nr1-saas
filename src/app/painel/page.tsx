@@ -177,6 +177,7 @@ export default function PainelPage() {
       if (!res.ok) return
       setTutorialOpen(false)
       setCompany((current) => current ? { ...current, gestorTutorialCompletedAt: new Date().toISOString() } : current)
+      window.dispatchEvent(new Event('zelo:gate-updated'))
     } finally {
       setTutorialConfirming(false)
     }

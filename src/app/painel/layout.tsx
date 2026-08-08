@@ -81,6 +81,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     { href: '/painel/documentos', label: 'Documentos', icon: '📄', enabled: teamLinkSent, reason: 'Confirme o envio do link ao time.' },
     { href: '/painel/historico', label: 'Histórico', icon: '📦', enabled: teamLinkSent, reason: 'Confirme o envio do link ao time.' },
     { href: '/painel/material-didatico', label: 'Material Didático', icon: '🎓', enabled: teamLinkSent, reason: 'Confirme o envio do link ao time.' },
+    ...(tutorialDone ? [{ href: '/painel/tutorial', label: 'Tutorial', icon: '🎬', enabled: true }] : []),
   ]
 
   if (checking) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="w-8 h-8 border-4 border-primary-800 border-t-transparent rounded-full animate-spin" /></div>
