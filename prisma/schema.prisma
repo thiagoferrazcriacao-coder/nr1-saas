@@ -62,6 +62,14 @@ model User {
   @@index([companyId])
 }
 
+// Credencial do painel administrativo interno. A primeira troca migra a senha
+// do segredo de ambiente para um hash persistido, sem expor a senha em código.
+model PlatformAdminCredential {
+  id           String   @id @default("singleton")
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+}
+
 model Subscription {
   id                   String    @id @default(uuid())
   companyId            String

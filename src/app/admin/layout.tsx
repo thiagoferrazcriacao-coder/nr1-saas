@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/videos', label: 'Gerenciar Vídeos', icon: '🎬' },
   { href: '/admin/ebooks', label: 'Ebooks',           icon: '📚' },
   { href: '/admin/supervisao-rt', label: 'Supervisão RT', icon: '🧪' },
+  { href: '/admin/seguranca', label: 'Segurança', icon: '🔐' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

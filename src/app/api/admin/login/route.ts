@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { signAdminToken } from '@/lib/admin-auth'
 import { z } from 'zod'
+import { verifyPlatformAdminPassword } from '@/lib/platform-admin-credentials'
 
 const schema = z.object({ username: z.string().min(1), password: z.string().min(1) })
 
@@ -11,8 +12,8 @@ export async function POST(req: NextRequest) {
     const { username, password } = schema.parse(body)
 
     const expectedUser = process.env.ADMIN_USER ?? 'admin'
-    const expectedPass = process.env.ADMIN_PASSWORD
-    if (!expectedPass || username.trim().toLowerCase() !== expectedUser.toLowerCase() || password !== expectedPass) {
+    const passwordOk = await verifyPlatformAdminPassword(password)
+    if (username.trim().toLowerCase() !== expectedUser.toLowerCase() || !passwordOk) {
       return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 })
     }
 
