@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
+import { displayDrpsReviewer } from '@/lib/drps-reviewer'
 
 const schema = z.object({
   name:          z.string().min(2).max(100).optional(),
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
   try {
     const { companyId, email } = requireAuth(req)
     const company = await prisma.company.findUnique({ where: { id: companyId }, select: SELECT })
-    return NextResponse.json({ company, email })
+    return NextResponse.json({ company: company ? { ...company, drpsValidatedBy: displayDrpsReviewer(company.drpsValidatedBy) } : null, email })
   } catch {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 })
   }

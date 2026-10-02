@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth'
 import { calcScore, buildRiskMatrix, type MatrixResult, type Probability } from '@/lib/scoring'
 import { FACTOR_ANALYSIS } from '@/lib/drps-content'
+import { displayDrpsReviewer } from '@/lib/drps-reviewer'
 
 export const dynamic = 'force-dynamic'
 
@@ -424,7 +425,7 @@ export async function GET(req: NextRequest) {
       gestorName: company.gestorName ?? null,
       gestorSignatureUrl: company.gestorSignatureUrl ?? null,
       drpsValidatedAt: company.drpsValidatedAt ?? null,
-      drpsValidatedBy: company.drpsValidatedBy ?? null,
+      drpsValidatedBy: displayDrpsReviewer(company.drpsValidatedBy),
       drpsNotes: company.drpsNotes ?? null,
     })
 
