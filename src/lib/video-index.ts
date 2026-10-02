@@ -1,10 +1,10 @@
 // Índice de Vídeos — catálogo fixo da biblioteca (Bloco 1 · 13 fatores × 6 vídeos = 78).
 // Base: "ÍNDICE DE VÍDEOS" (Matriz de Produção Zelo). Define o TEMA de cada aula, o autor
 // e a trilha. O vídeo em si é vinculado por `videoRef` (a chave, ex: "01.5") quando gravado.
-// Estrutura fixa por fator: V1,V2 = Rafael · V3,V4 = Annie · V5,V6 = Thiago.
+// Estrutura fixa por fator: V1,V2 = Rafael · V3,V4 = Renata · V5,V6 = Thiago.
 // Trilha: V1,V2,V5 = Gestor · V3,V4,V6 = Colaborador.
 
-export type Author = 'Rafael' | 'Annie' | 'Thiago'
+export type Author = 'Rafael' | 'Renata' | 'Thiago'
 export type Trilha = 'gestor' | 'colaborador'
 
 export type VideoSlot = {
@@ -36,8 +36,8 @@ export const FACTOR_WEIGHT: Record<number, 'ALTO' | 'MÉDIO' | 'BAIXO'> = {
 const SLOT_META: { videoNum: number; author: Author; trilha: Trilha; camada: string }[] = [
   { videoNum: 1, author: 'Rafael', trilha: 'gestor',      camada: 'Jurídico' },
   { videoNum: 2, author: 'Rafael', trilha: 'gestor',      camada: 'Emocional' },
-  { videoNum: 3, author: 'Annie',  trilha: 'colaborador', camada: 'Emocional' },
-  { videoNum: 4, author: 'Annie',  trilha: 'colaborador', camada: 'Técnico' },
+  { videoNum: 3, author: 'Renata', trilha: 'colaborador', camada: 'Emocional' },
+  { videoNum: 4, author: 'Renata', trilha: 'colaborador', camada: 'Técnico' },
   { videoNum: 5, author: 'Thiago', trilha: 'gestor',      camada: 'Processo' },
   { videoNum: 6, author: 'Thiago', trilha: 'colaborador', camada: 'Processo' },
 ]

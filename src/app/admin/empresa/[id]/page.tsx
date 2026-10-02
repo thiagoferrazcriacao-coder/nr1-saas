@@ -100,7 +100,7 @@ export default function AdminEmpresaPage() {
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
-      setCompany((prev) => prev ? { ...prev, drpsStatus: data.drpsStatus, drpsValidatedAt: new Date().toISOString(), drpsValidatedBy: 'Annie Talma — CRP/05/44595' } : prev)
+      setCompany((prev) => prev ? { ...prev, drpsStatus: data.drpsStatus, drpsValidatedAt: new Date().toISOString(), drpsValidatedBy: 'Renata Matos — Desenvolvimento Pessoal e Mentora' } : prev)
       setSuccess(action === 'aprovar' ? '✅ DRPS aprovado e liberado para a empresa!' : '❌ DRPS rejeitado. A empresa será notificada.')
     } catch {
       setError('Erro ao salvar. Tente novamente.')
@@ -274,7 +274,7 @@ export default function AdminEmpresaPage() {
         {/* Painel de validação */}
         <section className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
-            Validação — Annie Talma (CRP/05/44595)
+            Validação — Renata Matos
           </h2>
 
           {(isApproved || isRejected) && (
@@ -316,7 +316,7 @@ export default function AdminEmpresaPage() {
               disabled={saving || isApproved}
               className="px-6 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-500 transition-colors disabled:opacity-50 text-sm"
             >
-              {saving ? '...' : '✅ Aprovar e Assinar DRPS'}
+              {saving ? '...' : '✅ Aprovar DRPS'}
             </button>
             <button
               onClick={() => handleValidate('rejeitar')}
@@ -328,7 +328,7 @@ export default function AdminEmpresaPage() {
           </div>
 
           <p className="text-xs text-slate-500 mt-4">
-            Ao aprovar, o DRPS será liberado para download pela empresa com a assinatura digital da responsável técnica Annie Talma — CRP/05/44595, conforme exigido pela NR-1.
+            Ao aprovar, o DRPS será liberado para download pela empresa com o registro de validação de Renata Matos — Desenvolvimento Pessoal e Mentora.
           </p>
         </section>
       </main>

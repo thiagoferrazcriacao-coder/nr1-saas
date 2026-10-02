@@ -344,14 +344,14 @@ export default function LandingPage({ searchParams }: { searchParams?: { src?: s
       {/* EQUIPE */}
       <section className="bg-white py-20 px-4">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Responsabilidade técnica completa</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-[#0E2A47] mb-3">Uma equipe completa para sua empresa</h2>
           <div className="w-16 h-1.5 rounded-full bg-gradient-to-r from-[#17C3C9] to-[#5B8DEF] mb-4" />
-          <p className="text-gray-500 text-lg mb-10 max-w-2xl">Quem assina conhece as empresas da região e responde juridicamente pelo que entrega.</p>
+          <p className="text-gray-500 text-lg mb-10 max-w-2xl">Profissionais que unem gestão, desenvolvimento pessoal e tecnologia na entrega do programa.</p>
 
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               { iniciais: 'RC', nome: 'Rafael Coelho', cargo: 'Gestão de Projetos', desc: 'Responsável pela condução e entrega do programa de adequação.', destaque: false },
-              { iniciais: 'AT', nome: 'Annie Talma Ferreira Coelho', cargo: 'Psicóloga Responsável Técnica — CRP/05/44595', desc: 'Assina o DRPS e garante a validade legal do diagnóstico perante o MTE e a Justiça do Trabalho.', destaque: true },
+              { iniciais: 'RM', nome: 'Renata Matos', cargo: 'Desenvolvimento Pessoal e Mentora', desc: 'Apoia o desenvolvimento pessoal e a jornada de aprendizado das equipes.', destaque: true },
               { iniciais: 'TF', nome: 'Thiago Ferraz', cargo: 'Tecnologia e Plataforma', desc: 'Responsável pelo desenvolvimento e operação da plataforma Zelo.', destaque: false },
             ].map((pessoa) => (
               <div key={pessoa.nome} className={`bg-white rounded-2xl p-6 border shadow-sm ${pessoa.destaque ? 'border-[#17C3C9] shadow-[#17C3C9]/10' : 'border-gray-100'}`}>
@@ -363,7 +363,7 @@ export default function LandingPage({ searchParams }: { searchParams?: { src?: s
                 <p className="text-gray-500 text-sm leading-relaxed">{pessoa.desc}</p>
                 {pessoa.destaque && (
                   <div className="mt-3 bg-[#F0FBFC] border border-[#CCEFF1] rounded-lg p-2 text-xs text-[#109CA1] font-medium">
-                    ✅ Assina o DRPS com validade legal
+                    ✅ Desenvolvimento pessoal e mentoria
                   </div>
                 )}
               </div>
@@ -450,7 +450,7 @@ export default function LandingPage({ searchParams }: { searchParams?: { src?: s
             <span className="text-[#5BD9DD] text-sm ml-2">Plataforma de NR-1</span>
           </div>
           <p className="text-sm text-center">
-            Adequação baseada na Portaria MTE 1.419/2024 · Responsável técnica: Annie Talma Ferreira Coelho — CRP/05/44595
+            Adequação baseada na Portaria MTE 1.419/2024 · Desenvolvimento pessoal e mentoria: Renata Matos
           </p>
           <Link href="/login" className="text-sm text-[#5BD9DD] hover:underline font-semibold">
             Acessar plataforma →

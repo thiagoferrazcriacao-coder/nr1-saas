@@ -26,7 +26,7 @@ export async function POST(
       data: {
         drpsStatus,
         drpsValidatedAt: new Date(),
-        drpsValidatedBy: 'Annie Talma — CRP/05/44595',
+        drpsValidatedBy: 'Renata Matos — Desenvolvimento Pessoal e Mentora',
         drpsNotes:       notes ?? null,
       },
     })

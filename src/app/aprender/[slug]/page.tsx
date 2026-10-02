@@ -367,7 +367,7 @@ export default function AprenderPage() {
 
   // Mapa videoRef → aula publicada (para casar com o catálogo do Índice de Vídeos)
   const byRef = new Map(lessons.filter((l) => l.videoRef).map((l) => [l.videoRef as string, l]))
-  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
+  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Renata: '#0E8F95', Thiago: '#0E2A47' }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>

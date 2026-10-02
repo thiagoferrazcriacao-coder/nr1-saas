@@ -156,10 +156,10 @@ function Biblioteca() {
   const videos = [
     { t: 'Assédio: dever de apurar e provar', a: 'Rafael', trilha: 'Gestor',      pct: 100 },
     { t: 'Liderança que previne o assédio',   a: 'Rafael', trilha: 'Gestor',      pct: 70 },
-    { t: 'Reconhecer o que se está vivendo',  a: 'Annie',  trilha: 'Colaborador', pct: 100 },
+    { t: 'Reconhecer o que se está vivendo',  a: 'Renata', trilha: 'Colaborador', pct: 100 },
     { t: 'Como relatar com segurança',        a: 'Thiago', trilha: 'Colaborador', pct: 40 },
   ] as const
-  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
+  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Renata: '#0E8F95', Thiago: '#0E2A47' }
   return (
     <div>
       <div className="flex items-center justify-between flex-wrap gap-2 mb-4">

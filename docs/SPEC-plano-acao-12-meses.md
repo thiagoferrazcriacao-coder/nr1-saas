@@ -11,7 +11,7 @@ com **ritual mensal**, **atas por ação**, **assinatura do gestor** (sem psicó
 ---
 
 ## 1. Assinatura do Gestor (remover a da psicóloga)
-- **Remover** de TODOS os documentos gerados a assinatura/registro da psicóloga (Annie Talma / CRP).
+- **Remover** de TODOS os documentos gerados a assinatura/registro da profissional anterior (CRP).
 - **Todos os documentos** (DRPS, Anexo para o PGR, Plano de Ação e Atas) passam a levar a
   **assinatura do GESTOR**.
 - Em **Configurações da empresa**, adicionar:

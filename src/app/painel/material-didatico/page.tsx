@@ -98,7 +98,7 @@ export default function MaterialDidaticoPage() {
   }
 
   // Cores por autor e peso do fator
-  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Annie: '#0E8F95', Thiago: '#0E2A47' }
+  const authorColor: Record<string, string> = { Rafael: '#4B5CC9', Renata: '#0E8F95', Thiago: '#0E2A47' }
   const weightCls: Record<string, string> = { ALTO: 'bg-red-50 text-red-600 border-red-200', 'MÉDIO': 'bg-amber-50 text-amber-700 border-amber-200', BAIXO: 'bg-green-50 text-green-700 border-green-200' }
 
   // Material Didático liberado só a partir de 27/07/2026 — o usuário de teste vê liberado antes

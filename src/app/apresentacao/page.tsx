@@ -110,13 +110,13 @@ const SLIDES = [
     num: '5 / 7',
     content: (
       <div style={{display:'flex',flexDirection:'column',flex:1,justifyContent:'center'}}>
-        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>Equipe técnica</div>
-        <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,letterSpacing:'-.02em'}}>Responsabilidade legal<br />em quem assina.</h2>
+        <div style={{fontSize:'12px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'#17C3C9',marginBottom:'14px'}}>Nossa equipe</div>
+        <h2 style={{fontSize:'38px',fontWeight:900,color:'#fff',lineHeight:1.1,letterSpacing:'-.02em'}}>Gestão, desenvolvimento<br />e tecnologia juntos.</h2>
         <div style={{width:'44px',height:'3px',background:'#17C3C9',borderRadius:'2px',margin:'12px 0 26px'}} />
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px'}}>
           {[
             {ini:'RC',nome:'Rafael Coelho',cargo:'Gestão de Projetos',desc:'Condução e entrega do programa de adequação',ft:false,crp:false},
-            {ini:'AT',nome:'Annie Talma F. Coelho',cargo:'Psicóloga Responsável Técnica',desc:'Assina o DRPS. Validade legal garantida perante o MTE e a Justiça do Trabalho.',ft:true,crp:true},
+            {ini:'RM',nome:'Renata Matos',cargo:'Desenvolvimento Pessoal e Mentora',desc:'Apoia o desenvolvimento pessoal e a jornada de aprendizado das equipes.',ft:true,crp:false},
             {ini:'TF',nome:'Thiago Ferraz',cargo:'Tecnologia e Plataforma',desc:'Desenvolvimento e operação do sistema Zelo',ft:false,crp:false},
           ].map(p => (
             <div key={p.ini} style={{background:'rgba(255,255,255,.05)',border:`1px solid ${p.ft?'rgba(23,195,201,.5)':'rgba(255,255,255,.08)'}`,borderRadius:'14px',padding:'22px',textAlign:'center'}}>
